@@ -1,6 +1,7 @@
 const express = require('express');
 const QRCode = require('qrcode');
 const shortid = require('shortid');
+const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const auth = require('../middleware/auth');
 

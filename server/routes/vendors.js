@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const User = require('../models/User');
 const Vendor = require('../models/Vendor');
 const Service = require('../models/Service');
 const Booking = require('../models/Booking');
@@ -53,7 +54,10 @@ router.get('/public/:identifier', async (req, res) => {
 // Get vendor dashboard data (authenticated)
 router.get('/dashboard', auth, async (req, res) => {
   try {
+    console.log('Dashboard request - userId:', req.userId);
+    console.log('Request headers:', req.headers);
     const user = await User.findById(req.userId).populate('vendor');
+    console.log('User found:', user ? 'Yes' : 'No');
     if (!user || !user.vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
@@ -93,7 +97,12 @@ router.get('/dashboard', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Get dashboard error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message 
+    });
   }
 });
 

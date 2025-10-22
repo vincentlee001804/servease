@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+require('dotenv').config({ path: './.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -53,7 +53,17 @@ app.use('*', (req, res) => {
 });
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/servease')
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Not set');
+
+// Temporary hardcoded values for testing
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bcs24020018_db_user:A2P6jOGa3UmZ8TOU@servease.xa4tlyb.mongodb.net/?retryWrites=true&w=majority&appName=ServEase';
+const JWT_SECRET = process.env.JWT_SECRET || 'servease_super_secret_jwt_key_2024';
+
+console.log('Using MONGODB_URI:', MONGODB_URI ? 'Set' : 'Not set');
+console.log('Using JWT_SECRET:', JWT_SECRET ? 'Set' : 'Not set');
+
+mongoose.connect(MONGODB_URI)
 .then(() => {
   console.log('✅ Connected to MongoDB');
   app.listen(PORT, () => {

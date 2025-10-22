@@ -35,13 +35,19 @@ const VendorDashboard = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchDashboardData();
+      // Add a small delay to ensure token is set
+      setTimeout(() => {
+        fetchDashboardData();
+      }, 100);
     }
   }, [isAuthenticated]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching dashboard data...');
+      console.log('Auth token:', localStorage.getItem('token'));
+      console.log('Axios headers:', axios.defaults.headers.common);
       const response = await axios.get('/api/vendors/dashboard');
       setDashboardData(response.data);
     } catch (error) {

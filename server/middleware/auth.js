@@ -9,6 +9,9 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
+    console.log('Token received:', token.substring(0, 20) + '...');
+    console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Using fallback');
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
     const user = await User.findById(decoded.userId);
     
