@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configure axios base URL for the API
 axios.defaults.baseURL = process.env.NODE_ENV === 'production' 
-  ? 'https://us-central1-servease-xxxxx.cloudfunctions.net/api' 
+  ? 'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api' 
   : 'http://localhost:8000';
 
 // Add request interceptor for debugging
