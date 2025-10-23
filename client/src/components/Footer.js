@@ -6,7 +6,7 @@ const Footer = () => {
   const { t } = useLanguage();
 
   return (
-    <div className="bg-gray-900 mt-16">
+    <div className="bg-gray-900 pt-16">
       <footer className="text-white">
         <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
