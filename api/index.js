@@ -18,7 +18,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://servease.vercel.app', 'https://servease-git-main.vercel.app']
+    ? true // Allow all origins in production for now
     : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true
 }));
