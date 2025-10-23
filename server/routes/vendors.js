@@ -70,7 +70,7 @@ router.get('/dashboard', auth, async (req, res) => {
         businessName: user.email.split('@')[0] || 'My Business',
         businessType: 'other',
         contactInfo: {
-          phone: '',
+          phone: '000-000-0000', // Default phone number
           email: user.email,
           address: {}
         }
