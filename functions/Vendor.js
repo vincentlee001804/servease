@@ -51,12 +51,10 @@ const vendorSchema = new mongoose.Schema({
   qrCode: {
     code: {
       type: String,
-      unique: true,
       required: false
     },
     shortUrl: {
       type: String,
-      unique: true,
       required: false
     },
     qrImageUrl: String
