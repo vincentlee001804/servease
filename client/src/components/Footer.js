@@ -77,7 +77,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-5 pt-8 text-center text-gray-400">
+        <div className="border-t border-gray-800 mt-3 pt-4 text-center text-gray-400">
           <p>
             Built with ❤️ for local businesses in Malaysia
           </p>
