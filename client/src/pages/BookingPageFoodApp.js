@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { 
-  Calendar, 
   Clock, 
-  User, 
-  Phone, 
-  Mail, 
   CheckCircle, 
   ArrowLeft, 
   ArrowRight,
   Plus,
-  Minus,
-  Star,
-  MapPin
+  Minus
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import axios from '../config/axios';
 import { toast } from 'react-toastify';
@@ -49,9 +43,9 @@ const BookingPageFoodApp = () => {
     } else {
       fetchVendorData();
     }
-  }, [location.state, vendorId]);
+  }, [location.state, vendorId, fetchVendorData]);
 
-  const fetchVendorData = async () => {
+  const fetchVendorData = useCallback(async () => {
     try {
       const response = await axios.get(`/api/vendors/public/${vendorId}`);
       setVendor(response.data.vendor);
@@ -60,7 +54,7 @@ const BookingPageFoodApp = () => {
       console.error('Error fetching vendor data:', error);
       toast.error('Failed to load vendor information');
     }
-  };
+  }, [vendorId]);
 
   const handleServiceToggle = (service) => {
     setSelectedServices(prev => {

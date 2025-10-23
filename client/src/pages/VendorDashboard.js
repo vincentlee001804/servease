@@ -65,6 +65,9 @@ const VendorDashboard = () => {
             openInput.value = "00:00";
             closeInput.value = "23:59";
             break;
+          default:
+            // No change to current values
+            break;
         }
       }
     });
