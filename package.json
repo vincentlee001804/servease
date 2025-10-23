@@ -14,7 +14,8 @@
     "render-postbuild": "cd client && npm install && npm run build",
     "firebase-deploy": "node deploy-firebase.js",
     "firebase-serve": "firebase serve",
-    "firebase-emulators": "firebase emulators:start"
+    "firebase-emulators": "firebase emulators:start",
+    "deploy-complete": "node deploy-complete.js"
   },
   "keywords": [
     "booking",
