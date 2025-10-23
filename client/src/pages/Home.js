@@ -62,9 +62,9 @@ const Home = () => {
             </Link>
             <Link
               to="/login"
-              className="btn btn-outline border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4"
+              className="btn btn-primary bg-white text-blue-600 hover:bg-blue-50 text-lg px-8 py-4"
             >
-              {t('login')}
+              Login
             </Link>
           </div>
         </div>

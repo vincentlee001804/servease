@@ -23,7 +23,7 @@ const Footer = () => {
               Make service discovery and booking seamless for both vendors and customers.
             </p>
             <div className="text-sm text-gray-400">
-              © 2024 ServEase. All rights reserved.
+              © 2025 ServEase. All rights reserved.
             </div>
           </div>
 
@@ -54,7 +54,7 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
-                <a href="mailto:support@servease.com" className="text-gray-400 hover:text-white transition-colors">
+                <a href="mailto:bcs24020018@student.uts.edu.my" className="text-gray-400 hover:text-white transition-colors">
                   Contact Support
                 </a>
               </li>
@@ -79,7 +79,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-3 pt-4 pb-4 text-center text-gray-400">
           <p>
-            Built with ❤️ for local businesses in Malaysia
+            Built for local businesses in Malaysia
           </p>
         </div>
         </div>

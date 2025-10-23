@@ -22,7 +22,7 @@ MONGODB_URI=mongodb://localhost:27017/servease
 # Server
 PORT=5000
 NODE_ENV=development
-CLIENT_URL=http://localhost:3000
+CLIENT_URL=http://localhost:3002
 
 # JWT
 JWT_SECRET=your_jwt_secret_key_here_${Math.random().toString(36).substring(2, 15)}

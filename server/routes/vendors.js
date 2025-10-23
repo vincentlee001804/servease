@@ -106,8 +106,52 @@ router.get('/dashboard', auth, async (req, res) => {
   }
 });
 
-// Update vendor profile
-router.put('/profile', auth, [
+// Update business profile
+router.put('/profile', auth, async (req, res) => {
+  try {
+    console.log('Profile update request received:', req.body);
+    
+    const user = await User.findById(req.userId).populate('vendor');
+    if (!user || !user.vendor) {
+      return res.status(404).json({ message: 'Vendor not found' });
+    }
+
+    const vendor = user.vendor;
+    
+    // Update vendor profile
+    vendor.businessName = req.body.businessName || vendor.businessName;
+    vendor.businessType = req.body.businessType || vendor.businessType;
+    vendor.phone = req.body.phone || vendor.phone;
+    vendor.email = req.body.email || vendor.email;
+    vendor.address = {
+      street: req.body.address || vendor.address?.street,
+      city: vendor.address?.city,
+      state: vendor.address?.state,
+      zipCode: vendor.address?.zipCode
+    };
+    vendor.description = req.body.description || vendor.description;
+    vendor.operatingHours = req.body.operatingHours || vendor.operatingHours;
+
+    await vendor.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Business profile updated successfully',
+      vendor 
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+// Update vendor profile (legacy - keeping for compatibility)
+router.put('/profile-legacy', auth, [
   body('businessName').optional().trim(),
   body('description').optional().trim(),
   body('contactInfo.phone').optional().trim(),

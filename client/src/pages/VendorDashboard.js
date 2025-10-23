@@ -28,9 +28,90 @@ const VendorDashboard = () => {
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [qrCode, setQrCode] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const handleServiceFormSuccess = () => {
     fetchDashboardData();
+  };
+
+  const setOperatingHours = (type) => {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach((day, index) => {
+      const enabledCheckbox = document.querySelector(`input[name="${day}_enabled"]`);
+      const openInput = document.querySelector(`input[name="${day}_open"]`);
+      const closeInput = document.querySelector(`input[name="${day}_close"]`);
+      
+      if (enabledCheckbox && openInput && closeInput) {
+        switch (type) {
+          case 'standard':
+            enabledCheckbox.checked = index < 5; // Monday-Friday
+            openInput.value = index < 5 ? "09:00" : "";
+            closeInput.value = index < 5 ? "18:00" : "";
+            break;
+          case 'extended':
+            enabledCheckbox.checked = index < 5; // Monday-Friday
+            openInput.value = index < 5 ? "08:00" : "";
+            closeInput.value = index < 5 ? "20:00" : "";
+            break;
+          case 'weekend':
+            enabledCheckbox.checked = index < 5; // Monday-Friday only
+            openInput.value = index < 5 ? "09:00" : "";
+            closeInput.value = index < 5 ? "18:00" : "";
+            break;
+          case '24/7':
+            enabledCheckbox.checked = true;
+            openInput.value = "00:00";
+            closeInput.value = "23:59";
+            break;
+        }
+      }
+    });
+  };
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    
+    try {
+      const formData = new FormData(e.target);
+      const profileData = {
+        businessName: formData.get('businessName'),
+        businessType: formData.get('businessType'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        address: formData.get('address'),
+        description: formData.get('description'),
+        operatingHours: {}
+      };
+
+      // Collect operating hours
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      days.forEach(day => {
+        const enabled = formData.get(`${day}_enabled`) === 'on';
+        const open = formData.get(`${day}_open`);
+        const close = formData.get(`${day}_close`);
+        
+        profileData.operatingHours[day] = {
+          enabled,
+          open: enabled ? open : null,
+          close: enabled ? close : null
+        };
+      });
+
+      const response = await axios.put('/api/vendors/profile', profileData);
+      
+      if (response.data.success) {
+        alert('Business profile updated successfully!');
+        fetchDashboardData(); // Refresh dashboard data
+        setActiveTab('overview'); // Go back to overview
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Failed to save business profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
 
@@ -515,7 +596,7 @@ const VendorDashboard = () => {
                 Business Profile
               </h3>
               
-              <div className="space-y-6">
+              <form onSubmit={handleProfileSave} className="space-y-6">
                 {/* Business Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -524,9 +605,11 @@ const VendorDashboard = () => {
                     </label>
                     <input
                       type="text"
+                      name="businessName"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter your business name"
                       defaultValue={dashboardData?.vendor?.businessName || ''}
+                      required
                     />
                   </div>
                   
@@ -534,7 +617,7 @@ const VendorDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Business Type
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="businessType" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">Select business type</option>
                       <option value="restaurant">Restaurant</option>
                       <option value="salon">Salon & Beauty</option>
@@ -556,9 +639,11 @@ const VendorDashboard = () => {
                     </label>
                     <input
                       type="tel"
+                      name="phone"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter phone number"
                       defaultValue={dashboardData?.vendor?.phone || ''}
+                      required
                     />
                   </div>
                   
@@ -568,9 +653,11 @@ const VendorDashboard = () => {
                     </label>
                     <input
                       type="email"
+                      name="email"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter email address"
                       defaultValue={dashboardData?.vendor?.email || ''}
+                      required
                     />
                   </div>
                 </div>
@@ -581,6 +668,7 @@ const VendorDashboard = () => {
                     Business Address
                   </label>
                   <textarea
+                    name="address"
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter your business address"
@@ -594,6 +682,7 @@ const VendorDashboard = () => {
                     Business Description
                   </label>
                   <textarea
+                    name="description"
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Describe your business, services, and what makes you unique"
@@ -601,38 +690,99 @@ const VendorDashboard = () => {
                   />
                 </div>
 
-                {/* Operating Hours */}
+                {/* Operating Hours - Improved UX */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-4">
                     Operating Hours
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                      <div key={day} className="flex items-center space-x-2">
-                        <div className="w-20 text-sm font-medium text-gray-700">{day}</div>
-                        <input
-                          type="time"
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                          placeholder="Open"
-                        />
-                        <span className="text-gray-500">to</span>
-                        <input
-                          type="time"
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                          placeholder="Close"
-                        />
+                  
+                  {/* Quick Setup Options */}
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Setup</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOperatingHours('standard')}
+                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                      >
+                        Standard (9 AM - 6 PM)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOperatingHours('extended')}
+                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                      >
+                        Extended (8 AM - 8 PM)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOperatingHours('weekend')}
+                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                      >
+                        Weekend Closed
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOperatingHours('24/7')}
+                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                      >
+                        24/7
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Individual Day Settings */}
+                  <div className="space-y-3">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => (
+                      <div key={day} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
+                        <div className="w-24 text-sm font-medium text-gray-700">{day}</div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            name={`${day.toLowerCase()}_enabled`}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            defaultChecked={index < 5} // Monday-Friday enabled by default
+                          />
+                          <span className="text-sm text-gray-600">Open</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="time"
+                            name={`${day.toLowerCase()}_open`}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            defaultValue={index < 5 ? "09:00" : ""}
+                          />
+                          <span className="text-gray-500">to</span>
+                          <input
+                            type="time"
+                            name={`${day.toLowerCase()}_close`}
+                            className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            defaultValue={index < 5 ? "18:00" : ""}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Save Button */}
-                <div className="flex justify-end">
-                  <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    Save Changes
+                <div className="flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('overview')}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}
