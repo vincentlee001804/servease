@@ -20,7 +20,7 @@ import { toast } from 'react-toastify';
 import ServiceForm from '../components/ServiceForm';
 
 const VendorDashboard = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { t } = useLanguage();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -150,15 +150,6 @@ const VendorDashboard = () => {
     }
   };
 
-  const fetchQRCode = async () => {
-    try {
-      const response = await axios.get('/api/qr/info');
-      setQrCode(response.data);
-    } catch (error) {
-      console.error('Error fetching QR code:', error);
-      toast.error('Failed to load QR code');
-    }
-  };
 
   const generateQRCode = async () => {
     try {
