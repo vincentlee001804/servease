@@ -63,6 +63,9 @@ router.post('/register', [
 
     await vendor.save();
 
+    // Generate QR code for the vendor (optional - can be done later)
+    // QR code generation will be handled when the vendor accesses the QR section
+
     // Link user to vendor
     user.vendor = vendor._id;
     await user.save();

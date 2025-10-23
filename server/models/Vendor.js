@@ -52,12 +52,12 @@ const vendorSchema = new mongoose.Schema({
     code: {
       type: String,
       unique: true,
-      required: true
+      required: false
     },
     shortUrl: {
       type: String,
       unique: true,
-      required: true
+      required: false
     },
     qrImageUrl: String
   },
