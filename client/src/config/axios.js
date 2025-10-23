@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configure axios base URL for the API
 axios.defaults.baseURL = process.env.NODE_ENV === 'production' 
-  ? 'https://servease-k89i.onrender.com' 
+  ? 'https://servease.vercel.app' 
   : 'http://localhost:8000';
 
 // Add request interceptor for debugging

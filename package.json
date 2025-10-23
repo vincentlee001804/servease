@@ -11,7 +11,8 @@
     "build": "cd client && npm run build",
     "start": "node server.js",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
-    "render-postbuild": "cd client && npm install && npm run build"
+    "render-postbuild": "cd client && npm install && npm run build",
+    "vercel-build": "cd client && npm install && npm run build"
   },
   "keywords": [
     "booking",
