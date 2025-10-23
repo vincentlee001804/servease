@@ -2,6 +2,7 @@
   "name": "servease-client",
   "version": "1.0.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
     "@testing-library/jest-dom": "^5.17.0",
