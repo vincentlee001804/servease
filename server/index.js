@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: './.env' });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // Security middleware
 app.use(helmet());

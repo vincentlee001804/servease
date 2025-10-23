@@ -58,8 +58,32 @@ router.get('/dashboard', auth, async (req, res) => {
     console.log('Request headers:', req.headers);
     const user = await User.findById(req.userId).populate('vendor');
     console.log('User found:', user ? 'Yes' : 'No');
-    if (!user || !user.vendor) {
-      return res.status(404).json({ message: 'Vendor not found' });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // If user exists but no vendor profile, create one
+    if (!user.vendor) {
+      console.log('Creating vendor profile for user:', user._id);
+      const vendor = new Vendor({
+        businessName: user.email.split('@')[0] || 'My Business',
+        businessType: 'other',
+        contactInfo: {
+          phone: '',
+          email: user.email,
+          address: {}
+        }
+      });
+      
+      await vendor.save();
+      
+      // Link user to vendor
+      user.vendor = vendor._id;
+      await user.save();
+      
+      // Re-populate the user with vendor
+      await user.populate('vendor');
     }
 
     const vendor = user.vendor;

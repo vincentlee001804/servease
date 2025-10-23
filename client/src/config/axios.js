@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Configure axios base URL for the API
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = process.env.NODE_ENV === 'production' 
+  ? 'https://servease-k89i.onrender.com' 
+  : 'http://localhost:8000';
 
 // Add request interceptor for debugging
 axios.interceptors.request.use(

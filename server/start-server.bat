@@ -1,0 +1,9 @@
+@echo off
+echo Starting ServEase Server...
+echo.
+echo Checking Node.js...
+node --version
+echo.
+echo Starting server on port 8000...
+node index.js
+pause
