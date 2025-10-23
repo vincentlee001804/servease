@@ -6,8 +6,8 @@ const Footer = () => {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
+    <footer className="bg-gray-900 text-white mt-16">
+      <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
@@ -76,7 +76,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+        <div className="border-t border-gray-800 mt-5 pt-8 text-center text-gray-400">
           <p>
             Built with ❤️ for local businesses in Malaysia
           </p>
