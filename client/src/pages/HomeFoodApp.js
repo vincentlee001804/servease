@@ -116,8 +116,8 @@ const HomeFoodApp = () => {
                 Start Free Trial
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto font-semibold">
-                {t('login')}
+              <Button variant="outline" size="lg" className="border-white !text-white hover:bg-white hover:!text-blue-600 text-lg px-8 py-4 h-auto font-semibold">
+                Login
               </Button>
             </div>
 
@@ -282,7 +282,7 @@ const HomeFoodApp = () => {
               Get Started Today
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-4 h-auto font-semibold">
+            <Button size="lg" variant="outline" className="border-white !text-white hover:bg-white hover:!text-blue-600 text-lg px-8 py-4 h-auto font-semibold">
               Learn More
             </Button>
           </div>
