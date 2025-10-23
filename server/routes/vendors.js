@@ -145,18 +145,29 @@ router.put('/profile', auth, async (req, res) => {
     // Update vendor profile
     vendor.businessName = req.body.businessName || vendor.businessName;
     vendor.businessType = req.body.businessType || vendor.businessType;
-    vendor.phone = req.body.phone || vendor.phone;
-    vendor.email = req.body.email || vendor.email;
-    vendor.address = {
-      street: req.body.address || vendor.address?.street,
-      city: vendor.address?.city,
-      state: vendor.address?.state,
-      zipCode: vendor.address?.zipCode
-    };
     vendor.description = req.body.description || vendor.description;
     vendor.operatingHours = req.body.operatingHours || vendor.operatingHours;
+    
+    // Update contact info
+    if (req.body.phone) {
+      vendor.contactInfo.phone = req.body.phone;
+    }
+    if (req.body.email) {
+      vendor.contactInfo.email = req.body.email;
+    }
+    if (req.body.address) {
+      vendor.contactInfo.address.street = req.body.address;
+    }
 
     await vendor.save();
+
+    console.log('Updated vendor data:', {
+      businessName: vendor.businessName,
+      businessType: vendor.businessType,
+      contactInfo: vendor.contactInfo,
+      description: vendor.description,
+      operatingHours: vendor.operatingHours
+    });
 
     res.json({ 
       success: true, 

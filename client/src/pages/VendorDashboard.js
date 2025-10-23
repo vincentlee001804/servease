@@ -104,6 +104,7 @@ const VendorDashboard = () => {
       
       if (response.data.success) {
         alert('Business profile updated successfully!');
+        console.log('Profile update response:', response.data);
         fetchDashboardData(); // Refresh dashboard data
         setIsEditingProfile(false); // Switch to view mode
       }
@@ -132,6 +133,8 @@ const VendorDashboard = () => {
       console.log('Auth token:', localStorage.getItem('token'));
       console.log('Axios headers:', axios.defaults.headers.common);
       const response = await axios.get('/api/vendors/dashboard');
+      console.log('Dashboard data received:', response.data);
+      console.log('Vendor data:', response.data.vendor);
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
