@@ -1,10 +1,10 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const User = require('../models/User');
-const Vendor = require('../models/Vendor');
-const Service = require('../models/Service');
-const Booking = require('../models/Booking');
-const auth = require('../middleware/auth');
+const User = require('../User');
+const Vendor = require('../Vendor');
+const Service = require('../Service');
+const Booking = require('../Booking');
+const auth = require('../auth');
 
 const router = express.Router();
 
