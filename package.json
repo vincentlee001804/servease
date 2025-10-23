@@ -12,7 +12,10 @@
     "start": "node server.js",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "render-postbuild": "cd client && npm install && npm run build",
-    "vercel-build": "cd client && npm install && npm run build"
+    "vercel-build": "cd client && npm install && npm run build",
+    "firebase-deploy": "node deploy-firebase.js",
+    "firebase-serve": "firebase serve",
+    "firebase-emulators": "firebase emulators:start"
   },
   "keywords": [
     "booking",
