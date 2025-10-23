@@ -36,15 +36,6 @@ const BookingPageFoodApp = () => {
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(null);
 
-  useEffect(() => {
-    if (location.state?.vendor && location.state?.services) {
-      setVendor(location.state.vendor);
-      setServices(location.state.services);
-    } else {
-      fetchVendorData();
-    }
-  }, [location.state, vendorId, fetchVendorData]);
-
   const fetchVendorData = useCallback(async () => {
     try {
       const response = await axios.get(`/api/vendors/public/${vendorId}`);
@@ -55,6 +46,15 @@ const BookingPageFoodApp = () => {
       toast.error('Failed to load vendor information');
     }
   }, [vendorId]);
+
+  useEffect(() => {
+    if (location.state?.vendor && location.state?.services) {
+      setVendor(location.state.vendor);
+      setServices(location.state.services);
+    } else {
+      fetchVendorData();
+    }
+  }, [location.state, vendorId, fetchVendorData]);
 
   const handleServiceToggle = (service) => {
     setSelectedServices(prev => {
