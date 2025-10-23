@@ -29,6 +29,7 @@ const VendorDashboard = () => {
   const [editingService, setEditingService] = useState(null);
   const [qrCode, setQrCode] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const handleServiceFormSuccess = () => {
     fetchDashboardData();
@@ -104,7 +105,7 @@ const VendorDashboard = () => {
       if (response.data.success) {
         alert('Business profile updated successfully!');
         fetchDashboardData(); // Refresh dashboard data
-        setActiveTab('overview'); // Go back to overview
+        setIsEditingProfile(false); // Switch to view mode
       }
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -592,197 +593,292 @@ const VendorDashboard = () => {
         {activeTab === 'profile' && (
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Business Profile
-              </h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Business Profile
+                </h3>
+                {!isEditingProfile && (
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Edit Profile
+                  </button>
+                )}
+              </div>
               
-              <form onSubmit={handleProfileSave} className="space-y-6">
-                {/* Business Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Business Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="businessName"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter your business name"
-                      defaultValue={dashboardData?.vendor?.businessName || ''}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Business Type
-                    </label>
-                    <select name="businessType" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">Select business type</option>
-                      <option value="restaurant">Restaurant</option>
-                      <option value="salon">Salon & Beauty</option>
-                      <option value="fitness">Fitness & Wellness</option>
-                      <option value="automotive">Automotive</option>
-                      <option value="home">Home Services</option>
-                      <option value="professional">Professional Services</option>
-                      <option value="retail">Retail</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter phone number"
-                      defaultValue={dashboardData?.vendor?.phone || ''}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter email address"
-                      defaultValue={dashboardData?.vendor?.email || ''}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Address */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Address
-                  </label>
-                  <textarea
-                    name="address"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter your business address"
-                    defaultValue={dashboardData?.vendor?.address?.street || ''}
-                  />
-                </div>
-
-                {/* Business Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Description
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe your business, services, and what makes you unique"
-                    defaultValue={dashboardData?.vendor?.description || ''}
-                  />
-                </div>
-
-                {/* Operating Hours - Improved UX */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    Operating Hours
-                  </label>
-                  
-                  {/* Quick Setup Options */}
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Setup</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setOperatingHours('standard')}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-                      >
-                        Standard (9 AM - 6 PM)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOperatingHours('extended')}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-                      >
-                        Extended (8 AM - 8 PM)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOperatingHours('weekend')}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-                      >
-                        Weekend Closed
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOperatingHours('24/7')}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-                      >
-                        24/7
-                      </button>
+              {isEditingProfile ? (
+                <form onSubmit={handleProfileSave} className="space-y-6">
+                  {/* Business Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Business Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="businessName"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter your business name"
+                        defaultValue={dashboardData?.vendor?.businessName || ''}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Business Type
+                      </label>
+                      <select name="businessType" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select business type</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="salon">Salon & Beauty</option>
+                        <option value="fitness">Fitness & Wellness</option>
+                        <option value="automotive">Automotive</option>
+                        <option value="home">Home Services</option>
+                        <option value="professional">Professional Services</option>
+                        <option value="retail">Retail</option>
+                        <option value="other">Other</option>
+                      </select>
                     </div>
                   </div>
 
-                  {/* Individual Day Settings */}
-                  <div className="space-y-3">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => (
-                      <div key={day} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
-                        <div className="w-24 text-sm font-medium text-gray-700">{day}</div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            name={`${day.toLowerCase()}_enabled`}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            defaultChecked={index < 5} // Monday-Friday enabled by default
-                          />
-                          <span className="text-sm text-gray-600">Open</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="time"
-                            name={`${day.toLowerCase()}_open`}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
-                            defaultValue={index < 5 ? "09:00" : ""}
-                          />
-                          <span className="text-gray-500">to</span>
-                          <input
-                            type="time"
-                            name={`${day.toLowerCase()}_close`}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
-                            defaultValue={index < 5 ? "18:00" : ""}
-                          />
-                        </div>
+                  {/* Contact Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter phone number"
+                        defaultValue={dashboardData?.vendor?.contactInfo?.phone || ''}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter email address"
+                        defaultValue={dashboardData?.vendor?.contactInfo?.email || ''}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Address
+                    </label>
+                    <textarea
+                      name="address"
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter your business address"
+                      defaultValue={dashboardData?.vendor?.contactInfo?.address?.street || ''}
+                    />
+                  </div>
+
+                  {/* Business Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Description
+                    </label>
+                    <textarea
+                      name="description"
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Describe your business, services, and what makes you unique"
+                      defaultValue={dashboardData?.vendor?.description || ''}
+                    />
+                  </div>
+
+                  {/* Operating Hours - Improved UX */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                      Operating Hours
+                    </label>
+                    
+                    {/* Quick Setup Options */}
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Quick Setup</h4>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setOperatingHours('standard')}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                        >
+                          Standard (9 AM - 6 PM)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOperatingHours('extended')}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                        >
+                          Extended (8 AM - 8 PM)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOperatingHours('weekend')}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                        >
+                          Weekend Closed
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOperatingHours('24/7')}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                        >
+                          24/7
+                        </button>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Individual Day Settings */}
+                    <div className="space-y-3">
+                      {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => (
+                        <div key={day} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
+                          <div className="w-24 text-sm font-medium text-gray-700">{day}</div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              name={`${day.toLowerCase()}_enabled`}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              defaultChecked={index < 5} // Monday-Friday enabled by default
+                            />
+                            <span className="text-sm text-gray-600">Open</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="time"
+                              name={`${day.toLowerCase()}_open`}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              defaultValue={index < 5 ? "09:00" : ""}
+                            />
+                            <span className="text-gray-500">to</span>
+                            <input
+                              type="time"
+                              name={`${day.toLowerCase()}_close`}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                              defaultValue={index < 5 ? "18:00" : ""}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(false)}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-6">
+                  {/* View Mode - Display Current Data */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Business Name
+                      </label>
+                      <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                        {dashboardData?.vendor?.businessName || 'Not set'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Business Type
+                      </label>
+                      <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                        {dashboardData?.vendor?.businessType || 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
+                      </label>
+                      <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                        {dashboardData?.vendor?.contactInfo?.phone || 'Not set'}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address
+                      </label>
+                      <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                        {dashboardData?.vendor?.contactInfo?.email || 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Address
+                    </label>
+                    <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md min-h-[80px]">
+                      {dashboardData?.vendor?.contactInfo?.address?.street || 'Not set'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Description
+                    </label>
+                    <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md min-h-[100px]">
+                      {dashboardData?.vendor?.description || 'Not set'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                      Operating Hours
+                    </label>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      {dashboardData?.vendor?.operatingHours ? (
+                        <div className="space-y-2">
+                          {Object.entries(dashboardData.vendor.operatingHours).map(([day, hours]) => (
+                            <div key={day} className="flex justify-between">
+                              <span className="capitalize font-medium">{day}:</span>
+                              <span>
+                                {hours.enabled ? `${hours.open} - ${hours.close}` : 'Closed'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">Operating hours not set</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* Save Button */}
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('overview')}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
+              )}
             </div>
           </div>
         )}
