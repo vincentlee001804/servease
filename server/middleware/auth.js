@@ -10,9 +10,8 @@ const auth = async (req, res, next) => {
     }
 
     console.log('Token received:', token.substring(0, 20) + '...');
-    console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Using fallback');
     
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    const decoded = jwt.verify(token, 'servease_super_secret_jwt_key_2024');
     const user = await User.findById(decoded.userId);
     
     if (!user) {

@@ -70,7 +70,7 @@ router.post('/register', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
-      process.env.JWT_SECRET || 'fallback_secret',
+      'servease_super_secret_jwt_key_2024',
       { expiresIn: '7d' }
     );
 
@@ -127,7 +127,7 @@ router.post('/login', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
-      process.env.JWT_SECRET || 'fallback_secret',
+      'servease_super_secret_jwt_key_2024',
       { expiresIn: '7d' }
     );
 

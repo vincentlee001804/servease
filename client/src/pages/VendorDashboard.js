@@ -33,6 +33,11 @@ const VendorDashboard = () => {
     fetchDashboardData();
   };
 
+  const clearTokenAndReload = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       // Add a small delay to ensure token is set
@@ -52,6 +57,12 @@ const VendorDashboard = () => {
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      if (error.response?.status === 401) {
+        // Token is invalid, clear it and redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -165,12 +176,22 @@ const VendorDashboard = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {dashboardData?.vendor?.businessName}
-          </h1>
-          <p className="text-gray-600">
-            Manage your services, bookings, and business profile
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Welcome back, {dashboardData?.vendor?.businessName}
+              </h1>
+              <p className="text-gray-600">
+                Manage your services, bookings, and business profile
+              </p>
+            </div>
+            <button
+              onClick={clearTokenAndReload}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
+            >
+              Fix Auth Issue
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -239,6 +260,7 @@ const VendorDashboard = () => {
               { id: 'overview', label: 'Overview' },
               { id: 'services', label: 'Services' },
               { id: 'bookings', label: 'Bookings' },
+              { id: 'profile', label: 'Business Profile' },
               { id: 'qr', label: 'QR Code' }
             ].map((tab) => (
               <button
@@ -497,6 +519,135 @@ const VendorDashboard = () => {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="space-y-6">
+            <div className="card">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Business Profile
+              </h3>
+              
+              <div className="space-y-6">
+                {/* Business Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Name *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter your business name"
+                      defaultValue={dashboardData?.vendor?.businessName || ''}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Type
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="">Select business type</option>
+                      <option value="restaurant">Restaurant</option>
+                      <option value="salon">Salon & Beauty</option>
+                      <option value="fitness">Fitness & Wellness</option>
+                      <option value="automotive">Automotive</option>
+                      <option value="home">Home Services</option>
+                      <option value="professional">Professional Services</option>
+                      <option value="retail">Retail</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter phone number"
+                      defaultValue={dashboardData?.vendor?.phone || ''}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter email address"
+                      defaultValue={dashboardData?.vendor?.email || ''}
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Address
+                  </label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your business address"
+                    defaultValue={dashboardData?.vendor?.address?.street || ''}
+                  />
+                </div>
+
+                {/* Business Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Description
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe your business, services, and what makes you unique"
+                    defaultValue={dashboardData?.vendor?.description || ''}
+                  />
+                </div>
+
+                {/* Operating Hours */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-4">
+                    Operating Hours
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <div className="w-20 text-sm font-medium text-gray-700">{day}</div>
+                        <input
+                          type="time"
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          placeholder="Open"
+                        />
+                        <span className="text-gray-500">to</span>
+                        <input
+                          type="time"
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                          placeholder="Close"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <button className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
