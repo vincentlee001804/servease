@@ -59,19 +59,19 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
                   Help Center
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
                   Privacy Policy
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
                   Terms of Service
-                </a>
+                </button>
               </li>
             </ul>
           </div>

@@ -52,7 +52,6 @@ const translations = {
     
     // Services
     price: 'Price',
-    duration: 'Duration',
     description: 'Description',
     requirements: 'Requirements',
     
@@ -115,7 +114,6 @@ const translations = {
     
     // Services
     price: 'Harga',
-    duration: 'Tempoh',
     description: 'Penerangan',
     requirements: 'Keperluan',
     
@@ -178,7 +176,6 @@ const translations = {
     
     // Services
     price: '价格',
-    duration: '时长',
     description: '描述',
     requirements: '要求',
     

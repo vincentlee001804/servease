@@ -5,7 +5,7 @@ import axios from '../config/axios';
 import { toast } from 'react-toastify';
 
 const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: {
       en: '',
