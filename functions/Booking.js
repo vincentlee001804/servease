@@ -72,7 +72,6 @@ const bookingSchema = new mongoose.Schema({
   },
   confirmationCode: {
     type: String,
-    unique: true,
     required: true
   },
   reminderSent: {
