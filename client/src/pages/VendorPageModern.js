@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input';
 import axios from '../config/axios';
 
-const VendorPageFoodApp = () => {
+const VendorPageModern = () => {
   const { vendorId, shortUrl } = useParams();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
@@ -340,4 +340,4 @@ const VendorPageFoodApp = () => {
   );
 };
 
-export default VendorPageFoodApp;
+export default VendorPageModern;

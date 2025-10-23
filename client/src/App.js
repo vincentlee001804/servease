@@ -8,9 +8,9 @@ import Header from './components/HeaderModern';
 import Footer from './components/Footer';
 
 // Pages
-import Home from './pages/HomeFoodApp';
-import VendorPage from './pages/VendorPageFoodApp';
-import BookingPage from './pages/BookingPageFoodApp';
+import Home from './pages/HomeModern';
+import VendorPage from './pages/VendorPageModern';
+import BookingPage from './pages/BookingPageModern';
 import VendorDashboard from './pages/VendorDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
