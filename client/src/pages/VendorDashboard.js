@@ -33,10 +33,6 @@ const VendorDashboard = () => {
     fetchDashboardData();
   };
 
-  const clearTokenAndReload = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -176,22 +172,12 @@ const VendorDashboard = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome back, {dashboardData?.vendor?.businessName}
-              </h1>
-              <p className="text-gray-600">
-                Manage your services, bookings, and business profile
-              </p>
-            </div>
-            <button
-              onClick={clearTokenAndReload}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm"
-            >
-              Fix Auth Issue
-            </button>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {dashboardData?.vendor?.businessName}
+          </h1>
+          <p className="text-gray-600">
+            Manage your services, bookings, and business profile
+          </p>
         </div>
 
         {/* Stats Cards */}
