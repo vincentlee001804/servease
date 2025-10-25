@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
@@ -12,8 +12,20 @@ const LoginFirebase = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const { login } = useAuth();
+  const { login, user, isLoggingIn } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to dashboard when user is authenticated
+  useEffect(() => {
+    console.log('LoginFirebase useEffect triggered:', { user: !!user, isLoggingIn, userEmail: user?.email });
+    if (user && !isLoggingIn) {
+      console.log('LoginFirebase: User authenticated, navigating to dashboard...');
+      // Add a small delay to prevent race conditions
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
+    }
+  }, [user, isLoggingIn, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,13 +67,19 @@ const LoginFirebase = () => {
       return;
     }
 
+    console.log('LoginFirebase: Starting login process');
     setLoading(true);
     
     try {
       const result = await login(formData.email, formData.password);
+      console.log('LoginFirebase: Login result', result);
       
+      // Fallback navigation - if useEffect doesn't trigger, navigate after a short delay
       if (result.success) {
-        navigate('/dashboard');
+        setTimeout(() => {
+          console.log('LoginFirebase: Fallback navigation to dashboard');
+          navigate('/dashboard');
+        }, 500);
       }
     } catch (error) {
       console.error('Login error:', error);

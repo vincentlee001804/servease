@@ -23,22 +23,31 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Listen for authentication state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('AuthContext: onAuthStateChanged triggered', { 
+        hasUser: !!firebaseUser, 
+        email: firebaseUser?.email,
+        isLoggingIn 
+      });
+      
       if (firebaseUser) {
         // Get additional user data from Firestore
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUser({
+            const userObj = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               ...userData
-            });
+            };
+            console.log('AuthContext: Setting user from existing doc', userObj);
+            setUser(userObj);
           } else {
             // If user document doesn't exist, create it
             await setDoc(doc(db, 'users', firebaseUser.uid), {
@@ -47,25 +56,32 @@ export const AuthProvider = ({ children }) => {
               role: 'vendor',
               createdAt: new Date()
             });
-            setUser({
+            const userObj = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               role: 'vendor'
-            });
+            };
+            console.log('AuthContext: Setting user from new doc', userObj);
+            setUser(userObj);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
-          setUser({
+          const userObj = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName
-          });
+          };
+          console.log('AuthContext: Setting user from error fallback', userObj);
+          setUser(userObj);
         }
       } else {
+        console.log('AuthContext: No user, setting user to null');
         setUser(null);
       }
+      console.log('AuthContext: Setting loading to false, isLoggingIn to false');
       setLoading(false);
+      setIsLoggingIn(false);
     });
 
     return () => unsubscribe();
@@ -150,7 +166,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('AuthContext: Starting login process', { email });
+      setIsLoggingIn(true);
       await signInWithEmailAndPassword(auth, email, password);
+      console.log('AuthContext: Firebase auth successful');
       toast.success('Login successful!');
       return { success: true };
     } catch (error) {
@@ -193,6 +212,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    isLoggingIn,
     login,
     register,
     logout,

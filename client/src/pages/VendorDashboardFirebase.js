@@ -208,12 +208,10 @@ const VendorDashboardFirebase = () => {
   };
 
   useEffect(() => {
+    console.log('VendorDashboard: useEffect triggered', { isAuthenticated, user: !!user, loading });
     if (isAuthenticated && user) {
+      console.log('VendorDashboard: User authenticated, fetching dashboard data');
       fetchDashboardData();
-    } else if (!isAuthenticated && !loading) {
-      // User is not authenticated and loading is complete, redirect to login
-      console.log('User not authenticated, redirecting to login...');
-      window.location.href = '/login';
     }
   }, [isAuthenticated, user, loading]);
 

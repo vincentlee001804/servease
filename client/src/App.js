@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -16,8 +16,32 @@ import Login from './pages/LoginFirebase';
 import Register from './pages/RegisterFirebase';
 
 // Context
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user, loading, isLoggingIn } = useAuth();
+  
+  console.log('ProtectedRoute: Checking auth state', { user: !!user, loading, isLoggingIn });
+  
+  if (loading || isLoggingIn) {
+    console.log('ProtectedRoute: Still loading or logging in, showing spinner');
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+  
+  console.log('ProtectedRoute: User authenticated, rendering children');
+  return children;
+};
 
 function App() {
   return (
@@ -39,7 +63,11 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 
                 {/* Protected vendor routes */}
-                <Route path="/dashboard" element={<VendorDashboard />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <VendorDashboard />
+                  </ProtectedRoute>
+                } />
               </Routes>
             </main>
             <Footer />
