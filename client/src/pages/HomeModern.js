@@ -74,19 +74,12 @@ const HomeModern = () => {
           <p className="text-lg md:text-xl mb-8 opacity-90 animate-fade-in-up max-w-3xl mx-auto">
             Effortless QR-based booking and digital menus for local services.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 animate-fade-in-up">
+          <div className="flex justify-center animate-fade-in-up">
             <Button 
               onClick={() => navigate('/register')}
-              className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4 h-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-white text-blue-600 hover:bg-gray-100 text-xl px-12 py-5 h-auto font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
             >
               Start Free Trial
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/login')}
-              className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4 h-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Login
             </Button>
           </div>
         </div>
