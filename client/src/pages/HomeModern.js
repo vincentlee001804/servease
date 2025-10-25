@@ -160,7 +160,7 @@ const HomeModern = () => {
               </p>
               <div className="flex items-center justify-center">
                 <img
-                  src="https://via.placeholder.com/50"
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiM2MzY2RjEiLz4KPC9zdmc+"
                   alt="Client 1"
                   className="w-12 h-12 rounded-full mr-4"
                 />
@@ -176,7 +176,7 @@ const HomeModern = () => {
               </p>
               <div className="flex items-center justify-center">
                 <img
-                  src="https://via.placeholder.com/50"
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEgzMFYzMEgyMFYyMFoiIGZpbGw9IiM2MzY2RjEiLz4KPC9zdmc+"
                   alt="Client 2"
                   className="w-12 h-12 rounded-full mr-4"
                 />

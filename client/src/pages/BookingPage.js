@@ -108,7 +108,7 @@ const BookingPage = () => {
     setLoading(true);
     try {
       const bookingData = {
-        vendorId: vendor._id,
+        vendorEmail: vendor.email,
         services: selectedServices,
         customer: customerInfo,
         bookingDate: selectedDate,
@@ -116,7 +116,7 @@ const BookingPage = () => {
         notes: customerInfo.notes
       };
 
-      const response = await axios.post('/api/bookings', bookingData);
+      const response = await axios.post('/bookings', bookingData);
       setBooking(response.data.booking);
       setStep(4);
       toast.success('Booking created successfully!');

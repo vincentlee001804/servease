@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { X, Save } from 'lucide-react';
-import axios from '../config/axios';
+import { doc, setDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
 
 const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: {
       en: '',
@@ -149,10 +152,22 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
       };
 
       if (service) {
-        await axios.put(`/api/services/${service._id}`, submitData);
+        // Update existing service
+        const serviceRef = doc(db, 'services', service.id);
+        await updateDoc(serviceRef, {
+          ...submitData,
+          updatedAt: new Date()
+        });
         toast.success('Service updated successfully!');
       } else {
-        await axios.post('/api/services', submitData);
+        // Create new service
+        const serviceData = {
+          ...submitData,
+          vendorEmail: user.email,
+          vendorId: user.uid,
+          createdAt: new Date()
+        };
+        await addDoc(collection(db, 'services'), serviceData);
         toast.success('Service created successfully!');
       }
 

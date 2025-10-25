@@ -11,9 +11,9 @@ import Footer from './components/Footer';
 import Home from './pages/HomeModern';
 import VendorPage from './pages/VendorPageModern';
 import BookingPage from './pages/BookingPageModern';
-import VendorDashboard from './pages/VendorDashboard';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import VendorDashboard from './pages/VendorDashboardFirebase';
+import Login from './pages/LoginFirebase';
+import Register from './pages/RegisterFirebase';
 
 // Context
 import { AuthProvider } from './context/AuthContext';

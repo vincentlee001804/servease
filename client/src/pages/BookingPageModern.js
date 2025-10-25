@@ -107,7 +107,7 @@ const BookingPageModern = () => {
     setLoading(true);
     try {
       const bookingData = {
-        vendor: vendor._id,
+        vendorEmail: vendor.email,
         services: selectedServices.map(s => ({
           service: s.id,
           quantity: s.quantity,
@@ -120,7 +120,7 @@ const BookingPageModern = () => {
         totalPrice: calculateTotalPrice(),
         totalDuration: calculateTotalDuration()
       };
-      const response = await axios.post('/api/bookings', bookingData);
+      const response = await axios.post('/bookings', bookingData);
       setBooking(response.data.booking);
       setStep(3); // Move to confirmation step
       toast.success(t('bookingSuccess'));
