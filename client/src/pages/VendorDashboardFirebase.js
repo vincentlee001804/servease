@@ -19,6 +19,7 @@ import {
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
+import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';
 
 const VendorDashboardFirebase = () => {
@@ -198,6 +199,15 @@ const VendorDashboardFirebase = () => {
         setAddress('');
         setDescription('');
         setOperatingHours(defaultVendorData.operatingHours);
+        
+        // Check for existing QR code
+        if (vendorData.qrCode && vendorData.qrCode.qrImage) {
+          setQrCode({
+            url: vendorData.qrCode.code,
+            shortUrl: vendorData.qrCode.shortUrl,
+            image: vendorData.qrCode.qrImage
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -249,19 +259,35 @@ const VendorDashboardFirebase = () => {
 
   const generateQRCode = async () => {
     try {
-      // Generate QR code data
-      const qrData = `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
+      // Generate unique vendor URLs
+      const vendorUrl = `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
       const shortUrl = `https://servease-07762363-b4f31.web.app/s/${user.uid}`;
+
+      // Generate actual QR code image
+      const qrCodeDataURL = await QRCodeLib.toDataURL(vendorUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
 
       // Update vendor with QR code info
       const vendorRef = doc(db, 'vendors', user.uid);
       await updateDoc(vendorRef, {
-        'qrCode.code': qrData,
+        'qrCode.code': vendorUrl,
         'qrCode.shortUrl': shortUrl,
-        'qrCode.qrImage': `data:image/png;base64,${qrData}` // Simplified for demo
+        'qrCode.qrImage': qrCodeDataURL,
+        'qrCode.generatedAt': new Date()
       });
 
-      setQrCode(qrData);
+      setQrCode({
+        url: vendorUrl,
+        shortUrl: shortUrl,
+        image: qrCodeDataURL
+      });
+      
       toast.success('QR code generated successfully!');
     } catch (error) {
       console.error('Error generating QR code:', error);
@@ -271,18 +297,38 @@ const VendorDashboardFirebase = () => {
 
   const downloadQRCode = async () => {
     try {
-      // For now, create a simple download link
-      const qrData = `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
+      if (!qrCode?.image) {
+        toast.error('No QR code available to download');
+        return;
+      }
+
+      // Create download link for QR code image
       const link = document.createElement('a');
-      link.href = qrData;
-      link.download = 'qrcode.png';
+      link.href = qrCode.image;
+      link.download = `servease-qrcode-${user.uid}.png`;
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      document.body.removeChild(link);
+      
       toast.success('QR code downloaded successfully!');
     } catch (error) {
       console.error('Error downloading QR code:', error);
       toast.error('Failed to download QR code');
+    }
+  };
+
+  const copyQRCodeLink = async () => {
+    try {
+      if (!qrCode?.url) {
+        toast.error('No QR code link available');
+        return;
+      }
+
+      await navigator.clipboard.writeText(qrCode.url);
+      toast.success('QR code link copied to clipboard!');
+    } catch (error) {
+      console.error('Error copying QR code link:', error);
+      toast.error('Failed to copy QR code link');
     }
   };
 
@@ -617,42 +663,78 @@ const VendorDashboardFirebase = () => {
             {/* QR Code Tab */}
             {activeTab === 'qr' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
+                  {qrCode && (
+                    <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                      ✓ Generated
+                    </span>
+                  )}
+                </div>
                 <div className="text-center">
                   {qrCode ? (
-                    <div className="space-y-4">
-                      <div className="inline-block p-4 bg-white border-2 border-gray-200 rounded-lg">
-                        <div className="w-48 h-48 bg-gray-100 flex items-center justify-center">
-                          <QrCode className="h-24 w-24 text-gray-400" />
-                        </div>
+                    <div className="space-y-6">
+                      {/* QR Code Display */}
+                      <div className="inline-block p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                        <img 
+                          src={qrCode.image} 
+                          alt="QR Code" 
+                          className="w-64 h-64 mx-auto"
+                        />
                       </div>
-                      <div className="space-y-2">
+                      
+                      {/* QR Code Info */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-2">Your unique booking link:</p>
+                        <p className="text-sm font-mono text-blue-600 break-all">
+                          {qrCode.url}
+                        </p>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
                           onClick={downloadQRCode}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download QR Code
                         </button>
                         <button
-                          onClick={() => navigator.clipboard.writeText(qrCode)}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          onClick={copyQRCodeLink}
+                          className="inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Copy Link
                         </button>
                       </div>
+                      
+                      {/* Instructions */}
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <h4 className="text-sm font-medium text-blue-900 mb-2">How to use your QR code:</h4>
+                        <ul className="text-sm text-blue-800 text-left space-y-1">
+                          <li>• Print the QR code and display it at your business</li>
+                          <li>• Customers scan the code to access your booking page</li>
+                          <li>• Share the link directly via social media or messaging</li>
+                        </ul>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <p className="text-gray-600">Generate your QR code to start accepting bookings</p>
-                      <button
-                        onClick={generateQRCode}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                      >
-                        <QrCode className="h-4 w-4 mr-2" />
-                        Generate QR Code
-                      </button>
+                    <div className="space-y-6">
+                      <div className="bg-gray-50 p-8 rounded-lg">
+                        <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">Generate Your QR Code</h4>
+                        <p className="text-gray-600 mb-6">
+                          Create a unique QR code that customers can scan to book your services directly.
+                        </p>
+                        <button
+                          onClick={generateQRCode}
+                          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                        >
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Generate QR Code
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
