@@ -9,7 +9,7 @@ import Footer from './components/Footer';
 
 // Pages
 import Home from './pages/HomeModern';
-import VendorPage from './pages/VendorPageModern';
+import VendorPage from './pages/VendorPageFirebase';
 import BookingPage from './pages/BookingPageModern';
 import VendorDashboard from './pages/VendorDashboardFirebase';
 import Login from './pages/LoginFirebase';

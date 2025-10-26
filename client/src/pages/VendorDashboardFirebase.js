@@ -14,7 +14,8 @@ import {
   Share2,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase-config';
@@ -132,6 +133,28 @@ const VendorDashboardFirebase = () => {
         setAddress(vendorData.businessInfo?.address || '');
         setDescription(vendorData.businessInfo?.description || '');
         setOperatingHours(vendorData.operatingHours || operatingHours);
+        
+        // Check for existing QR code
+        if (vendorData.qrCode && vendorData.qrCode.qrImage) {
+          console.log('Loading existing QR code from Firestore:');
+          console.log('QR Code URL:', vendorData.qrCode.code);
+          console.log('QR Code Image preview:', vendorData.qrCode.qrImage.substring(0, 100) + '...');
+          console.log('QR Code Image length:', vendorData.qrCode.qrImage.length);
+          
+          // Validate that the QR code image is a proper data URL
+          if (vendorData.qrCode.qrImage.startsWith('data:image/png;base64,')) {
+            console.log('QR code image is valid data URL');
+            setQrCode({
+              url: vendorData.qrCode.code,
+              shortUrl: vendorData.qrCode.shortUrl,
+              image: vendorData.qrCode.qrImage
+            });
+          } else {
+            console.error('QR code image is not a valid data URL:', vendorData.qrCode.qrImage.substring(0, 50));
+            // Clear the corrupted QR code
+            setQrCode(null);
+          }
+        }
       } else {
         console.log('No vendor profile found, creating default...');
         // Create a default vendor profile if none exists
@@ -199,15 +222,6 @@ const VendorDashboardFirebase = () => {
         setAddress('');
         setDescription('');
         setOperatingHours(defaultVendorData.operatingHours);
-        
-        // Check for existing QR code
-        if (vendorData.qrCode && vendorData.qrCode.qrImage) {
-          setQrCode({
-            url: vendorData.qrCode.code,
-            shortUrl: vendorData.qrCode.shortUrl,
-            image: vendorData.qrCode.qrImage
-          });
-        }
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -259,11 +273,17 @@ const VendorDashboardFirebase = () => {
 
   const generateQRCode = async () => {
     try {
+      console.log('Starting QR code generation...');
+      
       // Generate unique vendor URLs
       const vendorUrl = `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
       const shortUrl = `https://servease-07762363-b4f31.web.app/s/${user.uid}`;
+      
+      console.log('Vendor URL:', vendorUrl);
+      console.log('Short URL:', shortUrl);
 
       // Generate actual QR code image
+      console.log('Generating QR code image...');
       const qrCodeDataURL = await QRCodeLib.toDataURL(vendorUrl, {
         width: 300,
         margin: 2,
@@ -272,6 +292,14 @@ const VendorDashboardFirebase = () => {
           light: '#FFFFFF'
         }
       });
+      
+      console.log('QR code generated, data URL length:', qrCodeDataURL.length);
+      console.log('QR code data URL preview:', qrCodeDataURL.substring(0, 50) + '...');
+      
+      // Validate the generated QR code
+      if (!qrCodeDataURL.startsWith('data:image/png;base64,')) {
+        throw new Error('Generated QR code is not a valid data URL');
+      }
 
       // Update vendor with QR code info
       const vendorRef = doc(db, 'vendors', user.uid);
@@ -282,16 +310,34 @@ const VendorDashboardFirebase = () => {
         'qrCode.generatedAt': new Date()
       });
 
+      console.log('QR code saved to Firestore');
+
       setQrCode({
         url: vendorUrl,
         shortUrl: shortUrl,
         image: qrCodeDataURL
       });
       
+      console.log('QR code state updated');
       toast.success('QR code generated successfully!');
     } catch (error) {
       console.error('Error generating QR code:', error);
       toast.error('Failed to generate QR code');
+    }
+  };
+
+  const clearQRCode = async () => {
+    try {
+      console.log('Clearing corrupted QR code...');
+      const vendorRef = doc(db, 'vendors', user.uid);
+      await updateDoc(vendorRef, {
+        'qrCode': null
+      });
+      setQrCode(null);
+      toast.success('QR code cleared. You can now generate a new one.');
+    } catch (error) {
+      console.error('Error clearing QR code:', error);
+      toast.error('Failed to clear QR code');
     }
   };
 
@@ -676,10 +722,13 @@ const VendorDashboardFirebase = () => {
                     <div className="space-y-6">
                       {/* QR Code Display */}
                       <div className="inline-block p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                        {console.log('QR Code image source:', qrCode.image)}
                         <img 
                           src={qrCode.image} 
                           alt="QR Code" 
                           className="w-64 h-64 mx-auto"
+                          onLoad={() => console.log('QR code image loaded successfully')}
+                          onError={(e) => console.error('QR code image failed to load:', e)}
                         />
                       </div>
                       
@@ -706,6 +755,13 @@ const VendorDashboardFirebase = () => {
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Copy Link
+                        </button>
+                        <button
+                          onClick={clearQRCode}
+                          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Clear QR Code
                         </button>
                       </div>
                       
