@@ -15,7 +15,9 @@ import {
   BookOpen,
   Users,
   CheckCircle,
-  X
+  X,
+  Languages,
+  Loader2
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -23,6 +25,7 @@ import { Input } from '../components/ui/input';
 import { doc, getDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
+import { translateWithFallback } from '../utils/translation';
 
 const VendorPageFirebase = () => {
   const { vendorId, shortUrl } = useParams();
@@ -35,6 +38,8 @@ const VendorPageFirebase = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [displayLanguage, setDisplayLanguage] = useState('en');
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     const fetchVendorData = async () => {
@@ -100,6 +105,32 @@ const VendorPageFirebase = () => {
     navigate('/');
   };
 
+  // Translation functions
+  const translateContent = async (targetLang) => {
+    setTranslating(true);
+    try {
+      // Translate vendor business info
+      if (vendor?.businessInfo?.name) {
+        const translatedName = await translateWithFallback(vendor.businessInfo.name, targetLang);
+        // Update display language
+        setDisplayLanguage(targetLang);
+        toast.success(`Content translated to ${targetLang === 'ms' ? 'Bahasa Malaysia' : targetLang === 'zh' ? 'Chinese' : 'English'}`);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Translation failed. Please try again.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  // Helper function to get translated text
+  const getTranslatedText = (textObj, fallback = '') => {
+    if (typeof textObj === 'string') return textObj;
+    if (!textObj) return fallback;
+    return textObj[displayLanguage] || textObj.en || textObj.ms || textObj.zh || fallback;
+  };
+
   const filteredServices = services.filter(service => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          service.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -158,6 +189,34 @@ const VendorPageFirebase = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-2">
+              {/* Language Selector */}
+              <div className="flex items-center space-x-1 mr-4">
+                <Languages className="w-4 h-4 text-gray-500" />
+                <select
+                  value={displayLanguage}
+                  onChange={(e) => setDisplayLanguage(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="en">English</option>
+                  <option value="ms">Bahasa Malaysia</option>
+                  <option value="zh">中文</option>
+                </select>
+                {displayLanguage !== 'en' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => translateContent(displayLanguage)}
+                    disabled={translating}
+                    className="ml-2"
+                  >
+                    {translating ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Languages className="w-3 h-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
               <Button variant="outline" size="sm">
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
@@ -281,7 +340,7 @@ const VendorPageFirebase = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-xl">{service.name}</CardTitle>
+                          <CardTitle className="text-xl">{getTranslatedText(service.name, service.name)}</CardTitle>
                           <p className="text-gray-600 mt-1">{service.category}</p>
                         </div>
                         <div className="text-right">
@@ -295,7 +354,7 @@ const VendorPageFirebase = () => {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700 mb-4">{service.description}</p>
+                      <p className="text-gray-700 mb-4">{getTranslatedText(service.description, service.description)}</p>
                       
                       {service.features && service.features.length > 0 && (
                         <div className="mb-4">

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { X, Save } from 'lucide-react';
+import { X, Save, Languages, Loader2 } from 'lucide-react';
 import { doc, setDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
+import { translateWithFallback } from '../utils/translation';
 
-const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
+const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -32,26 +33,33 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
     tags: []
   });
   const [loading, setLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [newRequirement, setNewRequirement] = useState('');
   const [newTag, setNewTag] = useState('');
 
-  const categories = [
-    { value: 'hair', label: 'Hair Services' },
-    { value: 'beauty', label: 'Beauty & Wellness' },
-    { value: 'massage', label: 'Massage & Therapy' },
-    { value: 'food', label: 'Food & Beverage' },
-    { value: 'medical', label: 'Medical Services' },
-    { value: 'repair', label: 'Repair Services' },
-    { value: 'cleaning', label: 'Cleaning Services' },
-    { value: 'other', label: 'Other' }
-  ];
+  // Auto-set category based on vendor's business type
+  const getCategoryFromBusinessType = (businessType) => {
+    if (!businessType) return 'other';
+    
+    const type = businessType.toLowerCase();
+    if (type.includes('hair') || type.includes('salon') || type.includes('barber')) return 'hair';
+    if (type.includes('beauty') || type.includes('spa') || type.includes('wellness')) return 'beauty';
+    if (type.includes('massage') || type.includes('therapy')) return 'massage';
+    if (type.includes('food') || type.includes('restaurant') || type.includes('cafe')) return 'food';
+    if (type.includes('medical') || type.includes('health') || type.includes('clinic')) return 'medical';
+    if (type.includes('repair') || type.includes('maintenance')) return 'repair';
+    if (type.includes('cleaning') || type.includes('housekeeping')) return 'cleaning';
+    return 'other';
+  };
 
   useEffect(() => {
+    const autoCategory = getCategoryFromBusinessType(vendorBusinessType);
+    
     if (service) {
       setFormData({
         name: service.name || { en: '', ms: '', zh: '' },
         description: service.description || { en: '', ms: '', zh: '' },
-        category: service.category || '',
+        category: service.category || autoCategory,
         price: service.price || '',
         priceType: service.priceType || 'fixed',
         priceRange: service.priceRange || { min: '', max: '' },
@@ -63,7 +71,7 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
       setFormData({
         name: { en: '', ms: '', zh: '' },
         description: { en: '', ms: '', zh: '' },
-        category: '',
+        category: autoCategory,
         price: '',
         priceType: 'fixed',
         priceRange: { min: '', max: '' },
@@ -72,7 +80,7 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
         tags: []
       });
     }
-  }, [service]);
+  }, [service, vendorBusinessType]);
 
   const handleChange = (field, value) => {
     if (field.includes('.')) {
@@ -136,20 +144,105 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
     }));
   };
 
+  // Auto-translate function for service name only
+  const autoTranslateName = async () => {
+    const nameSource = formData.name.en || formData.name.ms || formData.name.zh;
+    
+    if (!nameSource) {
+      toast.warning('Please enter service name in any language first');
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      let sourceLang = 'en';
+      if (formData.name.ms && !formData.name.en && !formData.name.zh) sourceLang = 'ms';
+      if (formData.name.zh && !formData.name.en && !formData.name.ms) sourceLang = 'zh';
+      
+      const translations = await Promise.all([
+        sourceLang !== 'en' ? translateWithFallback(nameSource, 'en') : Promise.resolve(formData.name.en || ''),
+        sourceLang !== 'ms' ? translateWithFallback(nameSource, 'ms') : Promise.resolve(formData.name.ms || ''),
+        sourceLang !== 'zh' ? translateWithFallback(nameSource, 'zh') : Promise.resolve(formData.name.zh || '')
+      ]);
+      
+      setFormData(prev => ({
+        ...prev,
+        name: {
+          en: translations[0] || prev.name.en,
+          ms: translations[1] || prev.name.ms,
+          zh: translations[2] || prev.name.zh
+        }
+      }));
+
+      toast.success('Service name translated successfully!');
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Translation failed. Please try again.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  // Auto-translate function for description only
+  const autoTranslateDescription = async () => {
+    const descSource = formData.description.en || formData.description.ms || formData.description.zh;
+    
+    if (!descSource) {
+      toast.warning('Please enter service description in any language first');
+      return;
+    }
+
+    setTranslating(true);
+    try {
+      let sourceLang = 'en';
+      if (formData.description.ms && !formData.description.en && !formData.description.zh) sourceLang = 'ms';
+      if (formData.description.zh && !formData.description.en && !formData.description.ms) sourceLang = 'zh';
+      
+      const translations = await Promise.all([
+        sourceLang !== 'en' ? translateWithFallback(descSource, 'en') : Promise.resolve(formData.description.en || ''),
+        sourceLang !== 'ms' ? translateWithFallback(descSource, 'ms') : Promise.resolve(formData.description.ms || ''),
+        sourceLang !== 'zh' ? translateWithFallback(descSource, 'zh') : Promise.resolve(formData.description.zh || '')
+      ]);
+      
+      setFormData(prev => ({
+        ...prev,
+        description: {
+          en: translations[0] || prev.description.en,
+          ms: translations[1] || prev.description.ms,
+          zh: translations[2] || prev.description.zh
+        }
+      }));
+
+      toast.success('Service description translated successfully!');
+    } catch (error) {
+      console.error('Translation error:', error);
+      toast.error('Translation failed. Please try again.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Handle different pricing types properly
       const submitData = {
         ...formData,
         price: parseFloat(formData.price),
-        duration: parseInt(formData.duration),
-        priceRange: {
+        duration: parseInt(formData.duration)
+      };
+
+      // Only add priceRange for range pricing
+      if (formData.priceType === 'range') {
+        submitData.priceRange = {
           min: formData.priceRange.min ? parseFloat(formData.priceRange.min) : undefined,
           max: formData.priceRange.max ? parseFloat(formData.priceRange.max) : undefined
-        }
-      };
+        };
+      }
+      // For "Starting from" pricing, we don't include priceRange at all
+      // The price field itself contains the starting price
 
       if (service) {
         // Update existing service
@@ -165,9 +258,12 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
           ...submitData,
           vendorEmail: user.email,
           vendorId: user.uid,
+          isActive: true,
           createdAt: new Date()
         };
-        await addDoc(collection(db, 'services'), serviceData);
+        console.log('Creating service with data:', serviceData);
+        const docRef = await addDoc(collection(db, 'services'), serviceData);
+        console.log('Service created with ID:', docRef.id);
         toast.success('Service created successfully!');
       }
 
@@ -175,7 +271,11 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
       onClose();
     } catch (error) {
       console.error('Service save error:', error);
-      toast.error(error.response?.data?.message || 'Failed to save service');
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message
+      });
+      toast.error(`Failed to save service: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -199,12 +299,46 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
             </button>
           </div>
 
+          {/* Translation Help */}
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-start">
+              <Languages className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-900 mb-1">Auto-Translation Feature</h4>
+                <p className="text-sm text-blue-800">
+                  Enter your service details in any language (English, Bahasa Malaysia, or Chinese), then click "Auto Translate" to automatically translate to the other languages. 
+                  You can still edit the translations manually if needed.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Service Name - Multilingual */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Service Name *
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Service Name *
+                </label>
+                <button
+                  type="button"
+                  onClick={autoTranslateName}
+                  disabled={translating || (!formData.name.en && !formData.name.ms && !formData.name.zh)}
+                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {translating ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Translating...
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="h-3 w-3 mr-1" />
+                      Auto Translate
+                    </>
+                  )}
+                </button>
+              </div>
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">English *</label>
@@ -242,9 +376,29 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
 
             {/* Service Description - Multilingual */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Description
+                </label>
+                <button
+                  type="button"
+                  onClick={autoTranslateDescription}
+                  disabled={translating || (!formData.description.en && !formData.description.ms && !formData.description.zh)}
+                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {translating ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Translating...
+                    </>
+                  ) : (
+                    <>
+                      <Languages className="h-3 w-3 mr-1" />
+                      Auto Translate
+                    </>
+                  )}
+                </button>
+              </div>
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">English</label>
@@ -279,27 +433,32 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess }) => {
               </div>
             </div>
 
-            {/* Category and Pricing */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => handleChange('category', e.target.value)}
-                  className="form-input form-select"
-                  required
-                >
-                  <option value="">Select category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Auto-set Category Display */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-medium">ℹ</span>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-medium">Service Category:</span> {formData.category === 'hair' ? 'Hair Services' : 
+                     formData.category === 'beauty' ? 'Beauty & Wellness' :
+                     formData.category === 'massage' ? 'Massage & Therapy' :
+                     formData.category === 'food' ? 'Food & Beverage' :
+                     formData.category === 'medical' ? 'Medical Services' :
+                     formData.category === 'repair' ? 'Repair Services' :
+                     formData.category === 'cleaning' ? 'Cleaning Services' : 'Other'}
+                    <br />
+                    <span className="text-xs text-blue-600">This category is automatically set based on your business type.</span>
+                  </p>
+                </div>
               </div>
+            </div>
 
+            {/* Duration */}
+            <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Duration (minutes) *

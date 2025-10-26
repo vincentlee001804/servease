@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -36,6 +36,7 @@ const VendorDashboardFirebase = () => {
   const [saving, setSaving] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [hasFetchedData, setHasFetchedData] = useState(false);
+  const isFetchingRef = useRef(false);
 
   // Form states for business profile
   const [businessName, setBusinessName] = useState('');
@@ -55,12 +56,15 @@ const VendorDashboardFirebase = () => {
   });
 
   const fetchDashboardData = async () => {
-    if (hasFetchedData) {
-      console.log('Data already fetched, skipping...');
+    console.log('fetchDashboardData called', { isFetching: isFetchingRef.current, user: !!user });
+    
+    if (isFetchingRef.current) {
+      console.log('Already fetching, skipping...');
       return;
     }
     
     try {
+      isFetchingRef.current = true;
       setLoading(true);
       setHasFetchedData(true);
       console.log('Fetching dashboard data for user:', user.uid);
@@ -86,6 +90,21 @@ const VendorDashboardFirebase = () => {
         });
 
         console.log('Bookings found:', bookings.length);
+
+        // Get services for this vendor
+        const servicesQuery = query(
+          collection(db, 'services'),
+          where('vendorId', '==', user.uid),
+          where('isActive', '==', true)
+        );
+        const servicesSnapshot = await getDocs(servicesQuery);
+        const services = [];
+        
+        servicesSnapshot.forEach(doc => {
+          services.push({ id: doc.id, ...doc.data() });
+        });
+
+        console.log('Services found:', services.length);
 
         // Calculate dashboard stats
         const totalBookings = bookings.length;
@@ -116,10 +135,10 @@ const VendorDashboardFirebase = () => {
             totalBookings,
             pendingBookings,
             todaysBookings: todaysBookings.length,
-            totalServices: vendorData.services?.length || 0
+            totalServices: services.length
           },
           recentBookings: todaysBookings.slice(0, 5),
-          services: vendorData.services || []
+          services: services
         };
 
         console.log('Dashboard data prepared:', dashboardData);
@@ -235,7 +254,9 @@ const VendorDashboardFirebase = () => {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data.');
     } finally {
+      console.log('fetchDashboardData completed, setting loading to false');
       setLoading(false);
+      isFetchingRef.current = false;
     }
   };
 
@@ -245,7 +266,7 @@ const VendorDashboardFirebase = () => {
       console.log('VendorDashboard: User authenticated, fetching dashboard data');
       fetchDashboardData();
     }
-  }, [isAuthenticated, user, loading]);
+  }, [isAuthenticated, user]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -399,6 +420,28 @@ const VendorDashboardFirebase = () => {
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
+    }
+  };
+
+  const deleteService = async (serviceId) => {
+    if (!window.confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const serviceRef = doc(db, 'services', serviceId);
+      await updateDoc(serviceRef, {
+        isActive: false,
+        deletedAt: new Date()
+      });
+      toast.success('Service deleted successfully!');
+      // Refresh dashboard data
+      setHasFetchedData(false);
+      isFetchingRef.current = false;
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      toast.error('Failed to delete service');
     }
   };
 
@@ -681,14 +724,17 @@ const VendorDashboardFirebase = () => {
               </div>
             )}
 
-            {/* Services Tab */}
+            {/* Services Tab - Mobile Optimized */}
             {activeTab === 'services' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium text-gray-900">Services</h3>
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Services</h3>
+                    <p className="text-sm text-gray-600">Manage your service offerings</p>
+                  </div>
                   <button
                     onClick={() => setShowServiceForm(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    className="touch-target inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Service
@@ -696,20 +742,99 @@ const VendorDashboardFirebase = () => {
                 </div>
 
                 {dashboardData?.services?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {dashboardData.services.map((service) => (
-                      <div key={service.id} className="border rounded-lg p-4">
-                        <h4 className="font-medium text-gray-900">{service.name}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-                        <div className="mt-2 flex justify-between items-center">
-                          <span className="text-sm font-medium text-green-600">${service.price}</span>
-                          <span className="text-sm text-gray-500">{service.duration} min</span>
+                      <div key={service.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 text-sm sm:text-base">
+                              {service.name?.en || service.name || 'Unnamed Service'}
+                            </h4>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
+                              {service.description?.en || service.description || 'No description'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-3">
+                            <button
+                              onClick={() => {
+                                setEditingService(service);
+                                setShowServiceForm(true);
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit service"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteService(service.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete service"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500">Category</span>
+                            <span className="text-xs font-medium text-gray-700 capitalize">
+                              {service.category || 'Uncategorized'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500">Duration</span>
+                            <span className="text-xs font-medium text-gray-700">
+                              {service.duration || 0} min
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500">Price</span>
+                            <span className="text-sm font-medium text-green-600">
+                              {service.priceType === 'fixed' && `RM ${service.price}`}
+                              {service.priceType === 'range' && `RM ${service.priceRange?.min || 0} - ${service.priceRange?.max || 0}`}
+                              {service.priceType === 'from' && `From RM ${service.price}`}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {service.tags && service.tags.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {service.tags.slice(0, 3).map((tag, index) => (
+                              <span
+                                key={index}
+                                className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {service.tags.length > 3 && (
+                              <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                +{service.tags.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No services added yet</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Plus className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No services yet</h3>
+                    <p className="text-gray-500 mb-6">Start by adding your first service to attract customers</p>
+                    <button
+                      onClick={() => setShowServiceForm(true)}
+                      className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Service
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -810,11 +935,18 @@ const VendorDashboardFirebase = () => {
         {/* Service Form Modal */}
         {showServiceForm && (
           <ServiceForm
+            isOpen={showServiceForm}
             service={editingService}
-            onSuccess={() => {
+            vendorBusinessType={dashboardData?.vendor?.businessType || ''}
+            onSuccess={async () => {
+              console.log('Service form success - refreshing dashboard data...');
               setShowServiceForm(false);
               setEditingService(null);
-              fetchDashboardData();
+              setHasFetchedData(false);
+              isFetchingRef.current = false;
+              setLoading(true);
+              await fetchDashboardData();
+              console.log('Dashboard data refresh completed');
             }}
             onClose={() => {
               setShowServiceForm(false);
