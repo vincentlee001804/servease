@@ -134,6 +134,13 @@ const VendorDashboardFirebase = () => {
         setDescription(vendorData.businessInfo?.description || '');
         setOperatingHours(vendorData.operatingHours || operatingHours);
         
+        // Update existing vendor profile to include isActive field if missing
+        if (vendorData.isActive === undefined) {
+          console.log('Updating vendor profile with isActive field...');
+          await updateDoc(vendorRef, { isActive: true });
+          vendorData.isActive = true;
+        }
+        
         // Check for existing QR code
         if (vendorData.qrCode && vendorData.qrCode.qrImage) {
           console.log('Loading existing QR code from Firestore:');
@@ -161,6 +168,7 @@ const VendorDashboardFirebase = () => {
         const defaultVendorData = {
           email: user.email,
           businessName: user.displayName || 'My Business',
+          isActive: true,
           contactInfo: {
             phone: '',
             email: user.email

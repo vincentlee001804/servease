@@ -14,6 +14,7 @@ import BookingPage from './pages/BookingPageModern';
 import VendorDashboard from './pages/VendorDashboardFirebase';
 import Login from './pages/LoginFirebase';
 import Register from './pages/RegisterFirebase';
+import TestPage from './pages/TestPage';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -54,6 +55,7 @@ function App() {
               <Routes>
                 {/* Public routes */}
                 <Route path="/" element={<Home />} />
+                <Route path="/test" element={<TestPage />} />
                 <Route path="/vendor/:vendorId" element={<VendorPage />} />
                 <Route path="/s/:shortUrl" element={<VendorPage />} />
                 <Route path="/booking/:vendorId" element={<BookingPage />} />

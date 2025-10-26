@@ -53,27 +53,28 @@ const VendorPageFirebase = () => {
         const vendorData = vendorSnap.data();
         console.log('Vendor data:', vendorData);
         
-        // Check if vendor is active
-        if (!vendorData.isActive) {
+        // Check if vendor is active (default to true if not specified)
+        if (vendorData.isActive === false) {
           throw new Error('Vendor is not active');
         }
         
         setVendor(vendorData);
         
-        // Get vendor services
+        // Get vendor services (simplified query to avoid index requirement)
         const servicesRef = collection(db, 'services');
         const servicesQuery = query(
           servicesRef, 
-          where('vendorId', '==', vendorId || shortUrl),
-          where('isActive', '==', true),
-          orderBy('createdAt', 'desc')
+          where('vendorId', '==', vendorId || shortUrl)
+          // Removed isActive filter and orderBy to avoid composite index requirement
         );
         
         const servicesSnap = await getDocs(servicesQuery);
         const servicesData = servicesSnap.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
+        }))
+        .filter(service => service.isActive === true) // Client-side filtering for active services
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Client-side sorting
         
         console.log('Services data:', servicesData);
         setServices(servicesData);
@@ -223,7 +224,14 @@ const VendorPageFirebase = () => {
                       {Object.entries(vendor.operatingHours).map(([day, hours]) => (
                         <div key={day} className="flex justify-between">
                           <span className="capitalize">{day}</span>
-                          <span>{hours || 'Closed'}</span>
+                          <span>
+                            {typeof hours === 'object' && hours !== null
+                              ? hours.isOpen 
+                                ? `${hours.open} - ${hours.close}`
+                                : 'Closed'
+                              : hours || 'Closed'
+                            }
+                          </span>
                         </div>
                       ))}
                     </div>
