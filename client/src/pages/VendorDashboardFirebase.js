@@ -422,68 +422,68 @@ const VendorDashboardFirebase = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Manage your business and bookings</p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Header - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your business and bookings</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        {/* Stats Cards - Mobile Optimized */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-blue-600" />
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Today's Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Bookings</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <Plus className="h-6 w-6 text-purple-600" />
+                <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Services</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Services</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow">
+        {/* Tabs - Mobile Optimized */}
+        <div className="bg-white rounded-lg shadow-sm">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6">
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 px-3 sm:px-6 overflow-x-auto scrollbar-hide">
               {[
                 { id: 'overview', name: 'Overview' },
                 { id: 'profile', name: 'Business Profile' },
@@ -494,7 +494,7 @@ const VendorDashboardFirebase = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -506,7 +506,7 @@ const VendorDashboardFirebase = () => {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
@@ -714,27 +714,27 @@ const VendorDashboardFirebase = () => {
               </div>
             )}
 
-            {/* QR Code Tab */}
+            {/* QR Code Tab - Mobile Optimized */}
             {activeTab === 'qr' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
                   {qrCode && (
-                    <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    <span className="text-xs sm:text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
                       ✓ Generated
                     </span>
                   )}
                 </div>
                 <div className="text-center">
                   {qrCode ? (
-                    <div className="space-y-6">
-                      {/* QR Code Display */}
-                      <div className="inline-block p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                    <div className="space-y-4 sm:space-y-6">
+                      {/* QR Code Display - Mobile Optimized */}
+                      <div className="inline-block p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
                         {console.log('QR Code image source:', qrCode.image)}
                         <img 
                           src={qrCode.image} 
                           alt="QR Code" 
-                          className="w-64 h-64 mx-auto"
+                          className="w-48 h-48 sm:w-64 sm:h-64 mx-auto"
                           onLoad={() => console.log('QR code image loaded successfully')}
                           onError={(e) => console.error('QR code image failed to load:', e)}
                         />
@@ -748,25 +748,25 @@ const VendorDashboardFirebase = () => {
                         </p>
                       </div>
                       
-                      {/* Action Buttons */}
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      {/* Action Buttons - Mobile Optimized */}
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                         <button
                           onClick={downloadQRCode}
-                          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download QR Code
                         </button>
                         <button
                           onClick={copyQRCodeLink}
-                          className="inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Copy Link
                         </button>
                         <button
                           onClick={clearQRCode}
-                          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
                         >
                           <X className="h-4 w-4 mr-2" />
                           Clear QR Code
