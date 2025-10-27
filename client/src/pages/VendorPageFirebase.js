@@ -178,59 +178,68 @@ const VendorPageFirebase = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-gray-50 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 gap-4">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900 truncate">
-                {vendor.businessName || 'Business Profile'}
-              </h1>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              {/* Language Selector */}
-              <div className="flex items-center space-x-1">
-                <Languages className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                <select
-                  value={displayLanguage}
-                  onChange={(e) => setDisplayLanguage(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
-                >
-                  <option value="en">English</option>
-                  <option value="ms">Bahasa Malaysia</option>
-                  <option value="zh">中文</option>
-                </select>
-                {displayLanguage !== 'en' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => translateContent(displayLanguage)}
-                    disabled={translating}
-                    className="ml-2 flex-shrink-0"
-                  >
-                    {translating ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Languages className="w-3 h-3" />
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex items-center">
+                  <h1 className="text-2xl font-bold text-gray-900 truncate">
+                    {vendor.businessName || 'Business Profile'}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-end">
+                  {/* Language Selector */}
+                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 min-w-0">
+                    <Languages className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <select
+                      value={displayLanguage}
+                      onChange={(e) => setDisplayLanguage(e.target.value)}
+                      className="text-sm font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 min-w-0"
+                    >
+                      <option value="en">English</option>
+                      <option value="ms">Bahasa Malaysia</option>
+                      <option value="zh">中文</option>
+                    </select>
+                    {displayLanguage !== 'en' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => translateContent(displayLanguage)}
+                        disabled={translating}
+                        className="ml-1 flex-shrink-0 p-1 h-6 w-6"
+                      >
+                        {translating ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Languages className="w-3 h-3" />
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
+                  </div>
+                  
+                  {/* Bookings Button */}
+                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate('/bookings')}>
+                    <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                      <span className="hidden sm:inline">Check Booking Status</span>
+                      <span className="sm:hidden">Bookings</span>
+                    </span>
+                  </div>
+                  
+                  {/* Share Button */}
+                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors">
+                    <Share2 className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Share</span>
+                  </div>
+                </div>
               </div>
-              
-              {/* Action Buttons */}
-              <Button variant="outline" size="sm" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
-                <Calendar className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Check Booking Status</span>
-                <span className="sm:hidden">Bookings</span>
-              </Button>
-              <Button variant="outline" size="sm" className="px-2 py-1">
-                <Share2 className="w-3 h-3" />
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Vendor Info Sidebar */}
           <div className="lg:col-span-1">
