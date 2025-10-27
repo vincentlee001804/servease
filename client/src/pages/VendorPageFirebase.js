@@ -9,7 +9,6 @@ import {
   Calendar, 
   Star, 
   ArrowLeft,
-  Heart,
   Share2,
   Search,
   BookOpen,
@@ -102,8 +101,9 @@ const VendorPageFirebase = () => {
   };
 
   const handleBack = () => {
-    // Don't navigate back to home - keep users in vendor context
-    // This prevents customers from leaving the vendor page when they scan QR codes
+    // Navigate back to the previous page in browser history
+    // This ensures customers stay within the vendor context when they scan QR codes
+    // and navigate back from booking pages or other vendor-related pages
     window.history.back();
   };
 
@@ -221,13 +221,8 @@ const VendorPageFirebase = () => {
                   <span className="hidden sm:inline">Check Booking Status</span>
                   <span className="sm:hidden">Bookings</span>
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                  <Share2 className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Share</span>
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
-                  <Heart className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Save</span>
+                <Button variant="outline" size="sm" className="px-2 py-1">
+                  <Share2 className="w-3 h-3" />
                 </Button>
               </div>
             </div>
