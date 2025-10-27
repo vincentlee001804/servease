@@ -235,64 +235,95 @@ const VendorPageFirebase = () => {
           {/* Vendor Info Sidebar */}
           <div className="lg:col-span-1">
             <Card className="sticky top-8">
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-blue-600">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-2xl font-bold text-white">
                       {vendor.businessName?.charAt(0) || 'B'}
                     </span>
                   </div>
-                  <div>
-                    <CardTitle className="text-xl">{vendor.businessName}</CardTitle>
-                    <p className="text-gray-600">{vendor.businessType}</p>
+                  <div className="flex-1">
+                    <CardTitle className="text-xl text-gray-900 mb-1">{vendor.businessName}</CardTitle>
+                    <p className="text-gray-600 text-sm">{vendor.businessType}</p>
+                    {vendor.businessInfo?.description && (
+                      <p className="text-gray-500 text-sm mt-2 line-clamp-2">
+                        {vendor.businessInfo.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {vendor.businessInfo?.description && (
-                  <p className="text-gray-700">{vendor.businessInfo.description}</p>
-                )}
-                
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {vendor.businessInfo?.address && (
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span className="text-gray-700">{vendor.businessInfo.address}</span>
+                    <div className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <MapPin className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 mb-1">Address</p>
+                        <span className="text-gray-700">{vendor.businessInfo.address}</span>
+                      </div>
                     </div>
                   )}
                   
                   {vendor.contactInfo?.phone && (
-                    <div className="flex items-center space-x-3">
-                      <Phone className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700">{vendor.contactInfo.phone}</span>
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Phone className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 mb-1">Phone</p>
+                        <a href={`tel:${vendor.contactInfo.phone}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                          {vendor.contactInfo.phone}
+                        </a>
+                      </div>
                     </div>
                   )}
                   
                   {vendor.email && (
-                    <div className="flex items-center space-x-3">
-                      <Mail className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700">{vendor.email}</span>
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 mb-1">Email</p>
+                        <a href={`mailto:${vendor.email}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                          {vendor.email}
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {vendor.operatingHours && (
                   <div className="pt-4 border-t">
-                    <h4 className="font-medium text-gray-900 mb-2">Operating Hours</h4>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {Object.entries(vendor.operatingHours).map(([day, hours]) => (
-                        <div key={day} className="flex justify-between">
-                          <span className="capitalize">{day}</span>
-                          <span>
-                            {typeof hours === 'object' && hours !== null
-                              ? hours.isOpen 
-                                ? `${hours.open} - ${hours.close}`
-                                : 'Closed'
-                              : hours || 'Closed'
-                            }
-                          </span>
-                        </div>
-                      ))}
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                      <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                      Operating Hours
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      {(() => {
+                        // Define the order of days starting from Monday
+                        const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                        const sortedDays = dayOrder.filter(day => vendor.operatingHours[day]);
+                        
+                        return sortedDays.map((day) => {
+                          const hours = vendor.operatingHours[day];
+                          const isToday = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() === day;
+                          
+                          return (
+                            <div key={day} className={`flex justify-between items-center py-1 px-2 rounded-md ${isToday ? 'bg-blue-50 border border-blue-200' : ''}`}>
+                              <span className={`capitalize font-medium ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>
+                                {day}
+                                {isToday && <span className="ml-2 text-xs text-blue-600">(Today)</span>}
+                              </span>
+                              <span className={`font-medium ${isToday ? 'text-blue-700' : 'text-gray-600'}`}>
+                                {typeof hours === 'object' && hours !== null
+                                  ? hours.isOpen 
+                                    ? `${hours.open} - ${hours.close}`
+                                    : 'Closed'
+                                  : hours || 'Closed'
+                                }
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )}
