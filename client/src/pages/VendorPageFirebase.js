@@ -107,6 +107,40 @@ const VendorPageFirebase = () => {
     window.history.back();
   };
 
+  const handleShare = async () => {
+    try {
+      const vendorUrl = window.location.href;
+      
+      // Try to use the Web Share API if available (mobile devices)
+      if (navigator.share) {
+        await navigator.share({
+          title: `${vendor.businessName} - ServEase`,
+          text: `Check out ${vendor.businessName} on ServEase`,
+          url: vendorUrl,
+        });
+      } else {
+        // Fallback to clipboard API
+        await navigator.clipboard.writeText(vendorUrl);
+        toast.success('Vendor link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = window.location.href;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success('Vendor link copied to clipboard!');
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        toast.error('Failed to copy link. Please copy the URL manually.');
+      }
+    }
+  };
+
   // Translation functions
   const translateContent = async (targetLang) => {
     setTranslating(true);
@@ -228,7 +262,10 @@ const VendorPageFirebase = () => {
                   </div>
                   
                   {/* Share Button */}
-                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors">
+                  <div 
+                    className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors"
+                    onClick={handleShare}
+                  >
                     <Share2 className="w-4 h-4 text-purple-500 flex-shrink-0" />
                     <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Share</span>
                   </div>
