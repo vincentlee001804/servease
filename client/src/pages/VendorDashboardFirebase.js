@@ -484,69 +484,49 @@ const VendorDashboardFirebase = () => {
         {/* Stats Cards - Mobile Optimized */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
-                </div>
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">All time</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-yellow-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
-                </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
-                </div>
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Awaiting action</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Bookings</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
-                </div>
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Today only</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Bookings</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
-                </div>
-                <div className="ml-3 sm:ml-4">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600">Services</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
-                </div>
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Active</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Services</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
               </div>
             </div>
           </div>
@@ -555,26 +535,31 @@ const VendorDashboardFirebase = () => {
         {/* Tabs - Mobile Optimized */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-4 sm:space-x-8 px-3 sm:px-6 overflow-x-auto scrollbar-hide">
+            <nav className="-mb-px flex space-x-1 sm:space-x-4 px-2 sm:px-6 overflow-x-auto scrollbar-hide">
               {[
-                { id: 'overview', name: 'Overview' },
-                { id: 'profile', name: 'Business Profile' },
-                { id: 'services', name: 'Services' },
-                { id: 'bookings', name: 'Bookings' },
-                { id: 'qr', name: 'QR Code' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-3 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {tab.name}
-                </button>
-              ))}
+                { id: 'overview', name: 'Overview', icon: Calendar },
+                { id: 'profile', name: 'Profile', icon: Users },
+                { id: 'services', name: 'Services', icon: Plus },
+                { id: 'bookings', name: 'Bookings', icon: Clock },
+                { id: 'qr', name: 'QR Code', icon: QrCode }
+              ].map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap flex items-center gap-2 min-w-0 ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <IconComponent className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">{tab.name}</span>
+                    <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
             </nav>
           </div>
 
@@ -582,48 +567,6 @@ const VendorDashboardFirebase = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button
-                    onClick={() => setActiveTab('services')}
-                    className="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center">
-                      <Plus className="h-5 w-5 text-blue-600 mr-3" />
-                      <div>
-                        <p className="font-medium text-blue-900">Add Service</p>
-                        <p className="text-sm text-blue-600">Create new service offerings</p>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => setActiveTab('qr')}
-                    className="p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center">
-                      <QrCode className="h-5 w-5 text-green-600 mr-3" />
-                      <div>
-                        <p className="font-medium text-green-900">QR Code</p>
-                        <p className="text-sm text-green-600">Generate booking QR code</p>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={() => setActiveTab('bookings')}
-                    className="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center">
-                      <Calendar className="h-5 w-5 text-purple-600 mr-3" />
-                      <div>
-                        <p className="font-medium text-purple-900">Manage Bookings</p>
-                        <p className="text-sm text-purple-600">View all customer bookings</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-
                 {/* Recent Bookings Section */}
                 <div>
                   <div className="flex justify-between items-center mb-4">
@@ -639,14 +582,14 @@ const VendorDashboardFirebase = () => {
                   {dashboardData?.recentBookings?.length > 0 ? (
                     <div className="space-y-3">
                       {dashboardData.recentBookings.slice(0, 5).map((booking) => (
-                        <div key={booking.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
+                        <div key={booking.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-gray-900 text-sm">
+                                <h4 className="font-medium text-gray-900 text-sm truncate">
                                   {booking.serviceName || 'Service Booking'}
                                 </h4>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                                   booking.status === 'confirmed' 
                                     ? 'bg-green-100 text-green-800'
                                     : booking.status === 'pending'
@@ -659,14 +602,14 @@ const VendorDashboardFirebase = () => {
                                 </span>
                               </div>
                               
-                              <div className="space-y-1 text-sm text-gray-600">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
                                 <div className="flex items-center">
-                                  <Users className="h-3 w-3 mr-2" />
-                                  <span>{booking.customerName || 'Customer'}</span>
+                                  <Users className="h-3 w-3 mr-2 flex-shrink-0" />
+                                  <span className="truncate">{booking.customerName || 'Customer'}</span>
                                 </div>
                                 <div className="flex items-center">
-                                  <Calendar className="h-3 w-3 mr-2" />
-                                  <span>
+                                  <Calendar className="h-3 w-3 mr-2 flex-shrink-0" />
+                                  <span className="truncate">
                                     {booking.bookingDate ? 
                                       new Date(booking.bookingDate).toLocaleDateString('en-US', { 
                                         weekday: 'short', 
@@ -678,8 +621,8 @@ const VendorDashboardFirebase = () => {
                                   </span>
                                 </div>
                                 <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-2" />
-                                  <span>{booking.bookingTime || booking.startTime || 'Time not set'}</span>
+                                  <Clock className="h-3 w-3 mr-2 flex-shrink-0" />
+                                  <span className="truncate">{booking.bookingTime || booking.startTime || 'Time not set'}</span>
                                 </div>
                                 <div className="flex items-center">
                                   <span className="font-medium text-green-600">RM {booking.price || '0'}</span>
@@ -688,16 +631,16 @@ const VendorDashboardFirebase = () => {
                             </div>
                             
                             {booking.status === 'pending' && (
-                              <div className="flex gap-2 ml-4">
+                              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'confirmed')}
-                                  className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
+                                  className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors w-full sm:w-auto"
                                 >
                                   Confirm
                                 </button>
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'cancelled')}
-                                  className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                                  className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors w-full sm:w-auto"
                                 >
                                   Cancel
                                 </button>
