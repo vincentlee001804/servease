@@ -225,19 +225,19 @@ const BookingPage = () => {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Button 
                 variant="outline" 
                 onClick={() => navigate(`/vendor/${vendorId}`)}
-                className="mr-4"
+                className="w-full sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Services
               </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Book Service</h1>
-                <p className="text-gray-600 mt-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Book Service</h1>
+                <p className="text-gray-600 mt-2 truncate">
                   {vendor.businessName} • {service.name?.en || service.name}
                 </p>
               </div>
@@ -245,7 +245,7 @@ const BookingPage = () => {
             <Button 
               variant="outline" 
               onClick={() => navigate('/bookings')}
-              className="flex items-center"
+              className="flex items-center w-full sm:w-auto"
             >
               <Calendar className="h-4 w-4 mr-2" />
               Check Booking Status

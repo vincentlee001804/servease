@@ -180,20 +180,20 @@ const VendorPageFirebase = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-4 gap-4">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-gray-900 truncate">
                 {vendor.businessName || 'Business Profile'}
               </h1>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               {/* Language Selector */}
-              <div className="flex items-center space-x-1 mr-4">
-                <Languages className="w-4 h-4 text-gray-500" />
+              <div className="flex items-center space-x-1">
+                <Languages className="w-4 h-4 text-gray-500 flex-shrink-0" />
                 <select
                   value={displayLanguage}
                   onChange={(e) => setDisplayLanguage(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0"
                 >
                   <option value="en">English</option>
                   <option value="ms">Bahasa Malaysia</option>
@@ -205,7 +205,7 @@ const VendorPageFirebase = () => {
                     size="sm"
                     onClick={() => translateContent(displayLanguage)}
                     disabled={translating}
-                    className="ml-2"
+                    className="ml-2 flex-shrink-0"
                   >
                     {translating ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -215,18 +215,21 @@ const VendorPageFirebase = () => {
                   </Button>
                 )}
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate('/bookings')}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Check Booking Status
-              </Button>
-              <Button variant="outline" size="sm">
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm">
-                <Heart className="w-4 h-4 mr-2" />
-                Save
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Check Booking Status</span>
+                  <span className="sm:hidden">Bookings</span>
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Share</span>
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Heart className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Save</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
