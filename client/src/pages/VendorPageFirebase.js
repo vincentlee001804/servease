@@ -98,11 +98,13 @@ const VendorPageFirebase = () => {
   }, [vendorId, shortUrl]);
 
   const handleBookService = (serviceId) => {
-    navigate(`/booking/${vendorId || shortUrl}?service=${serviceId}`);
+    navigate(`/booking/${vendorId || shortUrl}/${serviceId}`);
   };
 
   const handleBack = () => {
-    navigate('/');
+    // Don't navigate back to home - keep users in vendor context
+    // This prevents customers from leaving the vendor page when they scan QR codes
+    window.history.back();
   };
 
   // Translation functions
@@ -132,8 +134,12 @@ const VendorPageFirebase = () => {
   };
 
   const filteredServices = services.filter(service => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchTerm.toLowerCase());
+    // Handle multilingual name and description
+    const serviceName = getTranslatedText(service.name, '');
+    const serviceDescription = getTranslatedText(service.description, '');
+    
+    const matchesSearch = serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         serviceDescription.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -162,7 +168,7 @@ const VendorPageFirebase = () => {
           <p className="text-gray-600 mb-6">{error || 'This vendor is not available or has been deactivated.'}</p>
           <Button onClick={handleBack} className="w-full">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
+            Go Back
           </Button>
         </div>
       </div>
@@ -176,14 +182,6 @@ const VendorPageFirebase = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="mr-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
               <h1 className="text-xl font-semibold text-gray-900">
                 {vendor.businessName || 'Business Profile'}
               </h1>
@@ -217,6 +215,10 @@ const VendorPageFirebase = () => {
                   </Button>
                 )}
               </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/bookings')}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Check Booking Status
+              </Button>
               <Button variant="outline" size="sm">
                 <Share2 className="w-4 h-4 mr-2" />
                 Share

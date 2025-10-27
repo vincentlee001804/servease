@@ -10,7 +10,9 @@ import Footer from './components/Footer';
 // Pages
 import Home from './pages/HomeModern';
 import VendorPage from './pages/VendorPageFirebase';
-import BookingPage from './pages/BookingPageModern';
+import BookingPage from './pages/BookingPage';
+import BookingSuccess from './pages/BookingSuccess';
+import BookingStatus from './pages/BookingStatus';
 import VendorDashboard from './pages/VendorDashboardFirebase';
 import Login from './pages/LoginFirebase';
 import Register from './pages/RegisterFirebase';
@@ -58,7 +60,9 @@ function App() {
                 <Route path="/test" element={<TestPage />} />
                 <Route path="/vendor/:vendorId" element={<VendorPage />} />
                 <Route path="/s/:shortUrl" element={<VendorPage />} />
-                <Route path="/booking/:vendorId" element={<BookingPage />} />
+                <Route path="/booking/:vendorId/:serviceId" element={<BookingPage />} />
+                <Route path="/booking-success/:vendorId" element={<BookingSuccess />} />
+                <Route path="/bookings" element={<BookingStatus />} />
                 
                 {/* Auth routes */}
                 <Route path="/login" element={<Login />} />

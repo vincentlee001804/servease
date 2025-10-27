@@ -1,148 +1,220 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
-import { Calendar, Clock, User, Phone, Mail, CheckCircle, ArrowLeft } from 'lucide-react';
-import axios from '../config/axios';
+import { useParams, useNavigate } from 'react-router-dom';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
+import { Calendar, Clock, User, DollarSign, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
 
 const BookingPage = () => {
-  const { vendorId } = useParams();
-  const location = useLocation();
+  const { vendorId, serviceId } = useParams();
   const navigate = useNavigate();
-  const { t, language } = useLanguage();
   
-  const [step, setStep] = useState(1);
   const [vendor, setVendor] = useState(null);
-  const [services, setServices] = useState([]);
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    phone: '',
-    email: '',
+  const [service, setService] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Booking form data
+  const [formData, setFormData] = useState({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    selectedDate: '',
+    selectedTime: '',
     notes: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [booking, setBooking] = useState(null);
+  
+  // Available time slots
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
-  // Get vendor and services from location state or fetch from API
   useEffect(() => {
-    if (location.state?.vendor && location.state?.services) {
-      setVendor(location.state.vendor);
-      setServices(location.state.services);
-    } else {
-      fetchVendorData();
-    }
-  }, [location.state, vendorId]);
+    fetchVendorAndService();
+  }, [vendorId, serviceId]);
 
-  const fetchVendorData = async () => {
+  const fetchVendorAndService = async () => {
     try {
-      const response = await axios.get(`/api/vendors/public/${vendorId}`);
-      setVendor(response.data.vendor);
-      setServices(response.data.services);
-    } catch (error) {
-      console.error('Error fetching vendor data:', error);
-      toast.error('Failed to load vendor information');
-    }
-  };
-
-  const handleServiceToggle = (service) => {
-    setSelectedServices(prev => {
-      const exists = prev.find(s => s.service === service.id);
-      if (exists) {
-        return prev.filter(s => s.service !== service.id);
-      } else {
-        return [...prev, { service: service.id, quantity: 1 }];
+      setLoading(true);
+      
+      // Fetch vendor data
+      const vendorRef = doc(db, 'vendors', vendorId);
+      const vendorSnap = await getDoc(vendorRef);
+      
+      if (!vendorSnap.exists()) {
+        toast.error('Vendor not found');
+        navigate(-1); // Go back to previous page instead of home
+        return;
       }
-    });
-  };
-
-  const handleQuantityChange = (serviceId, quantity) => {
-    setSelectedServices(prev => 
-      prev.map(s => 
-        s.service === serviceId 
-          ? { ...s, quantity: Math.max(1, quantity) }
-          : s
-      )
-    );
-  };
-
-  const calculateTotal = () => {
-    return selectedServices.reduce((total, selectedService) => {
-      const service = services.find(s => s.id === selectedService.service);
-      return total + (service.price * selectedService.quantity);
-    }, 0);
-  };
-
-  const calculateDuration = () => {
-    return selectedServices.reduce((total, selectedService) => {
-      const service = services.find(s => s.id === selectedService.service);
-      return total + (service.duration * selectedService.quantity);
-    }, 0);
-  };
-
-  const getAvailableTimeSlots = () => {
-    // This would typically fetch from the API based on selected date
-    // For now, return mock time slots
-    const slots = [];
-    const startHour = 9;
-    const endHour = 18;
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        slots.push(timeString);
+      
+      const vendorData = vendorSnap.data();
+      setVendor({ id: vendorSnap.id, ...vendorData });
+      
+      // Fetch service data
+      const serviceRef = doc(db, 'services', serviceId);
+      const serviceSnap = await getDoc(serviceRef);
+      
+      if (!serviceSnap.exists()) {
+        toast.error('Service not found');
+        navigate(`/vendor/${vendorId}`);
+        return;
       }
-    }
-    
-    return slots;
-  };
-
-  const handleBookingSubmit = async () => {
-    if (!selectedServices.length || !selectedDate || !selectedTime || !customerInfo.name || !customerInfo.phone) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const bookingData = {
-        vendorEmail: vendor.email,
-        services: selectedServices,
-        customer: customerInfo,
-        bookingDate: selectedDate,
-        startTime: selectedTime,
-        notes: customerInfo.notes
-      };
-
-      const response = await axios.post('/bookings', bookingData);
-      setBooking(response.data.booking);
-      setStep(4);
-      toast.success('Booking created successfully!');
+      
+      const serviceData = serviceSnap.data();
+      setService({ id: serviceSnap.id, ...serviceData });
+      
+      // Generate available time slots for the next 7 days
+      generateAvailableSlots(vendorData.operatingHours);
+      
     } catch (error) {
-      console.error('Booking error:', error);
-      toast.error(error.response?.data?.message || 'Failed to create booking');
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load booking information');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatPrice = (price) => `RM ${price}`;
-  const formatDuration = (minutes) => {
-    if (minutes < 60) return `${minutes} minutes`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
-    return `${hours}h ${remainingMinutes}m`;
+  const generateAvailableSlots = (operatingHours) => {
+    const slots = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      
+      const dayHours = operatingHours[dayName];
+      if (dayHours && dayHours.isOpen) {
+        const startTime = dayHours.open;
+        const endTime = dayHours.close;
+        
+        // Generate 30-minute slots
+        const start = new Date(`${date.toDateString()} ${startTime}`);
+        const end = new Date(`${date.toDateString()} ${endTime}`);
+        
+        let current = new Date(start);
+        while (current < end) {
+          const timeString = current.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          });
+          
+          slots.push({
+            date: date.toISOString().split('T')[0],
+            time: timeString,
+            displayDate: date.toLocaleDateString('en-US', { 
+              weekday: 'short', 
+              month: 'short', 
+              day: 'numeric' 
+            }),
+            displayTime: current.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            })
+          });
+          
+          current.setMinutes(current.getMinutes() + 30);
+        }
+      }
+    }
+    
+    setAvailableSlots(slots);
   };
 
-  if (!vendor) {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSlotSelect = (slot) => {
+    setSelectedSlot(slot);
+    setFormData(prev => ({
+      ...prev,
+      selectedDate: slot.date,
+      selectedTime: slot.time
+    }));
+  };
+
+  const calculatePrice = () => {
+    if (!service) return 0;
+    
+    if (service.priceType === 'fixed') {
+      return service.price;
+    } else if (service.priceType === 'range') {
+      return service.priceRange?.min || 0;
+    } else if (service.priceType === 'from') {
+      return service.price;
+    }
+    return 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedSlot) {
+      toast.error('Please select a date and time');
+      return;
+    }
+    
+    if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      const bookingData = {
+        vendorId,
+        serviceId,
+        serviceName: service.name?.en || service.name || 'Service',
+        customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
+        customerPhone: formData.customerPhone,
+        bookingDate: formData.selectedDate,
+        bookingTime: formData.selectedTime,
+        notes: formData.notes,
+        status: 'pending',
+        price: calculatePrice(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const docRef = await addDoc(collection(db, 'bookings'), bookingData);
+      
+      toast.success('Booking request submitted successfully!');
+      navigate(`/booking-success/${vendorId}?bookingId=${docRef.id}`);
+      
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast.error('Failed to submit booking. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="loading">
-          <div className="spinner"></div>
-          <span className="ml-3">{t('loading')}</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!vendor || !service) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h2>
+          <p className="text-gray-600 mb-6">The service you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate(`/vendor/${vendorId}`)}>Back to Vendor</Button>
         </div>
       </div>
     );
@@ -150,357 +222,193 @@ const BookingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors mb-4"
-          >
-            <ArrowLeft size={20} />
-            {t('back')}
-          </button>
-          
-          <h1 className="text-3xl font-bold text-gray-900">
-            Book with {vendor.businessName}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Complete your booking in a few simple steps
-          </p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
-            {[1, 2, 3, 4].map((stepNumber) => (
-              <div key={stepNumber} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                  step >= stepNumber 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-300 text-gray-600'
-                }`}>
-                  {stepNumber}
-                </div>
-                {stepNumber < 4 && (
-                  <div className={`w-16 h-1 mx-2 ${
-                    step > stepNumber ? 'bg-blue-600' : 'bg-gray-300'
-                  }`} />
-                )}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/vendor/${vendorId}`)}
+                className="mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Services
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Book Service</h1>
+                <p className="text-gray-600 mt-2">
+                  {vendor.businessName} • {service.name?.en || service.name}
+                </p>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
-            <span>Select Services</span>
-            <span>Date & Time</span>
-            <span>Your Info</span>
-            <span>Confirmation</span>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/bookings')}
+              className="flex items-center"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Check Booking Status
+            </Button>
           </div>
         </div>
 
-        {/* Step 1: Select Services */}
-        {step === 1 && (
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {t('selectServices')}
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {services.map((service) => {
-                const isSelected = selectedServices.find(s => s.service === service.id);
-                const selectedQuantity = isSelected?.quantity || 1;
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Service Details */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                  Service Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg">{service.name?.en || service.name}</h3>
+                  <p className="text-gray-600 mt-1">{service.description?.en || service.description}</p>
+                </div>
                 
-                return (
-                  <div key={service.id} className="card">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {service.name[language] || service.name.en}
-                      </h3>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-blue-600">
-                          {formatPrice(service.price)}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                    <span className="text-sm">{service.duration} minutes</span>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {formatDuration(service.duration)}
-                        </div>
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-gray-500" />
+                    <span className="text-sm">Max 1 person</span>
                       </div>
                     </div>
 
-                    {service.description && (
-                      <p className="text-gray-600 mb-4 text-sm">
-                        {service.description[language] || service.description.en}
-                      </p>
-                    )}
-
-                    {isSelected && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Quantity:
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleQuantityChange(service.id, selectedQuantity - 1)}
-                            className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                          >
-                            -
-                          </button>
-                          <span className="w-8 text-center">{selectedQuantity}</span>
-                          <button
-                            onClick={() => handleQuantityChange(service.id, selectedQuantity + 1)}
-                            className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                          >
-                            +
-                          </button>
-                        </div>
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                  <span className="text-lg font-semibold text-green-600">
+                    {service.priceType === 'fixed' && `RM ${service.price}`}
+                    {service.priceType === 'range' && `RM ${service.priceRange?.min || 0} - ${service.priceRange?.max || 0}`}
+                    {service.priceType === 'from' && `From RM ${service.price}`}
+                        </span>
                       </div>
-                    )}
+              </CardContent>
+            </Card>
 
-                    <button
-                      onClick={() => handleServiceToggle(service)}
-                      className={`w-full ${
-                        isSelected 
-                          ? 'btn btn-secondary' 
-                          : 'btn btn-outline'
-                      }`}
-                    >
-                      {isSelected ? 'Remove' : 'Add to Booking'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {selectedServices.length > 0 && (
-              <div className="mt-8 p-6 bg-blue-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Booking Summary
-                </h3>
+            {/* Vendor Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Vendor Information</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-2">
-                  {selectedServices.map((selectedService) => {
-                    const service = services.find(s => s.id === selectedService.service);
-                    return (
-                      <div key={selectedService.service} className="flex justify-between">
-                        <span>
-                          {service.name[language] || service.name.en} x{selectedService.quantity}
-                        </span>
-                        <span className="font-semibold">
-                          {formatPrice(service.price * selectedService.quantity)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                    <span>Total:</span>
-                    <span>{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Duration: {formatDuration(calculateDuration())}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 flex justify-end">
-              <button
-                onClick={() => setStep(2)}
-                disabled={selectedServices.length === 0}
-                className="btn btn-primary"
-              >
-                {t('next')}
-              </button>
+                  <p className="font-medium">{vendor.businessName}</p>
+                  <p className="text-sm text-gray-600">{vendor.businessInfo?.address}</p>
+                  <p className="text-sm text-gray-600">{vendor.contactInfo?.phone}</p>
             </div>
+              </CardContent>
+            </Card>
           </div>
-        )}
 
-        {/* Step 2: Select Date & Time */}
-        {step === 2 && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {t('selectDateTime')}
-            </h2>
-            
-            <div className="card">
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Date:
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="form-input"
+          {/* Booking Form */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Customer Details */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Your Details</h3>
+                    <Input
+                      name="customerName"
+                      placeholder="Full Name *"
+                      value={formData.customerName}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <Input
+                      name="customerEmail"
+                      type="email"
+                      placeholder="Email Address *"
+                      value={formData.customerEmail}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <Input
+                      name="customerPhone"
+                      placeholder="Phone Number *"
+                      value={formData.customerPhone}
+                      onChange={handleInputChange}
                   required
                 />
               </div>
 
-              {selectedDate && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Time:
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {getAvailableTimeSlots().map((time) => (
+                  {/* Date & Time Selection */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Select Date & Time</h3>
+                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                      {availableSlots.map((slot, index) => (
                       <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={`p-3 text-sm rounded-lg border transition-colors ${
-                          selectedTime === time
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-600'
-                        }`}
-                      >
-                        {time}
+                          key={index}
+                          type="button"
+                          onClick={() => handleSlotSelect(slot)}
+                          className={`p-3 text-left border rounded-lg transition-colors ${
+                            selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
+                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="text-sm font-medium">{slot.displayDate}</div>
+                          <div className="text-xs text-gray-600">{slot.displayTime}</div>
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
             </div>
 
-            <div className="mt-8 flex justify-between">
-              <button
-                onClick={() => setStep(1)}
-                className="btn btn-outline"
-              >
-                {t('previous')}
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                disabled={!selectedDate || !selectedTime}
-                className="btn btn-primary"
-              >
-                {t('next')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Customer Information */}
-        {step === 3 && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {t('customerInfo')}
-            </h2>
-            
-            <div className="card">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('name')} *
-                  </label>
-                  <input
-                    type="text"
-                    value={customerInfo.name}
-                    onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('phone')} *
-                  </label>
-                  <input
-                    type="tel"
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('email')}
-                  </label>
-                  <input
-                    type="email"
-                    value={customerInfo.email}
-                    onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                    className="form-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('notes')}
-                  </label>
+                  {/* Additional Notes */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Additional Notes (Optional)</label>
                   <textarea
-                    value={customerInfo.notes}
-                    onChange={(e) => setCustomerInfo({...customerInfo, notes: e.target.value})}
-                    className="form-input form-textarea"
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleInputChange}
+                      placeholder="Any special requests or notes..."
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none"
                     rows={3}
                   />
                 </div>
+
+                  {/* Price Summary */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Estimated Price:</span>
+                      <span className="text-lg font-semibold text-green-600">
+                        RM {calculatePrice()}
+                      </span>
               </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Final price may vary based on specific requirements
+                    </p>
             </div>
 
-            <div className="mt-8 flex justify-between">
-              <button
-                onClick={() => setStep(2)}
-                className="btn btn-outline"
-              >
-                {t('previous')}
-              </button>
-              <button
-                onClick={handleBookingSubmit}
-                disabled={loading || !customerInfo.name || !customerInfo.phone}
-                className="btn btn-primary"
-              >
-                {loading ? t('loading') : t('bookNow')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Confirmation */}
-        {step === 4 && booking && (
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="card">
-              <CheckCircle size={64} className="mx-auto text-green-600 mb-6" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('bookingSuccess')}
-              </h2>
-              
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Booking Details
-                </h3>
-                <div className="space-y-2 text-left">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Confirmation Code:</span>
-                    <span className="font-semibold">{booking.confirmationCode}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
-                    <span>{new Date(booking.bookingDate).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Time:</span>
-                    <span>{booking.startTime} - {booking.endTime}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total:</span>
-                    <span className="font-semibold">{formatPrice(booking.totalPrice)}</span>
+                  {/* Submit Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={submitting || !selectedSlot}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Booking Request'
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
                   </div>
                 </div>
-              </div>
-
-              <p className="text-gray-600 mb-6">
-                You will receive a confirmation message shortly. 
-                Please arrive on time for your appointment.
-              </p>
-
-              <button
-                onClick={() => navigate('/')}
-                className="btn btn-primary"
-              >
-                Back to Home
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

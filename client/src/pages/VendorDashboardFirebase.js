@@ -80,7 +80,7 @@ const VendorDashboardFirebase = () => {
         // Get bookings for this vendor
         const bookingsQuery = query(
           collection(db, 'bookings'),
-          where('vendorEmail', '==', user.email)
+          where('vendorId', '==', user.uid)
         );
         const bookingsSnapshot = await getDocs(bookingsQuery);
         const bookings = [];
@@ -121,6 +121,15 @@ const VendorDashboardFirebase = () => {
           return bookingDate && bookingDate >= today && bookingDate < tomorrow;
         });
 
+        // Get recent bookings (all bookings, sorted by creation date, most recent first)
+        const recentBookings = bookings
+          .sort((a, b) => {
+            const dateA = a.createdAt?.toDate() || new Date(0);
+            const dateB = b.createdAt?.toDate() || new Date(0);
+            return dateB - dateA;
+          })
+          .slice(0, 10); // Show last 10 bookings
+
         const dashboardData = {
           vendor: {
             businessName: vendorData.businessName,
@@ -137,7 +146,7 @@ const VendorDashboardFirebase = () => {
             todaysBookings: todaysBookings.length,
             totalServices: services.length
           },
-          recentBookings: todaysBookings.slice(0, 5),
+          recentBookings: recentBookings,
           services: services
         };
 
@@ -474,50 +483,70 @@ const VendorDashboardFirebase = () => {
 
         {/* Stats Cards - Mobile Optimized */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                </div>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bookings</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
+                </div>
               </div>
-              <div className="ml-3 sm:ml-4">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
-              </div>
-              <div className="ml-3 sm:ml-4">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">All time</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
+                </div>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
+                </div>
               </div>
-              <div className="ml-3 sm:ml-4">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Bookings</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Awaiting action</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                </div>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Bookings</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
+                </div>
               </div>
-              <div className="ml-3 sm:ml-4">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Services</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Today only</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+                </div>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Services</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Active</p>
               </div>
             </div>
           </div>
@@ -553,33 +582,176 @@ const VendorDashboardFirebase = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">Recent Bookings</h3>
-                {dashboardData?.recentBookings?.length > 0 ? (
-                  <div className="space-y-4">
-                    {dashboardData.recentBookings.map((booking) => (
-                      <div key={booking.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium text-gray-900">{booking.customer?.name}</p>
-                            <p className="text-sm text-gray-600">{booking.customer?.email}</p>
-                            <p className="text-sm text-gray-500">{booking.bookingDate} at {booking.startTime}</p>
-                          </div>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            booking.status === 'confirmed' 
-                              ? 'bg-green-100 text-green-800'
-                              : booking.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {booking.status}
-                          </span>
-                        </div>
+                {/* Quick Actions */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <button
+                    onClick={() => setActiveTab('services')}
+                    className="p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center">
+                      <Plus className="h-5 w-5 text-blue-600 mr-3" />
+                      <div>
+                        <p className="font-medium text-blue-900">Add Service</p>
+                        <p className="text-sm text-blue-600">Create new service offerings</p>
                       </div>
-                    ))}
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('qr')}
+                    className="p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center">
+                      <QrCode className="h-5 w-5 text-green-600 mr-3" />
+                      <div>
+                        <p className="font-medium text-green-900">QR Code</p>
+                        <p className="text-sm text-green-600">Generate booking QR code</p>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('bookings')}
+                    className="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center">
+                      <Calendar className="h-5 w-5 text-purple-600 mr-3" />
+                      <div>
+                        <p className="font-medium text-purple-900">Manage Bookings</p>
+                        <p className="text-sm text-purple-600">View all customer bookings</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Recent Bookings Section */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Recent Bookings</h3>
+                    <button
+                      onClick={() => setActiveTab('bookings')}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      View All →
+                    </button>
                   </div>
-                ) : (
-                  <p className="text-gray-500">No recent bookings</p>
-                )}
+                  
+                  {dashboardData?.recentBookings?.length > 0 ? (
+                    <div className="space-y-3">
+                      {dashboardData.recentBookings.slice(0, 5).map((booking) => (
+                        <div key={booking.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-gray-900 text-sm">
+                                  {booking.serviceName || 'Service Booking'}
+                                </h4>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  booking.status === 'confirmed' 
+                                    ? 'bg-green-100 text-green-800'
+                                    : booking.status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : booking.status === 'cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
+                                </span>
+                              </div>
+                              
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <div className="flex items-center">
+                                  <Users className="h-3 w-3 mr-2" />
+                                  <span>{booking.customerName || 'Customer'}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Calendar className="h-3 w-3 mr-2" />
+                                  <span>
+                                    {booking.bookingDate ? 
+                                      new Date(booking.bookingDate).toLocaleDateString('en-US', { 
+                                        weekday: 'short', 
+                                        month: 'short', 
+                                        day: 'numeric' 
+                                      }) : 
+                                      'Date not set'
+                                    }
+                                  </span>
+                                </div>
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-2" />
+                                  <span>{booking.bookingTime || booking.startTime || 'Time not set'}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="font-medium text-green-600">RM {booking.price || '0'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {booking.status === 'pending' && (
+                              <div className="flex gap-2 ml-4">
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                  className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                  className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">No bookings yet</h4>
+                      <p className="text-gray-500 mb-4">Customer bookings will appear here when they book your services</p>
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <button
+                          onClick={() => setActiveTab('qr')}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          Generate QR Code
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('services')}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
+                        >
+                          Add Services
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Business Summary */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Business Summary</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Business Name</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessName || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Business Type</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessType || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Total Services</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Active Bookings</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.stats?.pendingBookings || 0} pending</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -729,7 +901,7 @@ const VendorDashboardFirebase = () => {
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Services</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Services</h3>
                     <p className="text-sm text-gray-600">Manage your service offerings</p>
                   </div>
                   <button
@@ -753,7 +925,7 @@ const VendorDashboardFirebase = () => {
                             <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
                               {service.description?.en || service.description || 'No description'}
                             </p>
-                          </div>
+                        </div>
                           <div className="flex items-center gap-2 ml-3">
                             <button
                               onClick={() => {
@@ -772,7 +944,7 @@ const VendorDashboardFirebase = () => {
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
-                          </div>
+                      </div>
                         </div>
                         
                         <div className="space-y-2">
@@ -839,11 +1011,115 @@ const VendorDashboardFirebase = () => {
               </div>
             )}
 
+            {/* Bookings Tab - Mobile Optimized */}
+            {activeTab === 'bookings' && (
+              <div className="space-y-4 sm:space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Customer Bookings</h3>
+                  <p className="text-sm text-gray-600">Manage and track customer booking requests</p>
+                </div>
+
+                {dashboardData?.recentBookings?.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.recentBookings.map((booking) => (
+                      <div key={booking.id} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-gray-900 text-sm sm:text-base">
+                                {booking.serviceName || 'Service Booking'}
+                              </h4>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-2 text-sm text-gray-600">
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 mr-2" />
+                                <span>{booking.customerName || 'Customer'}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                <span>{new Date(booking.bookingDate).toLocaleDateString('en-US', { 
+                                  weekday: 'short', 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-2" />
+                                <span>{booking.bookingTime}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="font-medium text-green-600">RM {booking.price}</span>
+                              </div>
+                            </div>
+
+                            {booking.notes && (
+                              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                <p className="text-xs text-gray-500 mb-1">Special Notes:</p>
+                                <p className="text-sm text-gray-700">{booking.notes}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {booking.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                  className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                  className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {booking.status === 'confirmed' && (
+                              <button
+                                onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                              >
+                                Mark Complete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 sm:py-12">
+                    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <Calendar className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No bookings yet</h3>
+                    <p className="text-gray-500 mb-6">Customer bookings will appear here when they book your services</p>
+                    <div className="text-sm text-gray-400">
+                      Share your QR code to start receiving bookings
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* QR Code Tab - Mobile Optimized */}
             {activeTab === 'qr' && (
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
+                <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
                   {qrCode && (
                     <span className="text-xs sm:text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
                       ✓ Generated
@@ -863,7 +1139,7 @@ const VendorDashboardFirebase = () => {
                           onLoad={() => console.log('QR code image loaded successfully')}
                           onError={(e) => console.error('QR code image failed to load:', e)}
                         />
-                      </div>
+                        </div>
                       
                       {/* QR Code Info */}
                       <div className="bg-gray-50 p-4 rounded-lg">
@@ -916,13 +1192,13 @@ const VendorDashboardFirebase = () => {
                         <p className="text-gray-600 mb-6">
                           Create a unique QR code that customers can scan to book your services directly.
                         </p>
-                        <button
-                          onClick={generateQRCode}
+                      <button
+                        onClick={generateQRCode}
                           className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                        >
-                          <QrCode className="h-4 w-4 mr-2" />
-                          Generate QR Code
-                        </button>
+                      >
+                        <QrCode className="h-4 w-4 mr-2" />
+                        Generate QR Code
+                      </button>
                       </div>
                     </div>
                   )}

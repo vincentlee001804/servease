@@ -18,10 +18,11 @@ service cloud.firestore {
     
     // Allow users to create bookings
     match /bookings/{bookingId} {
-      allow create: if request.auth != null;
-      allow read, update: if request.auth != null && 
-        (resource.data.vendorEmail == request.auth.token.email || 
-         request.auth.token.email == resource.data.customer.email);
+      allow create: if true; // Allow anyone to create bookings
+      allow read: if true; // Allow public read for booking status pages
+      allow update: if request.auth != null && 
+        (resource.data.vendorId == request.auth.uid || 
+         request.auth.token.email == resource.data.customerEmail);
     }
     
     // Allow users to create and manage their own services
