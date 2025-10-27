@@ -215,16 +215,16 @@ const VendorPageFirebase = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Check Booking Status</span>
-                  <span className="sm:hidden">Bookings</span>
-                </Button>
-                <Button variant="outline" size="sm" className="px-2 py-1">
-                  <Share2 className="w-3 h-3" />
-                </Button>
-              </div>
+              
+              {/* Action Buttons */}
+              <Button variant="outline" size="sm" onClick={() => navigate('/bookings')} className="flex-1 sm:flex-none">
+                <Calendar className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Check Booking Status</span>
+                <span className="sm:hidden">Bookings</span>
+              </Button>
+              <Button variant="outline" size="sm" className="px-2 py-1">
+                <Share2 className="w-3 h-3" />
+              </Button>
             </div>
           </div>
         </div>
