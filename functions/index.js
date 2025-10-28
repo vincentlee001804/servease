@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -24,6 +25,23 @@ app.use(express.urlencoded({ extended: true }));
 
 // JWT Secret
 const JWT_SECRET = 'your-super-secret-jwt-key-change-in-production';
+
+// Email transport (configure with your SMTP or Gmail App Password)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER || functions.config().smtp?.user || 'your@email.com',
+    pass: process.env.SMTP_PASS || functions.config().smtp?.pass || 'app-password'
+  }
+});
+
+async function sendEmail(to, subject, html) {
+  try {
+    await transporter.sendMail({ from: 'ServEase <no-reply@servease.app>', to, subject, html });
+  } catch (e) {
+    console.error('Email send error:', e);
+  }
+}
 
 // Auth middleware
 const authenticateToken = (req, res, next) => {
@@ -446,12 +464,52 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
       status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+    const snap = await bookingRef.get();
+    const booking = snap.data();
+    if (status === 'confirmed' && booking?.customerEmail) {
+      // send confirmation email immediately
+      const dateStr = new Date(booking.bookingDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const html = `<h2>Your booking is confirmed</h2><p>Service: ${booking.serviceName || 'Service'}</p><p>Date: ${dateStr}</p><p>Time: ${booking.bookingTime}</p>`;
+      sendEmail(booking.customerEmail, 'Booking Confirmed - ServEase', html);
+
+      // schedule reminder 24h before
+      const eventTime = new Date(`${booking.bookingDate}T${(booking.bookingTime || '09:00')}:00Z`).getTime();
+      const reminderTime = eventTime - 24 * 60 * 60 * 1000;
+      // persist reminder task
+      await db.collection('emailReminders').add({
+        to: booking.customerEmail,
+        subject: 'Appointment Reminder - ServEase',
+        html: `<h2>Reminder</h2><p>You have an appointment tomorrow for ${booking.serviceName || 'Service'} at ${booking.bookingTime}.</p>`,
+        sendAt: admin.firestore.Timestamp.fromMillis(reminderTime),
+        status: 'pending',
+        bookingId: req.params.bookingId
+      });
+    }
     
     res.json({ success: true, message: 'Booking status updated' });
   } catch (error) {
     console.error('Booking status update error:', error);
     res.status(500).json({ message: 'Failed to update booking status' });
   }
+});
+
+// Scheduled function to send pending reminders
+exports.sendPendingReminders = functions.pubsub.schedule('every 5 minutes').onRun(async () => {
+  const now = Date.now();
+  const query = await db.collection('emailReminders')
+    .where('status', '==', 'pending')
+    .where('sendAt', '<=', admin.firestore.Timestamp.fromMillis(now))
+    .limit(20)
+    .get();
+
+  const batch = db.batch();
+  for (const docSnap of query.docs) {
+    const data = docSnap.data();
+    await sendEmail(data.to, data.subject, data.html);
+    batch.update(docSnap.ref, { status: 'sent', sentAt: admin.firestore.FieldValue.serverTimestamp() });
+  }
+  await batch.commit();
+  return null;
 });
 
 // Expose Express app as a Firebase Function
