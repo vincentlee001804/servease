@@ -15,7 +15,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  X
+  X,
+  Phone,
+  Mail
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase-config';
@@ -37,6 +39,31 @@ const VendorDashboardFirebase = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [hasFetchedData, setHasFetchedData] = useState(false);
   const isFetchingRef = useRef(false);
+
+  // Format booking price using booking's stored pricing when available,
+  // otherwise fall back to the corresponding service's pricing definition
+  const formatBookingPrice = useCallback((booking) => {
+    const services = dashboardData?.services || [];
+    const matchedService = services.find((s) => s.id === booking.serviceId);
+
+    const priceType = booking.servicePriceType || matchedService?.priceType;
+    if (priceType === 'fixed') {
+      const price = booking.servicePrice ?? matchedService?.price ?? booking.price;
+      return `RM ${price || 0}`;
+    }
+    if (priceType === 'range') {
+      const range = booking.servicePriceRange || matchedService?.priceRange || {};
+      const min = range.min ?? 0;
+      const max = range.max ?? 0;
+      return `RM ${min} - ${max}`;
+    }
+    if (priceType === 'from') {
+      const price = booking.servicePrice ?? matchedService?.price ?? booking.price;
+      return `From RM ${price || 0}`;
+    }
+    // Fallback to stored booking price
+    return `RM ${booking.price || 0}`;
+  }, [dashboardData?.services]);
 
   // Form states for business profile
   const [businessName, setBusinessName] = useState('');
@@ -671,7 +698,7 @@ const VendorDashboardFirebase = () => {
                                             </div>
                                             <div className="flex items-center gap-1 flex-shrink-0">
                                               <span className="text-xs font-medium text-gray-900">
-                                                RM {booking.price || '0'}
+                                                {formatBookingPrice(booking)}
                                               </span>
                                               <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
                                                 booking.status === 'confirmed' 
@@ -1033,6 +1060,22 @@ const VendorDashboardFirebase = () => {
                                 <Users className="h-4 w-4 mr-2" />
                                 <span>{booking.customerName || 'Customer'}</span>
                               </div>
+                              {booking.customerPhone && (
+                                <div className="flex items-center">
+                                  <Phone className="h-4 w-4 mr-2" />
+                                  <a href={`tel:${booking.customerPhone}`} className="text-blue-600 hover:text-blue-800">
+                                    {booking.customerPhone}
+                                  </a>
+                                </div>
+                              )}
+                              {booking.customerEmail && (
+                                <div className="flex items-center">
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  <a href={`mailto:${booking.customerEmail}`} className="text-blue-600 hover:text-blue-800">
+                                    {booking.customerEmail}
+                                  </a>
+                                </div>
+                              )}
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2" />
                                 <span>{new Date(booking.bookingDate).toLocaleDateString('en-US', { 
@@ -1047,7 +1090,9 @@ const VendorDashboardFirebase = () => {
                                 <span>{booking.bookingTime}</span>
                               </div>
                               <div className="flex items-center">
-                                <span className="font-medium text-green-600">RM {booking.price}</span>
+                                <span className="font-medium text-green-600">
+                                  {formatBookingPrice(booking)}
+                                </span>
                               </div>
                             </div>
 

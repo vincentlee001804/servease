@@ -183,6 +183,10 @@ const BookingPage = () => {
         notes: formData.notes,
         status: 'pending',
         price: calculatePrice(),
+        // Store service pricing information for proper display
+        servicePriceType: service.priceType,
+        servicePrice: service.price,
+        servicePriceRange: service.priceRange,
         createdAt: new Date(),
         updatedAt: new Date()
       };
