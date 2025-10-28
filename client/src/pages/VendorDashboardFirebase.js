@@ -443,6 +443,36 @@ const VendorDashboardFirebase = () => {
     }
   };
 
+  const shareVendorLink = async () => {
+    try {
+      const vendorUrl = qrCode?.url || `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
+      const title = `${dashboardData?.vendor?.businessName || 'My Business'} - ServEase`;
+      const text = `Check out ${dashboardData?.vendor?.businessName || 'this vendor'} on ServEase`;
+
+      if (navigator.share) {
+        await navigator.share({ title, text, url: vendorUrl });
+        return;
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(vendorUrl);
+        toast.success('Vendor link copied to clipboard!');
+        return;
+      }
+
+      const textArea = document.createElement('textarea');
+      textArea.value = vendorUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast.success('Vendor link copied to clipboard!');
+    } catch (error) {
+      console.error('Error sharing vendor link:', error);
+      toast.error('Failed to share link');
+    }
+  };
+
   const updateBookingStatus = async (bookingId, status) => {
     try {
       const bookingRef = doc(db, 'bookings', bookingId);
@@ -1198,6 +1228,13 @@ const VendorDashboardFirebase = () => {
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Copy Link
+                        </button>
+                        <button
+                          onClick={shareVendorLink}
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                        >
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Share
                         </button>
                         <button
                           onClick={clearQRCode}
