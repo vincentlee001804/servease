@@ -443,32 +443,39 @@ const VendorDashboardFirebase = () => {
     }
   };
 
-  const shareVendorLink = async () => {
+  // Share QR code link using Web Share API with clipboard fallback
+  const shareQRCodeLink = async () => {
     try {
-      const vendorUrl = qrCode?.url || `https://servease-07762363-b4f31.web.app/vendor/${user.uid}`;
-      const title = `${dashboardData?.vendor?.businessName || 'My Business'} - ServEase`;
-      const text = `Check out ${dashboardData?.vendor?.businessName || 'this vendor'} on ServEase`;
+      if (!qrCode?.url) {
+        toast.error('No QR code link available');
+        return;
+      }
 
       if (navigator.share) {
-        await navigator.share({ title, text, url: vendorUrl });
+        await navigator.share({
+          title: 'ServEase - Booking Link',
+          text: 'Share this booking link with your customers',
+          url: qrCode.url,
+        });
         return;
       }
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(vendorUrl);
-        toast.success('Vendor link copied to clipboard!');
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(qrCode.url);
+        toast.success('Link copied to clipboard');
         return;
       }
 
+      // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = vendorUrl;
+      textArea.value = qrCode.url;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      toast.success('Vendor link copied to clipboard!');
+      toast.success('Link copied to clipboard');
     } catch (error) {
-      console.error('Error sharing vendor link:', error);
+      console.error('Error sharing QR code link:', error);
       toast.error('Failed to share link');
     }
   };
@@ -1223,15 +1230,8 @@ const VendorDashboardFirebase = () => {
                           Download QR Code
                         </button>
                         <button
-                          onClick={copyQRCodeLink}
+                          onClick={shareQRCodeLink}
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                        >
-                          <Share2 className="h-4 w-4 mr-2" />
-                          Copy Link
-                        </button>
-                        <button
-                          onClick={shareVendorLink}
-                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
                         >
                           <Share2 className="h-4 w-4 mr-2" />
                           Share
