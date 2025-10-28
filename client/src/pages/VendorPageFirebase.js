@@ -222,10 +222,10 @@ const VendorPageFirebase = () => {
                     {vendor.businessName || 'Business Profile'}
                   </h1>
                 </div>
-                <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-end">
+                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto justify-start lg:justify-end">
                   {/* Language Selector */}
-                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 min-w-0">
-                    <Languages className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 min-w-0">
+                    <Languages className="w-4 h-4 text-blue-500 flex-shrink-0"/>
                     <select
                       value={displayLanguage}
                       onChange={(e) => setDisplayLanguage(e.target.value)}
@@ -253,22 +253,19 @@ const VendorPageFirebase = () => {
                   </div>
                   
                   {/* Bookings Button */}
-                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate('/bookings')}>
+                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate('/bookings')}>
                     <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                      <span className="hidden sm:inline">Check Booking Status</span>
-                      <span className="sm:hidden">Bookings</span>
-                    </span>
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Booking Status</span>
                   </div>
                   
                   {/* Share Button */}
-                  <div 
-                    className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors"
+                  <button 
+                    className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0"
                     onClick={handleShare}
+                    aria-label="Share vendor"
                   >
-                    <Share2 className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Share</span>
-                  </div>
+                    <Share2 className="w-4 h-4 text-purple-500" />
+                  </button>
                 </div>
               </div>
             </CardContent>
