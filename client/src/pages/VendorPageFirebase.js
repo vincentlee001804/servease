@@ -215,7 +215,7 @@ const VendorPageFirebase = () => {
       <div className="bg-gray-50 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="py-4 pl-4 pr-2">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex items-center">
                   <h1 className="text-2xl font-bold text-gray-900 truncate">
@@ -260,7 +260,7 @@ const VendorPageFirebase = () => {
                   
                   {/* Share Button */}
                   <button 
-                    className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0"
+                    className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0 mr-0"
                     onClick={handleShare}
                     aria-label="Share vendor"
                   >
