@@ -906,8 +906,10 @@ const VendorDashboardFirebase = () => {
 
                     {/* Operating Hours Editor */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Operating Hours</label>
-                      <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Operating Hours</label>
+                      <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-xs text-gray-500 mb-2">Toggle Open and set the time range for each day.</p>
+                        <div className="space-y-2">
                         {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day) => (
                           <div key={day} className="flex items-center gap-3">
                             <div className="w-28 capitalize text-gray-700">{day}</div>
@@ -918,14 +920,14 @@ const VendorDashboardFirebase = () => {
                                 onChange={(e) => setOperatingHours((prev)=>({ ...prev, [day]: { ...(prev?.[day]||{}), isOpen: e.target.checked } }))}
                                 className="rounded border-gray-300"
                               />
-                              Open
+                              <span className={`${operatingHours?.[day]?.isOpen ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-100'} px-2 py-0.5 rounded-full text-xs`}>{operatingHours?.[day]?.isOpen ? 'Open' : 'Closed'}</span>
                             </label>
                             <input
                               type="time"
                               value={operatingHours?.[day]?.open || '09:00'}
                               onChange={(e) => setOperatingHours((prev)=>({ ...prev, [day]: { ...(prev?.[day]||{}), open: e.target.value } }))}
                               disabled={!operatingHours?.[day]?.isOpen}
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm disabled:bg-gray-100"
+                              className="px-2 py-1 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 w-28"
                             />
                             <span className="text-gray-500">-</span>
                             <input
@@ -933,10 +935,11 @@ const VendorDashboardFirebase = () => {
                               value={operatingHours?.[day]?.close || '17:00'}
                               onChange={(e) => setOperatingHours((prev)=>({ ...prev, [day]: { ...(prev?.[day]||{}), close: e.target.value } }))}
                               disabled={!operatingHours?.[day]?.isOpen}
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm disabled:bg-gray-100"
+                              className="px-2 py-1 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 w-28"
                             />
                           </div>
                         ))}
+                        </div>
                       </div>
                     </div>
 
@@ -987,6 +990,27 @@ const VendorDashboardFirebase = () => {
                       <p className="text-sm font-medium text-gray-500">Description</p>
                       <p className="text-lg text-gray-900">{dashboardData?.vendor?.description || 'Not set'}</p>
                     </div>
+                    {dashboardData?.vendor?.operatingHours && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-2">Operating Hours</p>
+                        <div className="rounded-md border border-gray-200">
+                          {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day, idx) => {
+                            const hours = dashboardData.vendor.operatingHours[day];
+                            const isToday = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() === day;
+                            return (
+                              <div key={day} className={`flex items-center justify-between px-3 py-2 ${idx!==6 ? 'border-b border-gray-100':''} ${isToday ? 'bg-blue-50' : ''}`}>
+                                <span className={`capitalize ${isToday ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+                                  {day} {isToday && <span className="text-xs text-blue-600 ml-1">(Today)</span>}
+                                </span>
+                                <span className={`text-sm ${hours?.isOpen ? 'text-gray-800' : 'text-gray-500'}`}>
+                                  {hours?.isOpen ? `${hours?.open || '09:00'} - ${hours?.close || '17:00'}` : 'Closed'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
