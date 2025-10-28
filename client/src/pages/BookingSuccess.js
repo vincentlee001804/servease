@@ -16,6 +16,22 @@ const BookingSuccess = () => {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const formatPriceFromBooking = (b) => {
+    if (!b) return 'RM 0';
+    if (b.servicePriceType === 'fixed') {
+      return `RM ${b.servicePrice ?? b.price ?? 0}`;
+    }
+    if (b.servicePriceType === 'range') {
+      const min = b.servicePriceRange?.min ?? 0;
+      const max = b.servicePriceRange?.max ?? 0;
+      return `RM ${min} - ${max}`;
+    }
+    if (b.servicePriceType === 'from') {
+      return `From RM ${b.servicePrice ?? b.price ?? 0}`;
+    }
+    return `RM ${b.price ?? 0}`;
+  };
+
   useEffect(() => {
     if (bookingId) {
       fetchBookingDetails();
@@ -111,7 +127,7 @@ const BookingSuccess = () => {
                   <p className="text-sm text-gray-600">Service</p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">RM {booking.price}</h3>
+                  <h3 className="font-medium text-gray-900">{formatPriceFromBooking(booking)}</h3>
                   <p className="text-sm text-gray-600">Estimated Price</p>
                 </div>
               </div>
