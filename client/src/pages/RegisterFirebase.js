@@ -269,22 +269,29 @@ const RegisterFirebase = () => {
               <label htmlFor="businessType" className="block text-sm font-medium text-gray-700 mb-2">
                 Business Type
               </label>
-              <select
-                id="businessType"
-                name="businessType"
-                value={formData.businessType}
-                onChange={handleChange}
-                className={`block w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.businessType ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select your business type</option>
-                {businessTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="businessType"
+                  name="businessType"
+                  value={formData.businessType}
+                  onChange={handleChange}
+                  className={`block w-full pl-3 pr-8 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white ${
+                    errors.businessType ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select your business type</option>
+                  {businessTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
               {errors.businessType && <p className="mt-1 text-sm text-red-600">{errors.businessType}</p>}
             </div>
 
