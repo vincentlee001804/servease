@@ -538,10 +538,10 @@ const VendorDashboardFirebase = () => {
             <nav className="flex space-x-0 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {[
                 { id: 'overview', name: 'Overview', icon: Calendar, shortName: 'Overview' },
-                { id: 'profile', name: 'Profile', icon: Users, shortName: 'Profile' },
-                { id: 'services', name: 'Services', icon: Plus, shortName: 'Services' },
                 { id: 'bookings', name: 'Bookings', icon: Clock, shortName: 'Bookings' },
-                { id: 'qr', name: 'QR Code', icon: QrCode, shortName: 'QR' }
+                { id: 'services', name: 'Services', icon: Plus, shortName: 'Services' },
+                { id: 'qr', name: 'QR Code', icon: QrCode, shortName: 'QR' },
+                { id: 'profile', name: 'Profile', icon: Users, shortName: 'Profile' }
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 return (
@@ -571,110 +571,152 @@ const VendorDashboardFirebase = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                {/* Recent Bookings Section */}
+                {/* Today's Schedule Calendar View */}
                 <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Recent Bookings</h3>
-                    <button
-                      onClick={() => setActiveTab('bookings')}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      View All →
-                    </button>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Today's Schedule - {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </h3>
                   </div>
                   
-                  {dashboardData?.recentBookings?.length > 0 ? (
-                    <div className="space-y-3">
-                      {dashboardData.recentBookings.slice(0, 5).map((booking) => (
-                        <div key={booking.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-sm transition-shadow">
-                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-gray-900 text-sm truncate">
-                                  {booking.serviceName || 'Service Booking'}
-                                </h4>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
-                                  booking.status === 'confirmed' 
-                                    ? 'bg-green-100 text-green-800'
-                                    : booking.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : booking.status === 'cancelled'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
-                                </span>
-                              </div>
+                  {(() => {
+                    // Filter bookings for today
+                    const today = new Date().toDateString();
+                    const todaysBookings = dashboardData?.recentBookings?.filter(booking => {
+                      const bookingDate = booking.bookingDate ? new Date(booking.bookingDate).toDateString() : null;
+                      return bookingDate === today;
+                    }) || [];
+
+                    // Generate time slots from 8 AM to 8 PM
+                    const timeSlots = [];
+                    for (let hour = 8; hour <= 20; hour++) {
+                      timeSlots.push({
+                        time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
+                        hour: hour,
+                        bookings: []
+                      });
+                    }
+
+                    // Assign bookings to time slots
+                    todaysBookings.forEach(booking => {
+                      const bookingTime = booking.bookingTime || booking.startTime;
+                      if (bookingTime) {
+                        const hour = parseInt(bookingTime.split(':')[0]);
+                        const timeSlot = timeSlots.find(slot => slot.hour === hour);
+                        if (timeSlot) {
+                          timeSlot.bookings.push(booking);
+                        }
+                      }
+                    });
+
+                    // Get current time for indicator
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    const currentTimeInHours = currentHour + (currentMinute / 60);
+
+                    return (
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="max-h-96 overflow-y-auto">
+                          {timeSlots.map((slot, index) => (
+                            <div key={slot.time} className="relative">
+                              {/* Time indicator line */}
+                              {currentTimeInHours >= slot.hour && currentTimeInHours < slot.hour + 1 && (
+                                <div className="absolute left-0 right-0 h-0.5 bg-blue-500 z-10" style={{
+                                  top: `${((currentTimeInHours - slot.hour) * 100)}%`
+                                }}>
+                                  <div className="absolute -left-1 -top-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                                </div>
+                              )}
                               
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-gray-600">
-                                <div className="flex items-center">
-                                  <Users className="h-3 w-3 mr-2 flex-shrink-0" />
-                                  <span className="truncate">{booking.customerName || 'Customer'}</span>
+                              <div className="flex border-b border-gray-100 last:border-b-0">
+                                {/* Time column */}
+                                <div className="w-16 bg-gray-50 px-2 py-3 border-r border-gray-200 flex-shrink-0">
+                                  <div className="text-xs font-medium text-gray-600 text-center">
+                                    {slot.time}
+                                  </div>
                                 </div>
-                                <div className="flex items-center">
-                                  <Calendar className="h-3 w-3 mr-2 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {booking.bookingDate ? 
-                                      new Date(booking.bookingDate).toLocaleDateString('en-US', { 
-                                        weekday: 'short', 
-                                        month: 'short', 
-                                        day: 'numeric' 
-                                      }) : 
-                                      'Date not set'
-                                    }
-                                  </span>
-                                </div>
-                                <div className="flex items-center">
-                                  <Clock className="h-3 w-3 mr-2 flex-shrink-0" />
-                                  <span className="truncate">{booking.bookingTime || booking.startTime || 'Time not set'}</span>
-                                </div>
-                                <div className="flex items-center">
-                                  <span className="font-medium text-green-600">RM {booking.price || '0'}</span>
+                                
+                                {/* Bookings column */}
+                                <div className="flex-1 min-h-[48px] p-2 relative">
+                                  {/* Hour line */}
+                                  <div className="absolute left-0 right-0 top-0 h-px bg-gray-200"></div>
+                                  
+                                  {slot.bookings.length > 0 ? (
+                                    <div className="space-y-1">
+                                      {slot.bookings.map((booking) => (
+                                        <div 
+                                          key={booking.id} 
+                                          className={`p-2 rounded-md border-l-2 ${
+                                            booking.status === 'confirmed' 
+                                              ? 'bg-green-50 border-green-400' 
+                                              : booking.status === 'pending'
+                                              ? 'bg-yellow-50 border-yellow-400'
+                                              : 'bg-gray-50 border-gray-400'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0">
+                                              <h4 className="font-medium text-gray-900 text-xs truncate">
+                                                {booking.serviceName || 'Service Booking'}
+                                              </h4>
+                                              <p className="text-xs text-gray-600 truncate">
+                                                {booking.customerName || 'Customer'}
+                                              </p>
+                                            </div>
+                                            <div className="flex items-center gap-1 flex-shrink-0">
+                                              <span className="text-xs font-medium text-gray-900">
+                                                RM {booking.price || '0'}
+                                              </span>
+                                              <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
+                                                booking.status === 'confirmed' 
+                                                  ? 'bg-green-100 text-green-800'
+                                                  : booking.status === 'pending'
+                                                  ? 'bg-yellow-100 text-yellow-800'
+                                                  : 'bg-gray-100 text-gray-800'
+                                              }`}>
+                                                {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          
+                                          {booking.status === 'pending' && (
+                                            <div className="flex gap-1 mt-1">
+                                              <button
+                                                onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                                className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
+                                              >
+                                                Confirm
+                                              </button>
+                                              <button
+                                                onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                                className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-gray-300 text-xs py-1">
+                                      No bookings
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
-                            
-                            {booking.status === 'pending' && (
-                              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                                <button
-                                  onClick={() => updateBookingStatus(booking.id, 'confirmed')}
-                                  className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors w-full sm:w-auto"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => updateBookingStatus(booking.id, 'cancelled')}
-                                  className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors w-full sm:w-auto"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">No bookings yet</h4>
-                      <p className="text-gray-500 mb-4">Customer bookings will appear here when they book your services</p>
-                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                        <button
-                          onClick={() => setActiveTab('qr')}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          Generate QR Code
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('services')}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-sm"
-                        >
-                          Add Services
-                        </button>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Business Summary */}
