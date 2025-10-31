@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
 
@@ -14,6 +14,8 @@ const LoginFirebase = () => {
 
   const { login, user, isLoggingIn, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
 
   // Redirect to dashboard when user is authenticated
   useEffect(() => {
@@ -22,7 +24,7 @@ const LoginFirebase = () => {
       console.log('LoginFirebase: User authenticated, navigating to dashboard...');
       // Add a small delay to prevent race conditions
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(`/${pathLang}/dashboard`, { replace: true });
       }, 100);
     }
   }, [user, isLoggingIn, navigate]);
@@ -78,7 +80,15 @@ const LoginFirebase = () => {
       if (result.success) {
         setTimeout(() => {
           console.log('LoginFirebase: Fallback navigation to dashboard');
-          navigate('/dashboard');
+          try {
+            navigate(`/${pathLang}/dashboard`, { replace: true });
+          } catch (e) {}
+          // Hard redirect as final safety to avoid any router state issues
+          setTimeout(() => {
+            if (!window.location.pathname.endsWith('/dashboard')) {
+              window.location.replace(`/${pathLang}/dashboard`);
+            }
+          }, 200);
         }, 500);
       } else if (result && result.code) {
         // Map auth errors to field-level messages as well
@@ -230,7 +240,7 @@ const LoginFirebase = () => {
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
               <Link
-                to="/register"
+                to={`/${pathLang}/register`}
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
                 Create one here

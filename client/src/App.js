@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -29,24 +29,22 @@ import LanguageWrapper from './components/LanguageWrapper';
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading, isLoggingIn } = useAuth();
-  
-  console.log('ProtectedRoute: Checking auth state', { user: !!user, loading, isLoggingIn });
-  
+  const location = useLocation();
+
   if (loading || isLoggingIn) {
-    console.log('ProtectedRoute: Still loading or logging in, showing spinner');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
-  
+
   if (!user) {
-    console.log('ProtectedRoute: No user, redirecting to login');
-    return <Navigate to="/login" replace />;
+    const segments = location.pathname.split('/').filter(Boolean);
+    const lang = segments[0] || 'en';
+    return <Navigate to={`/${lang}/login`} replace />;
   }
-  
-  console.log('ProtectedRoute: User authenticated, rendering children');
+
   return children;
 };
 

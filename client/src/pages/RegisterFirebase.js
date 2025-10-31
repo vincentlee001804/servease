@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Building2, Mail, Lock, Phone, MapPin } from 'lucide-react';
 
@@ -25,6 +25,8 @@ const RegisterFirebase = () => {
 
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
 
   const businessTypes = [
     { value: 'salon', label: 'Hair Salon' },
@@ -117,7 +119,12 @@ const RegisterFirebase = () => {
       const result = await register(formData);
       
       if (result.success) {
-        navigate('/dashboard');
+        navigate(`/${pathLang}/dashboard`, { replace: true });
+        setTimeout(() => {
+          if (!window.location.pathname.endsWith('/dashboard')) {
+            window.location.replace(`/${pathLang}/dashboard`);
+          }
+        }, 200);
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -412,7 +419,7 @@ const RegisterFirebase = () => {
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
               <Link
-                to="/login"
+                to={`/${pathLang}/login`}
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
                 Sign in here
