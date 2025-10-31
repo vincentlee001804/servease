@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import i18n from '../i18n';
 
 const LanguageContext = createContext();
 
@@ -10,6 +11,7 @@ export const useLanguage = () => {
   return context;
 };
 
+// Legacy inline translations retained only as fallback. All lookups proxy to i18next now.
 const translations = {
   en: {
     // Navigation
@@ -200,16 +202,35 @@ const translations = {
 
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(
-    localStorage.getItem('language') || 'en'
+    localStorage.getItem('i18nextLng') || localStorage.getItem('language') || 'en'
   );
 
+  useEffect(() => {
+    // Sync i18next on mount and when language changes
+    if (i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
+  }, [language]);
+
+  const normalizeLegacyLang = (code) => {
+    if (code === 'bm') return 'ms';
+    if (code === 'jtzw') return 'zh';
+    return code || 'en';
+  };
+
   const t = (key) => {
-    return translations[language]?.[key] || key;
+    // Prefer i18next; fall back to legacy map (with code normalization)
+    const translated = i18n.t(key);
+    if (translated && translated !== key) return translated;
+    const legacyLang = normalizeLegacyLang(language);
+    return translations[legacyLang]?.[key] || key;
   };
 
   const changeLanguage = (newLanguage) => {
     setLanguage(newLanguage);
+    localStorage.setItem('i18nextLng', newLanguage);
     localStorage.setItem('language', newLanguage);
+    i18n.changeLanguage(newLanguage);
   };
 
   const value = {

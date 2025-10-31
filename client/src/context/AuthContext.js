@@ -4,11 +4,12 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase-config';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -189,8 +190,26 @@ export const AuthProvider = ({ children }) => {
       toast.error(errorMessage);
       return {
         success: false,
-        message: errorMessage
+        message: errorMessage,
+        code: error.code
       };
+    }
+  };
+
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success('Password reset email sent. Please check your inbox.');
+      return { success: true };
+    } catch (error) {
+      let errorMessage = 'Failed to send reset email';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      toast.error(errorMessage);
+      return { success: false, message: errorMessage, code: error.code };
     }
   };
 
@@ -216,6 +235,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    resetPassword,
     isAuthenticated: !!user
   };
 

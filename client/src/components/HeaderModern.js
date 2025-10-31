@@ -1,41 +1,37 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Menu, X, Globe, User, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const HeaderModern = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useTranslation();
+  const { lang } = useParams();
   const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => location.pathname.includes(path);
 
   const handleLogout = () => {
     logout();
     setIsMenuOpen(false);
   };
 
-  const changeLanguage = (newLang) => {
-    setLanguage(newLang);
-    setIsLanguageOpen(false);
+  // Helper function to create language-aware links
+  const createLink = (path) => {
+    const basePath = path.startsWith('/') ? path : `/${path}`;
+    return `/${lang}${basePath}`;
   };
-
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ms', name: 'Bahasa Malaysia' },
-    { code: 'zh', name: '中文' }
-  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to={createLink('/')} className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">S</span>
             </div>
@@ -47,22 +43,22 @@ const HeaderModern = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <Link 
-              to="/" 
+              to={createLink('/')} 
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive('/') ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-blue-600'
               }`}
             >
-              {t('home')}
+              {t('navigation.home')}
             </Link>
             
             {isAuthenticated && (
               <Link 
-                to="/dashboard" 
+                to={createLink('/dashboard')} 
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive('/dashboard') ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-blue-600'
                 }`}
               >
-                {t('dashboard')}
+                {t('navigation.dashboard')}
               </Link>
             )}
           </nav>
@@ -70,33 +66,7 @@ const HeaderModern = () => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Language Selector */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsLanguageOpen(!isLanguageOpen)}
-                className="flex items-center space-x-1"
-              >
-                <Globe className="w-4 h-4" />
-                <span>{languages.find(l => l.code === language)?.name}</span>
-              </Button>
-              
-              {isLanguageOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-50">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                        language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                      }`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <LanguageSwitcher />
 
             {/* Auth Actions */}
             {isAuthenticated ? (
@@ -114,16 +84,16 @@ const HeaderModern = () => {
                   className="flex items-center space-x-1"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>{t('logout')}</span>
+                  <span>{t('navigation.logout')}</span>
                 </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <Button variant="ghost" asChild>
-                  <Link to="/login">{t('login')}</Link>
+                  <Link to={createLink('/login')}>{t('navigation.login')}</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/register">{t('register')}</Link>
+                  <Link to={createLink('/register')}>{t('navigation.register')}</Link>
                 </Button>
               </div>
             )}
@@ -145,41 +115,27 @@ const HeaderModern = () => {
           <div className="md:hidden border-t bg-background">
             <div className="px-2 pt-2 pb-3 space-y-1">
               <Link
-                to="/"
+                to={createLink('/')}
                 className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {t('home')}
+                {t('navigation.home')}
               </Link>
               
               {isAuthenticated && (
                 <Link
-                  to="/dashboard"
+                  to={createLink('/dashboard')}
                   className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {t('dashboard')}
+                  {t('navigation.dashboard')}
                 </Link>
               )}
 
               {/* Mobile Language Selector */}
               <div className="px-3 py-2">
                 <div className="text-sm font-medium text-gray-500 mb-2">Language</div>
-                <div className="space-y-1">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
-                      className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                        language === lang.code 
-                          ? 'bg-blue-50 text-blue-600' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
+                <LanguageSwitcher />
               </div>
 
               {/* Mobile Auth Actions */}
@@ -195,19 +151,19 @@ const HeaderModern = () => {
                       className="w-full justify-start"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      {t('logout')}
+                      {t('navigation.logout')}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <Button variant="ghost" asChild className="w-full justify-start">
-                      <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                        {t('login')}
+                      <Link to={createLink('/login')} onClick={() => setIsMenuOpen(false)}>
+                        {t('navigation.login')}
                       </Link>
                     </Button>
                     <Button asChild className="w-full">
-                      <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                        {t('register')}
+                      <Link to={createLink('/register')} onClick={() => setIsMenuOpen(false)}>
+                        {t('navigation.register')}
                       </Link>
                     </Button>
                   </div>

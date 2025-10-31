@@ -12,7 +12,7 @@ const LoginFirebase = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const { login, user, isLoggingIn } = useAuth();
+  const { login, user, isLoggingIn, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   // Redirect to dashboard when user is authenticated
@@ -80,12 +80,29 @@ const LoginFirebase = () => {
           console.log('LoginFirebase: Fallback navigation to dashboard');
           navigate('/dashboard');
         }, 500);
+      } else if (result && result.code) {
+        // Map auth errors to field-level messages as well
+        if (result.code === 'auth/invalid-email' || result.code === 'auth/user-not-found') {
+          setErrors(prev => ({ ...prev, email: result.message }));
+        } else if (result.code === 'auth/wrong-password') {
+          setErrors(prev => ({ ...prev, password: result.message }));
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    // Require a valid email to send reset link
+    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
+      setErrors(prev => ({ ...prev, email: 'Enter a valid email to reset password' }));
+      return;
+    }
+    await resetPassword(formData.email);
   };
 
   return (
@@ -181,9 +198,13 @@ const LoginFirebase = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </div>
 

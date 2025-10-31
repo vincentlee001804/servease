@@ -8,6 +8,15 @@
     ],
     "headers": [
       {
+        "source": "/locales/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
         "source": "/static/**",
         "headers": [
           {
@@ -42,9 +51,22 @@
             "value": "application/json"
           }
         ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate"
+          }
+        ]
       }
     ],
     "rewrites": [
+      {
+        "source": "/:lang(en|bm|jtzw)/**",
+        "destination": "/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -62,6 +84,7 @@
       "codebase": "default",
       "source": "functions",
       "runtime": "nodejs20",
+      "platform": "gcfv1",
       "ignore": [
         "node_modules",
         ".git",

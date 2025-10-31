@@ -1,0 +1,62 @@
+{
+  "navigation": {
+    "home": "Utama",
+    "services": "Perkhidmatan",
+    "booking": "Tempahan",
+    "dashboard": "Dashboard",
+    "login": "Log Masuk",
+    "register": "Daftar",
+    "logout": "Log Keluar"
+  },
+  "common": {
+    "loading": "Memuatkan...",
+    "error": "Ralat",
+    "success": "Berjaya",
+    "cancel": "Batal",
+    "confirm": "Sahkan",
+    "save": "Simpan",
+    "edit": "Edit",
+    "delete": "Padam",
+    "back": "Kembali",
+    "next": "Seterusnya",
+    "previous": "Sebelumnya",
+    "close": "Tutup"
+  },
+  "booking": {
+    "selectServices": "Pilih Perkhidmatan",
+    "selectDateTime": "Pilih Tarikh & Masa",
+    "customerInfo": "Maklumat Pelanggan",
+    "bookingConfirmation": "Pengesahan Tempahan",
+    "name": "Nama",
+    "phone": "Nombor Telefon",
+    "email": "Emel (Pilihan)",
+    "notes": "Nota (Pilihan)",
+    "totalPrice": "Jumlah Harga",
+    "duration": "Tempoh",
+    "bookNow": "Tempah Sekarang",
+    "bookingSuccess": "Tempahan Berjaya!",
+    "confirmationCode": "Kod Pengesahan"
+  },
+  "services": {
+    "price": "Harga",
+    "description": "Penerangan",
+    "requirements": "Keperluan"
+  },
+  "vendor": {
+    "myServices": "Perkhidmatan Saya",
+    "addService": "Tambah Perkhidmatan",
+    "editService": "Edit Perkhidmatan",
+    "bookings": "Tempahan",
+    "qrCode": "Kod QR",
+    "generateQR": "Jana Kod QR",
+    "downloadQR": "Muat Turun Kod QR",
+    "shareLink": "Kongsi Pautan"
+  },
+  "status": {
+    "pending": "Menunggu",
+    "confirmed": "Disahkan",
+    "cancelled": "Dibatalkan",
+    "completed": "Selesai",
+    "noShow": "Tidak Hadir"
+  }
+}

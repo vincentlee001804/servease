@@ -1,0 +1,62 @@
+{
+  "navigation": {
+    "home": "Home",
+    "services": "Services",
+    "booking": "Booking",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close"
+  },
+  "booking": {
+    "selectServices": "Select Services",
+    "selectDateTime": "Select Date & Time",
+    "customerInfo": "Customer Information",
+    "bookingConfirmation": "Booking Confirmation",
+    "name": "Name",
+    "phone": "Phone Number",
+    "email": "Email (Optional)",
+    "notes": "Notes (Optional)",
+    "totalPrice": "Total Price",
+    "duration": "Duration",
+    "bookNow": "Book Now",
+    "bookingSuccess": "Booking Successful!",
+    "confirmationCode": "Confirmation Code"
+  },
+  "services": {
+    "price": "Price",
+    "description": "Description",
+    "requirements": "Requirements"
+  },
+  "vendor": {
+    "myServices": "My Services",
+    "addService": "Add Service",
+    "editService": "Edit Service",
+    "bookings": "Bookings",
+    "qrCode": "QR Code",
+    "generateQR": "Generate QR Code",
+    "downloadQR": "Download QR Code",
+    "shareLink": "Share Link"
+  },
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "noShow": "No Show"
+  }
+}

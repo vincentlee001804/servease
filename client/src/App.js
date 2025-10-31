@@ -1,7 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// i18n
+import './i18n';
 
 // Components
 import Header from './components/HeaderModern';
@@ -21,6 +24,7 @@ import TestPage from './pages/TestPage';
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import LanguageWrapper from './components/LanguageWrapper';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -48,28 +52,32 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <Router>
+    <AuthProvider>
+      <Router>
+        <LanguageProvider>
+          <LanguageWrapper>
           <div className="App">
             <Header />
             <main className="min-h-screen">
               <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/test" element={<TestPage />} />
-                <Route path="/vendor/:vendorId" element={<VendorPage />} />
-                <Route path="/s/:shortUrl" element={<VendorPage />} />
-                <Route path="/booking/:vendorId/:serviceId" element={<BookingPage />} />
-                <Route path="/booking-success/:vendorId" element={<BookingSuccess />} />
-                <Route path="/bookings" element={<BookingStatus />} />
+                {/* Root redirect */}
+                <Route path="/" element={<Navigate to="/en" replace />} />
+                
+                {/* Language-specific routes */}
+                <Route path="/:lang" element={<Home />} />
+                <Route path="/:lang/test" element={<TestPage />} />
+                <Route path="/:lang/vendor/:vendorId" element={<VendorPage />} />
+                <Route path="/:lang/s/:shortUrl" element={<VendorPage />} />
+                <Route path="/:lang/booking/:vendorId/:serviceId" element={<BookingPage />} />
+                <Route path="/:lang/booking-success/:vendorId" element={<BookingSuccess />} />
+                <Route path="/:lang/bookings" element={<BookingStatus />} />
                 
                 {/* Auth routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+                <Route path="/:lang/login" element={<Login />} />
+                <Route path="/:lang/register" element={<Register />} />
                 
                 {/* Protected vendor routes */}
-                <Route path="/dashboard" element={
+                <Route path="/:lang/dashboard" element={
                   <ProtectedRoute>
                     <VendorDashboard />
                   </ProtectedRoute>
@@ -89,9 +97,10 @@ function App() {
               pauseOnHover
             />
           </div>
-        </Router>
-      </AuthProvider>
-    </LanguageProvider>
+          </LanguageWrapper>
+        </LanguageProvider>
+      </Router>
+    </AuthProvider>
   );
 }
 

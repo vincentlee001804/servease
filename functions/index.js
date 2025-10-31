@@ -1,4 +1,5 @@
 const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
@@ -493,22 +494,28 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
   }
 });
 
-// Scheduled function to send pending reminders
-exports.sendPendingReminders = functions.pubsub.schedule('every 5 minutes').onRun(async () => {
-  const now = Date.now();
-  const query = await db.collection('emailReminders')
-    .where('status', '==', 'pending')
-    .where('sendAt', '<=', admin.firestore.Timestamp.fromMillis(now))
-    .limit(20)
-    .get();
+// Scheduled function to send pending reminders (temporarily disabled for deploy)
+// exports.sendPendingReminders = onSchedule('every 5 minutes', async () => {
+//   const now = Date.now();
+//   const query = await db.collection('emailReminders')
+//     .where('status', '==', 'pending')
+//     .where('sendAt', '<=', admin.firestore.Timestamp.fromMillis(now))
+//     .limit(20)
+//     .get();
+//
+//   const batch = db.batch();
+//   for (const docSnap of query.docs) {
+//     const data = docSnap.data();
+//     await sendEmail(data.to, data.subject, data.html);
+//     batch.update(docSnap.ref, { status: 'sent', sentAt: admin.firestore.FieldValue.serverTimestamp() });
+//   }
+//   await batch.commit();
+//   return null;
+// });
 
-  const batch = db.batch();
-  for (const docSnap of query.docs) {
-    const data = docSnap.data();
-    await sendEmail(data.to, data.subject, data.html);
-    batch.update(docSnap.ref, { status: 'sent', sentAt: admin.firestore.FieldValue.serverTimestamp() });
-  }
-  await batch.commit();
+// Temporary minimal scheduled function to allow clean deletion
+exports.sendPendingReminders = onSchedule('every 24 hours', async () => {
+  console.log('sendPendingReminders placeholder tick');
   return null;
 });
 

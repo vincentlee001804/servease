@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   QrCode, 
   Smartphone, 
@@ -19,6 +20,14 @@ import { Card, CardContent } from '../components/ui/card';
 
 const HomeModern = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { lang } = useParams();
+
+  // Helper function to create language-aware links
+  const createLink = (path) => {
+    const basePath = path.startsWith('/') ? path : `/${path}`;
+    return `/${lang}${basePath}`;
+  };
 
   const features = [
     {
