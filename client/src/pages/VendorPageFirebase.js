@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { 
   Clock, 
@@ -28,6 +28,8 @@ import { translateWithFallback } from '../utils/translation';
 
 const VendorPageFirebase = () => {
   const { vendorId, shortUrl } = useParams();
+  const location = useLocation();
+  const lang = location.pathname.split('/').filter(Boolean)[0] || 'en';
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   
@@ -97,7 +99,7 @@ const VendorPageFirebase = () => {
   }, [vendorId, shortUrl]);
 
   const handleBookService = (serviceId) => {
-    navigate(`/booking/${vendorId || shortUrl}/${serviceId}`);
+    navigate(`/${lang}/booking/${vendorId || shortUrl}/${serviceId}`);
   };
 
   const handleBack = () => {
@@ -253,7 +255,7 @@ const VendorPageFirebase = () => {
                   </div>
                   
                   {/* Bookings Button */}
-                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate('/bookings')}>
+                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate(`/${lang}/bookings`)}>
                     <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Booking Status</span>
                   </div>

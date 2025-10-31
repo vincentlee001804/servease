@@ -65,6 +65,8 @@ function App() {
                 <Route path="/:lang" element={<Home />} />
                 <Route path="/:lang/test" element={<TestPage />} />
                 <Route path="/:lang/vendor/:vendorId" element={<VendorPage />} />
+                {/* Support legacy short vendor path like /en/:vendorId */}
+                <Route path="/:lang/:vendorId" element={<VendorPage />} />
                 <Route path="/:lang/s/:shortUrl" element={<VendorPage />} />
                 <Route path="/:lang/booking/:vendorId/:serviceId" element={<BookingPage />} />
                 <Route path="/:lang/booking-success/:vendorId" element={<BookingSuccess />} />
