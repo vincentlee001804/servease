@@ -30,8 +30,12 @@ const HeaderModern = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to={createLink('/')} className="flex items-center space-x-2">
+          {/* Logo - Clickable to Home on Desktop/Tablet */}
+          <Link 
+            to={createLink('/')} 
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity cursor-pointer"
+            title={t('navigation.home')}
+          >
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">S</span>
             </div>
@@ -42,15 +46,6 @@ const HeaderModern = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link 
-              to={createLink('/')} 
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive('/') ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:text-blue-600'
-              }`}
-            >
-              {t('navigation.home')}
-            </Link>
-            
             {isAuthenticated && (
               <Link 
                 to={createLink('/dashboard')} 
