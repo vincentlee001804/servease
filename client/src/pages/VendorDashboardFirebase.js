@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import i18next from '../i18n';
 import { 
   Calendar, 
   Users, 
@@ -27,8 +28,21 @@ import ServiceForm from '../components/ServiceForm';
 
 const VendorDashboardFirebase = () => {
   const { user, isAuthenticated } = useAuth();
-  const { t } = useLanguage();
+  const { lang } = useParams();
+  const { t, ready } = useTranslation('common');
   const navigate = useNavigate();
+  
+  // Sync i18next language with URL language
+  useEffect(() => {
+    if (lang && i18next.language !== lang) {
+      i18next.changeLanguage(lang);
+    }
+  }, [lang]);
+
+  // Helper function to translate day names
+  const translateDay = (dayKey) => {
+    return t(`dashboard.${dayKey}`);
+  };
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -325,12 +339,12 @@ const VendorDashboardFirebase = () => {
         updatedAt: new Date()
       });
 
-      toast.success('Business profile updated successfully!');
+      toast.success(t('dashboard.profileUpdated'));
       setIsEditingProfile(false);
       fetchDashboardData(); // Refresh dashboard data
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update business profile.');
+      toast.error(t('dashboard.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -384,10 +398,10 @@ const VendorDashboardFirebase = () => {
       });
       
       console.log('QR code state updated');
-      toast.success('QR code generated successfully!');
+      toast.success(t('dashboard.qrGenerated'));
     } catch (error) {
       console.error('Error generating QR code:', error);
-      toast.error('Failed to generate QR code');
+      toast.error(t('dashboard.qrGenerationFailed'));
     }
   };
 
@@ -421,10 +435,10 @@ const VendorDashboardFirebase = () => {
       link.click();
       document.body.removeChild(link);
       
-      toast.success('QR code downloaded successfully!');
+      toast.success(t('dashboard.qrDownloaded'));
     } catch (error) {
       console.error('Error downloading QR code:', error);
-      toast.error('Failed to download QR code');
+      toast.error(t('dashboard.qrDownloadFailed'));
     }
   };
 
@@ -436,10 +450,10 @@ const VendorDashboardFirebase = () => {
       }
 
       await navigator.clipboard.writeText(qrCode.url);
-      toast.success('QR code link copied to clipboard!');
+      toast.success(t('dashboard.linkCopied'));
     } catch (error) {
       console.error('Error copying QR code link:', error);
-      toast.error('Failed to copy QR code link');
+      toast.error(t('dashboard.linkCopyFailed'));
     }
   };
 
@@ -497,7 +511,7 @@ const VendorDashboardFirebase = () => {
   };
 
   const deleteService = async (serviceId) => {
-    if (!window.confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+    if (!window.confirm(t('dashboard.deleteConfirm'))) {
       return;
     }
 
@@ -507,14 +521,14 @@ const VendorDashboardFirebase = () => {
         isActive: false,
         deletedAt: new Date()
       });
-      toast.success('Service deleted successfully!');
+      toast.success(t('dashboard.serviceDeleted'));
       // Refresh dashboard data
       setHasFetchedData(false);
       isFetchingRef.current = false;
       await fetchDashboardData();
     } catch (error) {
       console.error('Error deleting service:', error);
-      toast.error('Failed to delete service');
+      toast.error(t('dashboard.serviceDeleteFailed'));
     }
   };
 
@@ -525,12 +539,24 @@ const VendorDashboardFirebase = () => {
     return null;
   }
 
+  // Wait for translations to be ready
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading', 'Loading...')}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -541,8 +567,8 @@ const VendorDashboardFirebase = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Header - Mobile Optimized */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your business and bookings</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+          <p className="text-sm sm:text-base text-gray-600">{t('dashboard.subtitle')}</p>
         </div>
 
         {/* Stats Cards - Mobile Optimized */}
@@ -553,7 +579,7 @@ const VendorDashboardFirebase = () => {
                 <Calendar className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
               </div>
               <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-600 truncate">Total Bookings</p>
+                <p className="text-xs font-medium text-gray-600 truncate">{t('dashboard.totalBookings')}</p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalBookings || 0}</p>
               </div>
             </div>
@@ -565,7 +591,7 @@ const VendorDashboardFirebase = () => {
                 <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
               <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-600 truncate">Pending</p>
+                <p className="text-xs font-medium text-gray-600 truncate">{t('dashboard.pending')}</p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.pendingBookings || 0}</p>
               </div>
             </div>
@@ -577,7 +603,7 @@ const VendorDashboardFirebase = () => {
                 <Users className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
               </div>
               <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-600 truncate">Today's Bookings</p>
+                <p className="text-xs font-medium text-gray-600 truncate">{t('dashboard.todaysBookings')}</p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.todaysBookings || 0}</p>
               </div>
             </div>
@@ -589,7 +615,7 @@ const VendorDashboardFirebase = () => {
                 <Plus className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
               </div>
               <div className="ml-2 sm:ml-4 min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-600 truncate">Services</p>
+                <p className="text-xs font-medium text-gray-600 truncate">{t('dashboard.services')}</p>
                 <p className="text-lg sm:text-2xl font-bold text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
               </div>
             </div>
@@ -601,11 +627,11 @@ const VendorDashboardFirebase = () => {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-0 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {[
-                { id: 'overview', name: 'Overview', icon: Calendar, shortName: 'Overview' },
-                { id: 'bookings', name: 'Bookings', icon: Clock, shortName: 'Bookings' },
-                { id: 'services', name: 'Services', icon: Plus, shortName: 'Services' },
-                { id: 'qr', name: 'QR Code', icon: QrCode, shortName: 'QR' },
-                { id: 'profile', name: 'Profile', icon: Users, shortName: 'Profile' }
+                { id: 'overview', name: t('dashboard.overview'), icon: Calendar, shortName: t('dashboard.overview') },
+                { id: 'bookings', name: t('dashboard.bookings'), icon: Clock, shortName: t('dashboard.bookings') },
+                { id: 'services', name: t('dashboard.services'), icon: Plus, shortName: t('dashboard.services') },
+                { id: 'qr', name: t('dashboard.qrCode'), icon: QrCode, shortName: 'QR' },
+                { id: 'profile', name: t('dashboard.profile'), icon: Users, shortName: t('dashboard.profile') }
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 return (
@@ -639,7 +665,7 @@ const VendorDashboardFirebase = () => {
                 <div>
                   <div className="mb-4">
                     <h3 className="text-lg font-medium text-gray-900">
-                      Today's Schedule - {new Date().toLocaleDateString('en-US', { 
+                      {t('dashboard.todaysSchedule')} - {new Date().toLocaleDateString('en-US', { 
                         weekday: 'long', 
                         year: 'numeric', 
                         month: 'long', 
@@ -762,13 +788,13 @@ const VendorDashboardFirebase = () => {
                                                 onClick={() => updateBookingStatus(booking.id, 'confirmed')}
                                                 className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
                                               >
-                                                Confirm
+                                                {t('dashboard.confirm')}
                                               </button>
                                               <button
                                                 onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                                                 className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
                                               >
-                                                Cancel
+                                                {t('dashboard.cancel')}
                                               </button>
                                             </div>
                                           )}
@@ -777,7 +803,7 @@ const VendorDashboardFirebase = () => {
                                     </div>
                                   ) : (
                                     <div className="text-gray-300 text-xs py-1">
-                                      No bookings
+                                      {t('dashboard.noBookings')}
                                     </div>
                                   )}
                                 </div>
@@ -792,23 +818,23 @@ const VendorDashboardFirebase = () => {
 
                 {/* Business Summary */}
                 <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Business Summary</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('dashboard.businessSummary')}</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600">Business Name</p>
-                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessName || 'Not set'}</p>
+                      <p className="text-sm text-gray-600">{t('dashboard.businessName')}</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessName || t('dashboard.notSet')}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Business Type</p>
-                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessType || 'Not set'}</p>
+                      <p className="text-sm text-gray-600">{t('dashboard.businessType')}</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.vendor?.businessType || t('dashboard.notSet')}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Total Services</p>
+                      <p className="text-sm text-gray-600">{t('dashboard.services')}</p>
                       <p className="font-medium text-gray-900">{dashboardData?.stats?.totalServices || 0}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Active Bookings</p>
-                      <p className="font-medium text-gray-900">{dashboardData?.stats?.pendingBookings || 0} pending</p>
+                      <p className="text-sm text-gray-600">{t('dashboard.activeBookings')}</p>
+                      <p className="font-medium text-gray-900">{dashboardData?.stats?.pendingBookings || 0} {t('dashboard.pending')}</p>
                     </div>
                   </div>
                 </div>
@@ -825,7 +851,7 @@ const VendorDashboardFirebase = () => {
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                    {isEditingProfile ? t('dashboard.cancel') : t('dashboard.editProfile')}
                   </button>
                 </div>
 
@@ -833,7 +859,7 @@ const VendorDashboardFirebase = () => {
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.businessName')}</label>
                         <input
                           type="text"
                           value={businessName}
@@ -842,13 +868,13 @@ const VendorDashboardFirebase = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Business Type</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.businessType')}</label>
                         <select
                           value={businessType}
                           onChange={(e) => setBusinessType(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="">Select business type</option>
+                          <option value="">{t('dashboard.selectBusinessType')}</option>
                           <option value="salon">Hair Salon</option>
                           <option value="restaurant">Restaurant</option>
                           <option value="cafe">Cafe</option>
@@ -865,7 +891,7 @@ const VendorDashboardFirebase = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.phone')}</label>
                         <input
                           type="tel"
                           value={phone}
@@ -874,7 +900,7 @@ const VendorDashboardFirebase = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.email')}</label>
                         <input
                           type="email"
                           value={email}
@@ -885,7 +911,7 @@ const VendorDashboardFirebase = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.address')}</label>
                       <input
                         type="text"
                         value={address}
@@ -895,7 +921,7 @@ const VendorDashboardFirebase = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.description')}</label>
                       <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
@@ -906,13 +932,13 @@ const VendorDashboardFirebase = () => {
 
                     {/* Operating Hours Editor */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Operating Hours</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.operatingHours')}</label>
                       <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs text-gray-500 mb-2">Toggle Open and set the time range for each day.</p>
+                        <p className="text-xs text-gray-500 mb-2">{t('dashboard.operatingHoursHint', 'Toggle Open and set the time range for each day.')}</p>
                         <div className="space-y-2">
                         {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day) => (
                           <div key={day} className="flex items-center gap-3">
-                            <div className="w-28 capitalize text-gray-700">{day}</div>
+                            <div className="w-28 capitalize text-gray-700">{translateDay(day)}</div>
                             <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                               <input
                                 type="checkbox"
@@ -920,7 +946,7 @@ const VendorDashboardFirebase = () => {
                                 onChange={(e) => setOperatingHours((prev)=>({ ...prev, [day]: { ...(prev?.[day]||{}), isOpen: e.target.checked } }))}
                                 className="rounded border-gray-300"
                               />
-                              <span className={`${operatingHours?.[day]?.isOpen ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-100'} px-2 py-0.5 rounded-full text-xs`}>{operatingHours?.[day]?.isOpen ? 'Open' : 'Closed'}</span>
+                              <span className={`${operatingHours?.[day]?.isOpen ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-100'} px-2 py-0.5 rounded-full text-xs`}>{operatingHours?.[day]?.isOpen ? t('dashboard.open') : t('dashboard.closed')}</span>
                             </label>
                             <input
                               type="time"
@@ -949,14 +975,14 @@ const VendorDashboardFirebase = () => {
                         onClick={() => setIsEditingProfile(false)}
                         className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                       >
-                        Cancel
+                        {t('dashboard.cancel')}
                       </button>
                       <button
                         type="submit"
                         disabled={saving}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                       >
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? t('dashboard.saving') : t('dashboard.saveChanges')}
                       </button>
                     </div>
                   </form>
@@ -964,35 +990,35 @@ const VendorDashboardFirebase = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Business Name</p>
-                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.businessName || 'Not set'}</p>
+                        <p className="text-sm font-medium text-gray-500">{t('dashboard.businessName')}</p>
+                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.businessName || t('dashboard.notSet')}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Business Type</p>
-                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.businessType || 'Not set'}</p>
+                        <p className="text-sm font-medium text-gray-500">{t('dashboard.businessType')}</p>
+                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.businessType || t('dashboard.notSet')}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Phone</p>
-                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.phone || 'Not set'}</p>
+                        <p className="text-sm font-medium text-gray-500">{t('dashboard.phone')}</p>
+                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.phone || t('dashboard.notSet')}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Email</p>
-                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.email || 'Not set'}</p>
+                        <p className="text-sm font-medium text-gray-500">{t('dashboard.email')}</p>
+                        <p className="text-lg text-gray-900">{dashboardData?.vendor?.email || t('dashboard.notSet')}</p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Address</p>
-                      <p className="text-lg text-gray-900">{dashboardData?.vendor?.address || 'Not set'}</p>
+                      <p className="text-sm font-medium text-gray-500">{t('dashboard.address')}</p>
+                      <p className="text-lg text-gray-900">{dashboardData?.vendor?.address || t('dashboard.notSet')}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Description</p>
-                      <p className="text-lg text-gray-900">{dashboardData?.vendor?.description || 'Not set'}</p>
+                      <p className="text-sm font-medium text-gray-500">{t('dashboard.description')}</p>
+                      <p className="text-lg text-gray-900">{dashboardData?.vendor?.description || t('dashboard.notSet')}</p>
                     </div>
                     {dashboardData?.vendor?.operatingHours && (
                       <div>
-                        <p className="text-sm font-medium text-gray-500 mb-2">Operating Hours</p>
+                        <p className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.operatingHours')}</p>
                         <div className="rounded-md border border-gray-200">
                           {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day, idx) => {
                             const hours = dashboardData.vendor.operatingHours[day];
@@ -1000,10 +1026,10 @@ const VendorDashboardFirebase = () => {
                             return (
                               <div key={day} className={`flex items-center justify-between px-3 py-2 ${idx!==6 ? 'border-b border-gray-100':''} ${isToday ? 'bg-blue-50' : ''}`}>
                                 <span className={`capitalize ${isToday ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
-                                  {day} {isToday && <span className="text-xs text-blue-600 ml-1">(Today)</span>}
+                                  {translateDay(day)} {isToday && <span className="text-xs text-blue-600 ml-1">({t('dashboard.today', 'Today')})</span>}
                                 </span>
                                 <span className={`text-sm ${hours?.isOpen ? 'text-gray-800' : 'text-gray-500'}`}>
-                                  {hours?.isOpen ? `${hours?.open || '09:00'} - ${hours?.close || '17:00'}` : 'Closed'}
+                                  {hours?.isOpen ? `${hours?.open || '09:00'} - ${hours?.close || '17:00'}` : t('dashboard.closed')}
                                 </span>
                               </div>
                             );
@@ -1029,7 +1055,7 @@ const VendorDashboardFirebase = () => {
                     className="touch-target inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Service
+                    {t('dashboard.addService')}
                   </button>
                 </div>
 
@@ -1040,10 +1066,10 @@ const VendorDashboardFirebase = () => {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900 text-sm sm:text-base">
-                              {service.name?.en || service.name || 'Unnamed Service'}
+                              {service.name?.en || service.name || t('dashboard.unnamedService')}
                             </h4>
                             <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-                              {service.description?.en || service.description || 'No description'}
+                              {service.description?.en || service.description || t('dashboard.noDescription')}
                             </p>
                         </div>
                           <div className="flex items-center gap-2 ml-3">
@@ -1053,14 +1079,14 @@ const VendorDashboardFirebase = () => {
                                 setShowServiceForm(true);
                               }}
                               className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                              title="Edit service"
+                              title={t('dashboard.editService')}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => deleteService(service.id)}
                               className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                              title="Delete service"
+                              title={t('dashboard.deleteService')}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -1135,8 +1161,8 @@ const VendorDashboardFirebase = () => {
             {activeTab === 'bookings' && (
               <div className="space-y-4 sm:space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">Customer Bookings</h3>
-                  <p className="text-sm text-gray-600">Manage and track customer booking requests</p>
+                    <h3 className="text-lg font-medium text-gray-900">{t('dashboard.customerBookings')}</h3>
+                  <p className="text-sm text-gray-600">{t('dashboard.manageTrackBookings')}</p>
                 </div>
 
                 {dashboardData?.recentBookings?.length > 0 ? (
@@ -1147,7 +1173,7 @@ const VendorDashboardFirebase = () => {
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-gray-900 text-sm sm:text-base">
-                                {booking.serviceName || 'Service Booking'}
+                                {booking.serviceName || t('dashboard.serviceBooking')}
                               </h4>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -1155,14 +1181,14 @@ const VendorDashboardFirebase = () => {
                                 booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
+                                {t(`status.${booking.status}`, booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending')}
                               </span>
                             </div>
                             
                             <div className="space-y-2 text-sm text-gray-600">
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-2" />
-                                <span>{booking.customerName || 'Customer'}</span>
+                                <span>{booking.customerName || t('dashboard.customer')}</span>
                               </div>
                               {booking.customerPhone && (
                                 <div className="flex items-center">
@@ -1202,7 +1228,7 @@ const VendorDashboardFirebase = () => {
 
                             {booking.notes && (
                               <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                <p className="text-xs text-gray-500 mb-1">Special Notes:</p>
+                                <p className="text-xs text-gray-500 mb-1">{t('dashboard.specialNotes')}</p>
                                 <p className="text-sm text-gray-700">{booking.notes}</p>
                               </div>
                             )}
@@ -1215,13 +1241,13 @@ const VendorDashboardFirebase = () => {
                                   onClick={() => updateBookingStatus(booking.id, 'confirmed')}
                                   className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
                                 >
-                                  Confirm
+                                  {t('dashboard.confirm')}
                                 </button>
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                                   className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
                                 >
-                                  Cancel
+                                  {t('dashboard.cancel')}
                                 </button>
                               </>
                             )}
@@ -1243,10 +1269,10 @@ const VendorDashboardFirebase = () => {
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Calendar className="h-8 w-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No bookings yet</h3>
-                    <p className="text-gray-500 mb-6">Customer bookings will appear here when they book your services</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('dashboard.noBookingsYet')}</h3>
+                    <p className="text-gray-500 mb-6">{t('dashboard.bookingsWillAppear')}</p>
                     <div className="text-sm text-gray-400">
-                      Share your QR code to start receiving bookings
+                      {t('dashboard.shareQRToStart')}
                     </div>
                   </div>
                 )}
@@ -1257,10 +1283,10 @@ const VendorDashboardFirebase = () => {
             {activeTab === 'qr' && (
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">QR Code</h3>
+                <h3 className="text-lg font-medium text-gray-900">{t('dashboard.qrCode')}</h3>
                   {qrCode && (
                     <span className="text-xs sm:text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                      ✓ Generated
+                      ✓ {t('dashboard.generated')}
                     </span>
                   )}
                 </div>
@@ -1281,7 +1307,7 @@ const VendorDashboardFirebase = () => {
                       
                       {/* QR Code Info */}
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-2">Your unique booking link:</p>
+                        <p className="text-sm text-gray-600 mb-2">{t('dashboard.uniqueBookingLink')}</p>
                         <p className="text-sm font-mono text-blue-600 break-all">
                           {qrCode.url}
                         </p>
@@ -1294,31 +1320,31 @@ const VendorDashboardFirebase = () => {
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download QR Code
+                          {t('dashboard.downloadQR')}
                         </button>
                         <button
                           onClick={shareQRCodeLink}
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         >
                           <Share2 className="h-4 w-4 mr-2" />
-                          Share
+                          {t('dashboard.shareQR')}
                         </button>
                         <button
                           onClick={clearQRCode}
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
                         >
                           <X className="h-4 w-4 mr-2" />
-                          Clear QR Code
+                          {t('dashboard.clearQR')}
                         </button>
                       </div>
                       
                       {/* Instructions */}
                       <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="text-sm font-medium text-blue-900 mb-2">How to use your QR code:</h4>
+                        <h4 className="text-sm font-medium text-blue-900 mb-2">{t('dashboard.howToUseQR')}</h4>
                         <ul className="text-sm text-blue-800 text-left space-y-1">
-                          <li>• Print the QR code and display it at your business</li>
-                          <li>• Customers scan the code to access your booking page</li>
-                          <li>• Share the link directly via social media or messaging</li>
+                          <li>• {t('dashboard.qrInstructions1')}</li>
+                          <li>• {t('dashboard.qrInstructions2')}</li>
+                          <li>• {t('dashboard.qrInstructions3')}</li>
                         </ul>
                       </div>
                     </div>
@@ -1326,16 +1352,16 @@ const VendorDashboardFirebase = () => {
                     <div className="space-y-6">
                       <div className="bg-gray-50 p-8 rounded-lg">
                         <QrCode className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">Generate Your QR Code</h4>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">{t('dashboard.generateQR')}</h4>
                         <p className="text-gray-600 mb-6">
-                          Create a unique QR code that customers can scan to book your services directly.
+                          {t('dashboard.qrCodeDescription')}
                         </p>
                       <button
                         onClick={generateQRCode}
                           className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                       >
                         <QrCode className="h-4 w-4 mr-2" />
-                        Generate QR Code
+                        {t('dashboard.generateQR')}
                       </button>
                       </div>
                     </div>
@@ -1374,3 +1400,4 @@ const VendorDashboardFirebase = () => {
 };
 
 export default VendorDashboardFirebase;
+
