@@ -58,5 +58,39 @@
     "cancelled": "Cancelled",
     "completed": "Completed",
     "noShow": "No Show"
+  },
+  "vendorPage": {
+    "loading": "Loading vendor information...",
+    "notFound": "Vendor Not Found",
+    "notAvailable": "This vendor is not available or has been deactivated.",
+    "goBack": "Go Back",
+    "bookingStatus": "Booking Status",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "operatingHours": "Operating Hours",
+    "today": "Today",
+    "closed": "Closed",
+    "availableServices": "Available Services",
+    "searchServices": "Search services...",
+    "allCategories": "All Categories",
+    "features": "Features:",
+    "minutes": "min",
+    "maxPeople": "Max {{count}} people",
+    "bookNow": "Book Now",
+    "noServicesFound": "No services found",
+    "adjustSearch": "Try adjusting your search or filter criteria.",
+    "noServicesAdded": "This vendor hasn't added any services yet.",
+    "linkCopied": "Vendor link copied to clipboard!",
+    "copyFailed": "Failed to copy link. Please copy the URL manually.",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
   }
 }

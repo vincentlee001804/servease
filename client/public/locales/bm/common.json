@@ -58,5 +58,39 @@
     "cancelled": "Dibatalkan",
     "completed": "Selesai",
     "noShow": "Tidak Hadir"
+  },
+  "vendorPage": {
+    "loading": "Memuatkan maklumat vendor...",
+    "notFound": "Vendor Tidak Dijumpai",
+    "notAvailable": "Vendor ini tidak tersedia atau telah dinyahaktifkan.",
+    "goBack": "Kembali",
+    "bookingStatus": "Status Tempahan",
+    "address": "Alamat",
+    "phone": "Telefon",
+    "email": "Emel",
+    "operatingHours": "Waktu Operasi",
+    "today": "Hari Ini",
+    "closed": "Tutup",
+    "availableServices": "Perkhidmatan Tersedia",
+    "searchServices": "Cari perkhidmatan...",
+    "allCategories": "Semua Kategori",
+    "features": "Ciri-ciri:",
+    "minutes": "min",
+    "maxPeople": "Maksimum {{count}} orang",
+    "bookNow": "Tempah Sekarang",
+    "noServicesFound": "Tiada perkhidmatan dijumpai",
+    "adjustSearch": "Cuba laraskan kriteria carian atau penapis anda.",
+    "noServicesAdded": "Vendor ini belum menambah sebarang perkhidmatan lagi.",
+    "linkCopied": "Pautan vendor telah disalin ke papan klip!",
+    "copyFailed": "Gagal menyalin pautan. Sila salin URL secara manual.",
+    "days": {
+      "monday": "Isnin",
+      "tuesday": "Selasa",
+      "wednesday": "Rabu",
+      "thursday": "Khamis",
+      "friday": "Jumaat",
+      "saturday": "Sabtu",
+      "sunday": "Ahad"
+    }
   }
 }
