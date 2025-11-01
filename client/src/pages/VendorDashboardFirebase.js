@@ -53,6 +53,17 @@ const VendorDashboardFirebase = () => {
     const mappedLang = langMap[lang] || 'en';
     return textObj[mappedLang] || textObj.en || textObj.ms || textObj.zh || fallback;
   };
+
+  // Helper function to get locale for date formatting
+  const getLocale = () => {
+    const localeMap = { 'en': 'en-US', 'bm': 'ms-MY', 'jtzw': 'zh-CN' };
+    return localeMap[lang] || 'en-US';
+  };
+
+  // Helper function to get English day name (for matching with operatingHours keys)
+  const getEnglishDayName = () => {
+    return new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  };
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -83,11 +94,11 @@ const VendorDashboardFirebase = () => {
     }
     if (priceType === 'from') {
       const price = booking.servicePrice ?? matchedService?.price ?? booking.price;
-      return `From RM ${price || 0}`;
+      return `${t('dashboard.priceFrom')} RM ${price || 0}`;
     }
     // Fallback to stored booking price
     return `RM ${booking.price || 0}`;
-  }, [dashboardData?.services]);
+  }, [dashboardData?.services, t]);
 
   // Form states for business profile
   const [businessName, setBusinessName] = useState('');
@@ -675,7 +686,7 @@ const VendorDashboardFirebase = () => {
                 <div>
                   <div className="mb-4">
                     <h3 className="text-lg font-medium text-gray-900">
-                      {t('dashboard.todaysSchedule')} - {new Date().toLocaleDateString('en-US', { 
+                      {t('dashboard.todaysSchedule')} - {new Date().toLocaleDateString(getLocale(), { 
                         weekday: 'long', 
                         year: 'numeric', 
                         month: 'long', 
@@ -693,7 +704,8 @@ const VendorDashboardFirebase = () => {
                     }) || [];
 
                     // Generate time slots based on operating hours
-                    const dayKey = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                    // Use English day name for matching with operatingHours keys
+                    const dayKey = getEnglishDayName();
                     const hoursCfg = dashboardData?.vendor?.operatingHours?.[dayKey] || { isOpen: true, open: '08:00', close: '20:00' };
                     const parseHour = (hhmm) => parseInt((hhmm || '08:00').split(':')[0], 10) || 0;
                     const startHour = hoursCfg.isOpen ? parseHour(hoursCfg.open) : null;
@@ -1034,7 +1046,7 @@ const VendorDashboardFirebase = () => {
                         <div className="rounded-md border border-gray-200">
                           {['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].map((day, idx) => {
                             const hours = dashboardData.vendor.operatingHours[day];
-                            const isToday = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() === day;
+                            const isToday = getEnglishDayName() === day;
                             return (
                               <div key={day} className={`flex items-center justify-between px-3 py-2 ${idx!==6 ? 'border-b border-gray-100':''} ${isToday ? 'bg-blue-50' : ''}`}>
                                 <span className={`capitalize ${isToday ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
@@ -1059,8 +1071,8 @@ const VendorDashboardFirebase = () => {
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                   <div>
-                  <h3 className="text-lg font-medium text-gray-900">Services</h3>
-                    <p className="text-sm text-gray-600">Manage your service offerings</p>
+                  <h3 className="text-lg font-medium text-gray-900">{t('dashboard.servicesHeading')}</h3>
+                    <p className="text-sm text-gray-600">{t('dashboard.manageServiceOfferings')}</p>
                   </div>
                   <button
                     onClick={() => setShowServiceForm(true)}
@@ -1155,8 +1167,8 @@ const VendorDashboardFirebase = () => {
                     <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Plus className="h-8 w-8 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No services yet</h3>
-                    <p className="text-gray-500 mb-6">Start by adding your first service to attract customers</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('dashboard.noServicesYet')}</h3>
+                    <p className="text-gray-500 mb-6">{t('dashboard.startAddingServices')}</p>
                     <button
                       onClick={() => setShowServiceForm(true)}
                       className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
@@ -1222,7 +1234,7 @@ const VendorDashboardFirebase = () => {
                               )}
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-2" />
-                                <span>{new Date(booking.bookingDate).toLocaleDateString('en-US', { 
+                                <span>{new Date(booking.bookingDate).toLocaleDateString(getLocale(), { 
                                   weekday: 'short', 
                                   year: 'numeric', 
                                   month: 'short', 

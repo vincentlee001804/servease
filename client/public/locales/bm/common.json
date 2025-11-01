@@ -192,6 +192,10 @@
     "unnamedService": "Perkhidmatan Tanpa Nama",
     "noDescription": "Tiada penerangan",
     "editService": "Edit perkhidmatan",
-    "deleteService": "Padam perkhidmatan"
+    "deleteService": "Padam perkhidmatan",
+    "servicesHeading": "Perkhidmatan",
+    "manageServiceOfferings": "Urus tawaran perkhidmatan anda",
+    "noServicesYet": "Belum ada perkhidmatan",
+    "startAddingServices": "Mula dengan menambah perkhidmatan pertama anda untuk menarik pelanggan"
   }
 }

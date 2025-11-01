@@ -192,6 +192,10 @@
     "unnamedService": "Unnamed Service",
     "noDescription": "No description",
     "editService": "Edit service",
-    "deleteService": "Delete service"
+    "deleteService": "Delete service",
+    "servicesHeading": "Services",
+    "manageServiceOfferings": "Manage your service offerings",
+    "noServicesYet": "No services yet",
+    "startAddingServices": "Start by adding your first service to attract customers"
   }
 }

@@ -192,6 +192,10 @@
     "unnamedService": "未命名服务",
     "noDescription": "无描述",
     "editService": "编辑服务",
-    "deleteService": "删除服务"
+    "deleteService": "删除服务",
+    "servicesHeading": "服务",
+    "manageServiceOfferings": "管理您的服务产品",
+    "noServicesYet": "尚无服务",
+    "startAddingServices": "开始添加您的第一项服务以吸引客户"
   }
 }
