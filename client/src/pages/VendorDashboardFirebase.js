@@ -801,7 +801,7 @@ const VendorDashboardFirebase = () => {
                                                   ? 'bg-yellow-100 text-yellow-800'
                                                   : 'bg-gray-100 text-gray-800'
                                               }`}>
-                                                {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending'}
+                                                {t(`status.${booking.status}`, booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending')}
                                               </span>
                                             </div>
                                           </div>
@@ -1282,7 +1282,7 @@ const VendorDashboardFirebase = () => {
                                 onClick={() => updateBookingStatus(booking.id, 'completed')}
                                 className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
                               >
-                                Mark Complete
+                                {t('dashboard.markComplete')}
                               </button>
                             )}
                           </div>

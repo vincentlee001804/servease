@@ -196,6 +196,8 @@
     "servicesHeading": "Perkhidmatan",
     "manageServiceOfferings": "Urus tawaran perkhidmatan anda",
     "noServicesYet": "Belum ada perkhidmatan",
-    "startAddingServices": "Mula dengan menambah perkhidmatan pertama anda untuk menarik pelanggan"
+    "startAddingServices": "Mula dengan menambah perkhidmatan pertama anda untuk menarik pelanggan",
+    "markComplete": "Tandakan Selesai",
+    "markAsCompleted": "Tandakan sebagai Selesai"
   }
 }

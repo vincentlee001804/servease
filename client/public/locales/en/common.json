@@ -196,6 +196,8 @@
     "servicesHeading": "Services",
     "manageServiceOfferings": "Manage your service offerings",
     "noServicesYet": "No services yet",
-    "startAddingServices": "Start by adding your first service to attract customers"
+    "startAddingServices": "Start by adding your first service to attract customers",
+    "markComplete": "Mark Complete",
+    "markAsCompleted": "Mark as Completed"
   }
 }

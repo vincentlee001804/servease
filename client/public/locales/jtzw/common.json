@@ -196,6 +196,8 @@
     "servicesHeading": "服务",
     "manageServiceOfferings": "管理您的服务产品",
     "noServicesYet": "尚无服务",
-    "startAddingServices": "开始添加您的第一项服务以吸引客户"
+    "startAddingServices": "开始添加您的第一项服务以吸引客户",
+    "markComplete": "标记完成",
+    "markAsCompleted": "标记为已完成"
   }
 }
