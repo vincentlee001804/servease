@@ -1,0 +1,67 @@
+{
+  "hero": {
+    "title": "ServEase: Perniagaan Anda, Didigitalkan.",
+    "subtitle": "Tempahan berasaskan QR dan menu digital yang mudah untuk perkhidmatan tempatan.",
+    "cta": "Mulakan Percubaan Percuma"
+  },
+  "features": {
+    "title": "Permudahkan Perkhidmatan Anda",
+    "instantQR": {
+      "title": "Akses QR Segera",
+      "description": "Imbas dan tempah dalam beberapa saat"
+    },
+    "mobileFirst": {
+      "title": "Reka Bentuk Berorientasikan Mudah Alih",
+      "description": "Pengalaman yang lancar di mana-mana peranti"
+    },
+    "realTime": {
+      "title": "Tempahan Masa Nyata",
+      "description": "Lihat ketersediaan dan tempah serta-merta"
+    },
+    "multilingual": {
+      "title": "Sokongan Pelbagai Bahasa",
+      "description": "Jangkau pelanggan yang lebih luas"
+    },
+    "customerMgmt": {
+      "title": "Pengurusan Pelanggan",
+      "description": "Jejaki tempahan dan pilihan pelanggan"
+    },
+    "effortlessSetup": {
+      "title": "Penyediaan Mudah",
+      "description": "Dapatkan perniagaan anda dalam talian dalam beberapa minit"
+    }
+  },
+  "howItWorks": {
+    "title": "Bagaimana ServEase Berfungsi",
+    "step1": {
+      "title": "1. Cipta Menu Digital Anda",
+      "description": "Sediakan perkhidmatan, harga, dan ketersediaan anda dengan mudah dalam beberapa minit."
+    },
+    "step2": {
+      "title": "2. Jana & Kongsi Kod QR",
+      "description": "Dapatkan kod QR unik dan pautan yang boleh dikongsi untuk pelanggan anda."
+    },
+    "step3": {
+      "title": "3. Terima Tempahan Segera",
+      "description": "Pelanggan mengimbas, melihat, dan tempah terus dari telefon mereka."
+    }
+  },
+  "testimonials": {
+    "title": "Apa Kata Vendor Kami",
+    "testimonial1": {
+      "text": "ServEase mengubah cara kami mengendalikan tempahan. Ia sangat mudah untuk pelanggan kami dan menjimatkan banyak masa!",
+      "author": "Jane Doe",
+      "role": "Pemilik, Salun Jane"
+    },
+    "testimonial2": {
+      "text": "Menu digital adalah perubahan besar. Pelanggan kami suka ketelusan dan kemudahan tempahan.",
+      "author": "John Smith",
+      "role": "Pengurus, Kafe Smith"
+    }
+  },
+  "cta": {
+    "title": "Bersedia untuk Membesarkan Perniagaan Anda?",
+    "subtitle": "Sertai ServEase hari ini dan revolusikan tempahan perkhidmatan anda.",
+    "button": "Mula Hari Ini"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "hero": {
+    "title": "ServEase: Your Business, Digitized.",
+    "subtitle": "Effortless QR-based booking and digital menus for local services.",
+    "cta": "Start Free Trial"
+  },
+  "features": {
+    "title": "Streamline Your Services",
+    "instantQR": {
+      "title": "Instant QR Access",
+      "description": "Scan and book in seconds"
+    },
+    "mobileFirst": {
+      "title": "Mobile-First Design",
+      "description": "Seamless experience on any device"
+    },
+    "realTime": {
+      "title": "Real-time Booking",
+      "description": "See availability and book instantly"
+    },
+    "multilingual": {
+      "title": "Multilingual Support",
+      "description": "Reach a wider customer base"
+    },
+    "customerMgmt": {
+      "title": "Customer Management",
+      "description": "Track bookings and customer preferences"
+    },
+    "effortlessSetup": {
+      "title": "Effortless Setup",
+      "description": "Get your business online in minutes"
+    }
+  },
+  "howItWorks": {
+    "title": "How ServEase Works",
+    "step1": {
+      "title": "1. Create Your Digital Menu",
+      "description": "Easily set up your services, prices, and availability in minutes."
+    },
+    "step2": {
+      "title": "2. Generate & Share QR Code",
+      "description": "Get a unique QR code and shareable link for your customers."
+    },
+    "step3": {
+      "title": "3. Receive Instant Bookings",
+      "description": "Customers scan, browse, and book directly from their phones."
+    }
+  },
+  "testimonials": {
+    "title": "What Our Vendors Say",
+    "testimonial1": {
+      "text": "ServEase transformed how we handle bookings. It's incredibly easy for our customers and saves us so much time!",
+      "author": "Jane Doe",
+      "role": "Owner, Jane's Salon"
+    },
+    "testimonial2": {
+      "text": "The digital menu is a game-changer. Our customers love the transparency and ease of booking.",
+      "author": "John Smith",
+      "role": "Manager, Smith's Cafe"
+    }
+  },
+  "cta": {
+    "title": "Ready to Grow Your Business?",
+    "subtitle": "Join ServEase today and revolutionize your service booking.",
+    "button": "Get Started Today"
+  }
+}

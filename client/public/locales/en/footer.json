@@ -1,0 +1,19 @@
+{
+  "company": {
+    "description": "Digital service menu and booking system for local businesses. Make service discovery and booking seamless for both vendors and customers.",
+    "copyright": "© 2025 ServEase. All rights reserved."
+  },
+  "quickLinks": {
+    "title": "Quick Links"
+  },
+  "support": {
+    "title": "Support",
+    "contact": "Contact Support",
+    "help": "Help Center",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "footer": {
+    "tagline": "Built for local businesses in Malaysia"
+  }
+}

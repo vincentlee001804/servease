@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   QrCode, 
@@ -7,21 +7,16 @@ import {
   Calendar, 
   Globe, 
   Users, 
-  ArrowRight, 
-  Star,
-  Clock,
-  CheckCircle,
-  Zap,
-  Heart,
-  TrendingUp
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
+import { Card } from '../components/ui/card';
 
 const HomeModern = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { lang } = useParams();
+  const location = useLocation();
+  const { t } = useTranslation('homepage');
+  const lang = location.pathname.split('/').filter(Boolean)[0] || 'en';
 
   // Helper function to create language-aware links
   const createLink = (path) => {
@@ -29,44 +24,44 @@ const HomeModern = () => {
     return `/${lang}${basePath}`;
   };
 
-  const features = [
+  const features = useMemo(() => [
     {
       icon: <QrCode className="w-6 h-6" />,
-      title: 'Instant QR Access',
-      description: 'Scan and book in seconds',
+      title: t('features.instantQR.title'),
+      description: t('features.instantQR.description'),
       color: 'from-blue-500 to-blue-600',
     },
     {
       icon: <Smartphone className="w-6 h-6" />,
-      title: 'Mobile-First Design',
-      description: 'Seamless experience on any device',
+      title: t('features.mobileFirst.title'),
+      description: t('features.mobileFirst.description'),
       color: 'from-green-500 to-green-600',
     },
     {
       icon: <Calendar className="w-6 h-6" />,
-      title: 'Real-time Booking',
-      description: 'See availability and book instantly',
+      title: t('features.realTime.title'),
+      description: t('features.realTime.description'),
       color: 'from-purple-500 to-purple-600',
     },
     {
       icon: <Globe className="w-6 h-6" />,
-      title: 'Multilingual Support',
-      description: 'Reach a wider customer base',
+      title: t('features.multilingual.title'),
+      description: t('features.multilingual.description'),
       color: 'from-yellow-500 to-yellow-600',
     },
     {
       icon: <Users className="w-6 h-6" />,
-      title: 'Customer Management',
-      description: 'Track bookings and customer preferences',
+      title: t('features.customerMgmt.title'),
+      description: t('features.customerMgmt.description'),
       color: 'from-red-500 to-red-600',
     },
     {
       icon: <CheckCircle className="w-6 h-6" />,
-      title: 'Effortless Setup',
-      description: 'Get your business online in minutes',
+      title: t('features.effortlessSetup.title'),
+      description: t('features.effortlessSetup.description'),
       color: 'from-teal-500 to-teal-600',
     },
-  ];
+  ], [t]);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
@@ -78,17 +73,17 @@ const HomeModern = () => {
         }}></div>
         <div className="relative z-10 container mx-auto px-6 text-center max-w-6xl">
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4 animate-fade-in-down">
-            ServEase: Your Business, Digitized.
+            {t('hero.title')}
           </h1>
           <p className="text-lg md:text-xl mb-8 opacity-90 animate-fade-in-up max-w-3xl mx-auto">
-            Effortless QR-based booking and digital menus for local services.
+            {t('hero.subtitle')}
           </p>
           <div className="flex justify-center animate-fade-in-up">
             <Button 
-              onClick={() => navigate('/register')}
+              onClick={() => navigate(createLink('/register'))}
               className="bg-white text-blue-600 hover:bg-gray-100 text-xl px-12 py-5 h-auto font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
             >
-              Start Free Trial
+              {t('hero.cta')}
             </Button>
           </div>
         </div>
@@ -98,7 +93,7 @@ const HomeModern = () => {
       <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-6 text-center max-w-7xl">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-16">
-            Streamline Your Services
+            {t('features.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10 items-stretch">
             {features.map((feature, index) => (
@@ -124,34 +119,34 @@ const HomeModern = () => {
       <section className="py-16 md:py-24 bg-gray-100">
         <div className="container mx-auto px-6 text-center max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12">
-            How ServEase Works
+            {t('howItWorks.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-center justify-items-center">
             <div className="text-center">
               <QrCode className="w-20 h-20 text-blue-600 mx-auto mb-6 animate-bounce-slow" />
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                1. Create Your Digital Menu
+                {t('howItWorks.step1.title')}
               </h3>
               <p className="text-gray-600">
-                Easily set up your services, prices, and availability in minutes.
+                {t('howItWorks.step1.description')}
               </p>
             </div>
             <div className="text-center">
               <Smartphone className="w-20 h-20 text-green-600 mx-auto mb-6 animate-bounce-slow delay-100" />
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                2. Generate & Share QR Code
+                {t('howItWorks.step2.title')}
               </h3>
               <p className="text-gray-600">
-                Get a unique QR code and shareable link for your customers.
+                {t('howItWorks.step2.description')}
               </p>
             </div>
             <div className="text-center">
               <Calendar className="w-20 h-20 text-purple-600 mx-auto mb-6 animate-bounce-slow delay-200" />
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                3. Receive Instant Bookings
+                {t('howItWorks.step3.title')}
               </h3>
               <p className="text-gray-600">
-                Customers scan, browse, and book directly from their phones.
+                {t('howItWorks.step3.description')}
               </p>
             </div>
           </div>
@@ -162,12 +157,12 @@ const HomeModern = () => {
       <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-6 text-center max-w-6xl">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-12">
-            What Our Vendors Say
+            {t('testimonials.title')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 justify-items-center">
             <Card className="p-8 shadow-lg border-0">
               <p className="text-lg text-gray-700 italic mb-6">
-                "ServEase transformed how we handle bookings. It's incredibly easy for our customers and saves us so much time!"
+                "{t('testimonials.testimonial1.text')}"
               </p>
               <div className="flex items-center justify-center">
                 <img
@@ -176,14 +171,14 @@ const HomeModern = () => {
                   className="w-12 h-12 rounded-full mr-4"
                 />
                 <div>
-                  <p className="font-semibold text-gray-900">Jane Doe</p>
-                  <p className="text-sm text-gray-600">Owner, Jane's Salon</p>
+                  <p className="font-semibold text-gray-900">{t('testimonials.testimonial1.author')}</p>
+                  <p className="text-sm text-gray-600">{t('testimonials.testimonial1.role')}</p>
                 </div>
               </div>
             </Card>
             <Card className="p-8 shadow-lg border-0">
               <p className="text-lg text-gray-700 italic mb-6">
-                "The digital menu is a game-changer. Our customers love the transparency and ease of booking."
+                "{t('testimonials.testimonial2.text')}"
               </p>
               <div className="flex items-center justify-center">
                 <img
@@ -192,8 +187,8 @@ const HomeModern = () => {
                   className="w-12 h-12 rounded-full mr-4"
                 />
                 <div>
-                  <p className="font-semibold text-gray-900">John Smith</p>
-                  <p className="text-sm text-gray-600">Manager, Smith's Cafe</p>
+                  <p className="font-semibold text-gray-900">{t('testimonials.testimonial2.author')}</p>
+                  <p className="text-sm text-gray-600">{t('testimonials.testimonial2.role')}</p>
                 </div>
               </div>
             </Card>
@@ -205,16 +200,16 @@ const HomeModern = () => {
       <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-16 md:py-24">
         <div className="container mx-auto px-6 text-center max-w-4xl">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Grow Your Business?
+            {t('cta.title')}
           </h2>
           <p className="text-lg md:text-xl mb-10 opacity-90">
-            Join ServEase today and revolutionize your service booking.
+            {t('cta.subtitle')}
           </p>
           <Button 
-            onClick={() => navigate('/register')}
+            onClick={() => navigate(createLink('/register'))}
             className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-4 h-auto font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            Get Started Today
+            {t('cta.button')}
           </Button>
         </div>
       </section>

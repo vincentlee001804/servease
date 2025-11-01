@@ -1,0 +1,19 @@
+{
+  "company": {
+    "description": "适用于本地企业的数字服务菜单和预订系统。为供应商和客户提供无缝的服务发现和预订体验。",
+    "copyright": "© 2025 ServEase。保留所有权利。"
+  },
+  "quickLinks": {
+    "title": "快速链接"
+  },
+  "support": {
+    "title": "支持",
+    "contact": "联系支持",
+    "help": "帮助中心",
+    "privacy": "隐私政策",
+    "terms": "服务条款"
+  },
+  "footer": {
+    "tagline": "为马来西亚本地企业打造"
+  }
+}

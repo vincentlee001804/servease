@@ -1,0 +1,67 @@
+{
+  "hero": {
+    "title": "ServEase：您的业务，数字化。",
+    "subtitle": "为本地服务提供便捷的二维码预订和数字菜单。",
+    "cta": "开始免费试用"
+  },
+  "features": {
+    "title": "简化您的服务",
+    "instantQR": {
+      "title": "即时二维码访问",
+      "description": "扫描并在几秒钟内预订"
+    },
+    "mobileFirst": {
+      "title": "移动优先设计",
+      "description": "在任何设备上无缝体验"
+    },
+    "realTime": {
+      "title": "实时预订",
+      "description": "查看可用性并立即预订"
+    },
+    "multilingual": {
+      "title": "多语言支持",
+      "description": "接触更广泛的客户群"
+    },
+    "customerMgmt": {
+      "title": "客户管理",
+      "description": "跟踪预订和客户偏好"
+    },
+    "effortlessSetup": {
+      "title": "轻松设置",
+      "description": "在几分钟内让您的业务上线"
+    }
+  },
+  "howItWorks": {
+    "title": "ServEase 如何工作",
+    "step1": {
+      "title": "1. 创建您的数字菜单",
+      "description": "在几分钟内轻松设置您的服务、价格和可用性。"
+    },
+    "step2": {
+      "title": "2. 生成并分享二维码",
+      "description": "为您的客户获取唯一的二维码和可分享链接。"
+    },
+    "step3": {
+      "title": "3. 接收即时预订",
+      "description": "客户直接从手机扫描、浏览和预订。"
+    }
+  },
+  "testimonials": {
+    "title": "我们的供应商怎么说",
+    "testimonial1": {
+      "text": "ServEase 改变了我们处理预订的方式。对我们的客户来说非常容易，为我们节省了大量时间！",
+      "author": "简·多伊",
+      "role": "简美发沙龙老板"
+    },
+    "testimonial2": {
+      "text": "数字菜单改变了游戏规则。我们的客户喜欢透明度和预订的便利性。",
+      "author": "约翰·史密斯",
+      "role": "史密斯咖啡厅经理"
+    }
+  },
+  "cta": {
+    "title": "准备发展您的业务？",
+    "subtitle": "立即加入 ServEase，彻底改变您的服务预订。",
+    "button": "今天开始"
+  }
+}

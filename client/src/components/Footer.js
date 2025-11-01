@@ -1,9 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { useLanguage } from '../context/LanguageContext';
+import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const Footer = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation(['footer', 'common']);
+  const location = useLocation();
+  const lang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+
+  // Helper function to create language-aware links
+  const createLink = (path) => {
+    const basePath = path.startsWith('/') ? path : `/${path}`;
+    return `/${lang}${basePath}`;
+  };
 
   return (
     <div className="bg-gray-900 pt-16">
@@ -19,31 +27,30 @@ const Footer = () => {
               <span className="text-xl font-bold">ServEase</span>
             </div>
             <p className="text-gray-400 mb-4">
-              Digital service menu and booking system for local businesses. 
-              Make service discovery and booking seamless for both vendors and customers.
+              {t('footer:company.description')}
             </p>
             <div className="text-sm text-gray-400">
-              © 2025 ServEase. All rights reserved.
+              {t('footer:company.copyright')}
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer:quickLinks.title')}</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-400 hover:text-white transition-colors">
-                  {t('home')}
+                <Link to={createLink('/')} className="text-gray-400 hover:text-white transition-colors">
+                  {t('common:navigation.home')}
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="text-gray-400 hover:text-white transition-colors">
-                  {t('login')}
+                <Link to={createLink('/login')} className="text-gray-400 hover:text-white transition-colors">
+                  {t('common:navigation.login')}
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="text-gray-400 hover:text-white transition-colors">
-                  {t('register')}
+                <Link to={createLink('/register')} className="text-gray-400 hover:text-white transition-colors">
+                  {t('common:navigation.register')}
                 </Link>
               </li>
             </ul>
@@ -51,26 +58,26 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Support</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('footer:support.title')}</h3>
             <ul className="space-y-2">
               <li>
                 <a href="mailto:bcs24020018@student.uts.edu.my" className="text-gray-400 hover:text-white transition-colors">
-                  Contact Support
+                  {t('footer:support.contact')}
                 </a>
               </li>
               <li>
                 <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
-                  Help Center
+                  {t('footer:support.help')}
                 </button>
               </li>
               <li>
                 <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
-                  Privacy Policy
+                  {t('footer:support.privacy')}
                 </button>
               </li>
               <li>
                 <button className="text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer">
-                  Terms of Service
+                  {t('footer:support.terms')}
                 </button>
               </li>
             </ul>
@@ -79,7 +86,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-3 pt-4 pb-4 text-center text-gray-400">
           <p>
-            Built for local businesses in Malaysia
+            {t('footer:footer.tagline')}
           </p>
         </div>
         </div>

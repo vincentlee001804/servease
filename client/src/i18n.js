@@ -29,7 +29,7 @@ i18next
     defaultNS: 'common',
     
     // Namespaces to load
-    ns: ['common'],
+    ns: ['common', 'homepage', 'footer'],
     
     // Backend configuration for loading translations
     backend: {
