@@ -43,6 +43,16 @@ const VendorDashboardFirebase = () => {
   const translateDay = (dayKey) => {
     return t(`dashboard.${dayKey}`);
   };
+
+  // Helper function to get translated text (for vendor content like service names/descriptions)
+  const getTranslatedText = (textObj, fallback = '') => {
+    if (typeof textObj === 'string') return textObj;
+    if (!textObj) return fallback;
+    // Map URL language codes to legacy keys for vendor content translation
+    const langMap = { 'en': 'en', 'bm': 'ms', 'jtzw': 'zh' };
+    const mappedLang = langMap[lang] || 'en';
+    return textObj[mappedLang] || textObj.en || textObj.ms || textObj.zh || fallback;
+  };
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
@@ -760,10 +770,12 @@ const VendorDashboardFirebase = () => {
                                           <div className="flex items-center justify-between">
                                             <div className="flex-1 min-w-0">
                                               <h4 className="font-medium text-gray-900 text-xs truncate">
-                                                {booking.serviceName || 'Service Booking'}
+                                                {(booking.serviceId && dashboardData?.services) 
+                                                  ? getTranslatedText(dashboardData.services.find(s => s.id === booking.serviceId)?.name, booking.serviceName || t('dashboard.serviceBooking'))
+                                                  : (booking.serviceName || t('dashboard.serviceBooking'))}
                                               </h4>
                                               <p className="text-xs text-gray-600 truncate">
-                                                {booking.customerName || 'Customer'}
+                                                {booking.customerName || t('dashboard.customer')}
                                               </p>
                                             </div>
                                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -1066,10 +1078,10 @@ const VendorDashboardFirebase = () => {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h4 className="font-medium text-gray-900 text-sm sm:text-base">
-                              {service.name?.en || service.name || t('dashboard.unnamedService')}
+                              {getTranslatedText(service.name, t('dashboard.unnamedService'))}
                             </h4>
                             <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-                              {service.description?.en || service.description || t('dashboard.noDescription')}
+                              {getTranslatedText(service.description, t('dashboard.noDescription'))}
                             </p>
                         </div>
                           <div className="flex items-center gap-2 ml-3">
@@ -1095,25 +1107,25 @@ const VendorDashboardFirebase = () => {
                         
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Category</span>
+                            <span className="text-xs text-gray-500">{t('dashboard.category', 'Category')}</span>
                             <span className="text-xs font-medium text-gray-700 capitalize">
-                              {service.category || 'Uncategorized'}
+                              {service.category || t('dashboard.uncategorized', 'Uncategorized')}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Duration</span>
+                            <span className="text-xs text-gray-500">{t('dashboard.serviceDuration', 'Duration')}</span>
                             <span className="text-xs font-medium text-gray-700">
-                              {service.duration || 0} min
+                              {service.duration || 0} {t('vendorPage.minutes', 'min')}
                             </span>
                           </div>
                           
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Price</span>
+                            <span className="text-xs text-gray-500">{t('dashboard.price')}</span>
                             <span className="text-sm font-medium text-green-600">
                               {service.priceType === 'fixed' && `RM ${service.price}`}
                               {service.priceType === 'range' && `RM ${service.priceRange?.min || 0} - ${service.priceRange?.max || 0}`}
-                              {service.priceType === 'from' && `From RM ${service.price}`}
+                              {service.priceType === 'from' && `${t('dashboard.priceFrom', 'From')} RM ${service.price}`}
                             </span>
                           </div>
                         </div>
@@ -1173,7 +1185,9 @@ const VendorDashboardFirebase = () => {
                           <div className="flex-1">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-gray-900 text-sm sm:text-base">
-                                {booking.serviceName || t('dashboard.serviceBooking')}
+                                {(booking.serviceId && dashboardData?.services) 
+                                  ? getTranslatedText(dashboardData.services.find(s => s.id === booking.serviceId)?.name, booking.serviceName || t('dashboard.serviceBooking'))
+                                  : (booking.serviceName || t('dashboard.serviceBooking'))}
                               </h4>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                 booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
