@@ -695,7 +695,7 @@ const VendorDashboardFirebase = () => {
                     </h3>
                   </div>
                   
-                  {(() => {
+                  {dashboardData && (() => {
                     // Filter bookings for today
                     const today = new Date().toDateString();
                     const todaysBookings = dashboardData?.recentBookings?.filter(booking => {
@@ -707,18 +707,24 @@ const VendorDashboardFirebase = () => {
                     // Use English day name for matching with operatingHours keys
                     const dayKey = getEnglishDayName();
                     const hoursCfg = dashboardData?.vendor?.operatingHours?.[dayKey] || { isOpen: true, open: '08:00', close: '20:00' };
-                    const parseHour = (hhmm) => parseInt((hhmm || '08:00').split(':')[0], 10) || 0;
-                    const startHour = hoursCfg.isOpen ? parseHour(hoursCfg.open) : null;
-                    const endHour = hoursCfg.isOpen ? parseHour(hoursCfg.close) : null;
+                    const parseHour = (hhmm) => {
+                      if (!hhmm) return 0;
+                      const parts = hhmm.split(':');
+                      return parseInt(parts[0], 10) || 0;
+                    };
+                    const startHour = hoursCfg.isOpen ? parseHour(hoursCfg.open) : 8;
+                    const endHour = hoursCfg.isOpen ? parseHour(hoursCfg.close) : 20;
                     const timeSlots = [];
-                    if (startHour !== null && endHour !== null && endHour > startHour) {
-                      for (let hour = startHour; hour <= endHour; hour++) {
-                        timeSlots.push({
-                          time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
-                          hour: hour,
-                          bookings: []
-                        });
-                      }
+                    
+                    // Always generate time slots, default to 8 AM - 8 PM if no operating hours
+                    const defaultStart = startHour || 8;
+                    const defaultEnd = endHour || 20;
+                    for (let hour = defaultStart; hour <= defaultEnd; hour++) {
+                      timeSlots.push({
+                        time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
+                        hour: hour,
+                        bookings: []
+                      });
                     }
 
                     // Assign bookings to time slots
@@ -739,10 +745,22 @@ const VendorDashboardFirebase = () => {
                     const currentMinute = now.getMinutes();
                     const currentTimeInHours = currentHour + (currentMinute / 60);
 
+                    // Always render calendar, even if empty
+                    if (timeSlots.length === 0) {
+                      // Generate default time slots if none were created
+                      for (let hour = 8; hour <= 20; hour++) {
+                        timeSlots.push({
+                          time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
+                          hour: hour,
+                          bookings: []
+                        });
+                      }
+                    }
+
                     return (
                       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                         <div className="max-h-96 overflow-y-auto">
-                          {timeSlots.map((slot, index) => (
+                          {timeSlots.length > 0 ? timeSlots.map((slot, index) => (
                             <div key={slot.time} className="relative">
                               {/* Time indicator line */}
                               {currentTimeInHours >= slot.hour && currentTimeInHours < slot.hour + 1 && (
@@ -833,11 +851,36 @@ const VendorDashboardFirebase = () => {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          )) : (
+                            <div className="p-6 text-center text-gray-500">
+                              <p>{t('dashboard.noTimeSlotsAvailable', 'No time slots available')}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })()}
+
+                  {/* Show message if calendar couldn't be generated */}
+                  {(() => {
+                    const dayKey = getEnglishDayName();
+                    const hoursCfg = dashboardData?.vendor?.operatingHours?.[dayKey];
+                    if (!hoursCfg && !dashboardData?.vendor?.operatingHours) {
+                      return (
+                        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                          <p className="text-gray-600 mb-2">{t('dashboard.noOperatingHoursSet', 'Operating hours not configured')}</p>
+                          <p className="text-sm text-gray-500">{t('dashboard.configureOperatingHours', 'Please configure your operating hours in the Profile section to view your schedule')}</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  {!dashboardData && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                      <p className="text-gray-600">{t('dashboard.loading', 'Loading...')}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Business Summary */}
