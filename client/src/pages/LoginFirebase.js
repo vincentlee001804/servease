@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import i18next from '../i18n';
 import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
 
 const LoginFirebase = () => {
@@ -16,6 +18,14 @@ const LoginFirebase = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+  const { t } = useTranslation('common');
+
+  // Sync i18next language with URL language
+  useEffect(() => {
+    if (pathLang && i18next.language !== pathLang) {
+      i18next.changeLanguage(pathLang);
+    }
+  }, [pathLang]);
 
   // Redirect to dashboard when user is authenticated
   useEffect(() => {
@@ -51,13 +61,13 @@ const LoginFirebase = () => {
     const newErrors = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('login.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = t('login.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('login.passwordRequired');
     }
 
     setErrors(newErrors);
@@ -113,7 +123,7 @@ const LoginFirebase = () => {
     e.preventDefault();
     // Require a valid email to send reset link
     if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setErrors(prev => ({ ...prev, email: 'Enter a valid email to reset password' }));
+      setErrors(prev => ({ ...prev, email: t('login.enterValidEmailToReset') }));
       return;
     }
     await resetPassword(formData.email);
@@ -128,9 +138,9 @@ const LoginFirebase = () => {
             <div className="mx-auto h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center mb-4">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+            <h2 className="text-3xl font-bold text-gray-900">{t('login.welcomeBack')}</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Sign in to your ServEase account
+              {t('login.signInToAccount')}
             </p>
           </div>
 
@@ -139,7 +149,7 @@ const LoginFirebase = () => {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                {t('login.emailAddress')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -155,7 +165,7 @@ const LoginFirebase = () => {
                   className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Enter your email"
+                  placeholder={t('login.enterEmail')}
                 />
               </div>
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -164,7 +174,7 @@ const LoginFirebase = () => {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                {t('login.password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -180,7 +190,7 @@ const LoginFirebase = () => {
                   className={`block w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.password ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Enter your password"
+                  placeholder={t('login.enterPassword')}
                 />
                 <button
                   type="button"
@@ -207,7 +217,7 @@ const LoginFirebase = () => {
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
+                  {t('login.rememberMe')}
                 </label>
               </div>
 
@@ -217,7 +227,7 @@ const LoginFirebase = () => {
                   onClick={handleForgotPassword}
                   className="font-medium text-blue-600 hover:text-blue-500"
                 >
-                  Forgot your password?
+                  {t('login.forgotPassword')}
                 </button>
               </div>
             </div>
@@ -231,10 +241,10 @@ const LoginFirebase = () => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
+                  {t('login.signingIn')}
                 </div>
               ) : (
-                'Sign In'
+                t('login.signIn')
               )}
             </button>
           </form>
@@ -242,12 +252,12 @@ const LoginFirebase = () => {
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link
                 to={`/${pathLang}/register`}
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
-                Create one here
+                {t('login.createAccount')}
               </Link>
             </p>
           </div>

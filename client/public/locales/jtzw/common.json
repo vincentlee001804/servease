@@ -199,5 +199,23 @@
     "startAddingServices": "开始添加您的第一项服务以吸引客户",
     "markComplete": "标记完成",
     "markAsCompleted": "标记为已完成"
+  },
+  "login": {
+    "welcomeBack": "欢迎回来",
+    "signInToAccount": "登录您的 ServEase 账户",
+    "emailAddress": "电子邮件地址",
+    "enterEmail": "输入您的电子邮件",
+    "password": "密码",
+    "enterPassword": "输入您的密码",
+    "rememberMe": "记住我",
+    "forgotPassword": "忘记密码？",
+    "signingIn": "登录中...",
+    "signIn": "登录",
+    "noAccount": "还没有账户？",
+    "createAccount": "在此创建",
+    "emailRequired": "需要电子邮件",
+    "emailInvalid": "电子邮件无效",
+    "passwordRequired": "需要密码",
+    "enterValidEmailToReset": "输入有效的电子邮件以重置密码"
   }
 }

@@ -199,5 +199,23 @@
     "startAddingServices": "Start by adding your first service to attract customers",
     "markComplete": "Mark Complete",
     "markAsCompleted": "Mark as Completed"
+  },
+  "login": {
+    "welcomeBack": "Welcome Back",
+    "signInToAccount": "Sign in to your ServEase account",
+    "emailAddress": "Email Address",
+    "enterEmail": "Enter your email",
+    "password": "Password",
+    "enterPassword": "Enter your password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot your password?",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Create one here",
+    "emailRequired": "Email is required",
+    "emailInvalid": "Email is invalid",
+    "passwordRequired": "Password is required",
+    "enterValidEmailToReset": "Enter a valid email to reset password"
   }
 }

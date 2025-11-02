@@ -199,5 +199,23 @@
     "startAddingServices": "Mula dengan menambah perkhidmatan pertama anda untuk menarik pelanggan",
     "markComplete": "Tandakan Selesai",
     "markAsCompleted": "Tandakan sebagai Selesai"
+  },
+  "login": {
+    "welcomeBack": "Selamat Kembali",
+    "signInToAccount": "Log masuk ke akaun ServEase anda",
+    "emailAddress": "Alamat Emel",
+    "enterEmail": "Masukkan emel anda",
+    "password": "Kata Laluan",
+    "enterPassword": "Masukkan kata laluan anda",
+    "rememberMe": "Ingat saya",
+    "forgotPassword": "Lupa kata laluan anda?",
+    "signingIn": "Mendaftar masuk...",
+    "signIn": "Log Masuk",
+    "noAccount": "Tiada akaun?",
+    "createAccount": "Daftar di sini",
+    "emailRequired": "Emel diperlukan",
+    "emailInvalid": "Emel tidak sah",
+    "passwordRequired": "Kata laluan diperlukan",
+    "enterValidEmailToReset": "Masukkan emel yang sah untuk menetapkan semula kata laluan"
   }
 }
