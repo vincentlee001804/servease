@@ -19,15 +19,17 @@ const LoginFirebase = () => {
 
   // Redirect to dashboard when user is authenticated
   useEffect(() => {
-    console.log('LoginFirebase useEffect triggered:', { user: !!user, isLoggingIn, userEmail: user?.email });
+    console.log('LoginFirebase useEffect triggered:', { user: !!user, isLoggingIn, userEmail: user?.email, pathLang });
     if (user && !isLoggingIn) {
       console.log('LoginFirebase: User authenticated, navigating to dashboard...');
       // Add a small delay to prevent race conditions
       setTimeout(() => {
-        navigate(`/${pathLang}/dashboard`, { replace: true });
+        // Ensure language is preserved from current URL path
+        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+        navigate(`/${lang}/dashboard`, { replace: true });
       }, 100);
     }
-  }, [user, isLoggingIn, navigate]);
+  }, [user, isLoggingIn, navigate, pathLang]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -80,13 +82,15 @@ const LoginFirebase = () => {
       if (result.success) {
         setTimeout(() => {
           console.log('LoginFirebase: Fallback navigation to dashboard');
+          // Ensure language is preserved from current URL path
+          const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
           try {
-            navigate(`/${pathLang}/dashboard`, { replace: true });
+            navigate(`/${lang}/dashboard`, { replace: true });
           } catch (e) {}
           // Hard redirect as final safety to avoid any router state issues
           setTimeout(() => {
             if (!window.location.pathname.endsWith('/dashboard')) {
-              window.location.replace(`/${pathLang}/dashboard`);
+              window.location.replace(`/${lang}/dashboard`);
             }
           }, 200);
         }, 500);

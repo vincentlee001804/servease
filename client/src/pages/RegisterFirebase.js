@@ -119,10 +119,12 @@ const RegisterFirebase = () => {
       const result = await register(formData);
       
       if (result.success) {
-        navigate(`/${pathLang}/dashboard`, { replace: true });
+        // Ensure language is preserved from current URL path
+        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+        navigate(`/${lang}/dashboard`, { replace: true });
         setTimeout(() => {
           if (!window.location.pathname.endsWith('/dashboard')) {
-            window.location.replace(`/${pathLang}/dashboard`);
+            window.location.replace(`/${lang}/dashboard`);
           }
         }, 200);
       }

@@ -219,9 +219,14 @@ export const AuthProvider = ({ children }) => {
       await signOut(auth);
       console.log('User signed out successfully');
       toast.success('Logged out successfully');
-      // Redirect to login page after logout
+      // Redirect to login page after logout - preserve language from URL or localStorage
       console.log('Redirecting to login page...');
-      window.location.href = '/login';
+      const currentPath = window.location.pathname;
+      const segments = currentPath.split('/').filter(Boolean);
+      const pathLang = segments[0] && ['en', 'bm', 'jtzw'].includes(segments[0]) 
+        ? segments[0] 
+        : localStorage.getItem('i18nextLng') || 'en';
+      window.location.href = `/${pathLang}/login`;
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');

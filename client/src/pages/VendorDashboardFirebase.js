@@ -554,9 +554,14 @@ const VendorDashboardFirebase = () => {
   };
 
   if (!isAuthenticated) {
-    // Redirect to login page instead of showing access denied
+    // Redirect to login page instead of showing access denied - preserve language
     console.log('User not authenticated, redirecting to login...');
-    window.location.href = '/login';
+    const currentPath = window.location.pathname;
+    const segments = currentPath.split('/').filter(Boolean);
+    const pathLang = segments[0] && ['en', 'bm', 'jtzw'].includes(segments[0]) 
+      ? segments[0] 
+      : (lang || localStorage.getItem('i18nextLng') || 'en');
+    window.location.href = `/${pathLang}/login`;
     return null;
   }
 

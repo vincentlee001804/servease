@@ -17,6 +17,14 @@ const LanguageSwitcher = () => {
     const newPath = currentPath === '' || currentPath === '/'
       ? `/${newLang}`
       : `/${newLang}${currentPath}`;
+    
+    // Save language to localStorage for persistence
+    localStorage.setItem('i18nextLng', newLang);
+    
+    // Change i18next language immediately
+    i18n.changeLanguage(newLang);
+    
+    // Navigate to new path
     navigate(newPath);
   };
 

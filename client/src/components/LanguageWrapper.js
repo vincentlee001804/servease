@@ -27,9 +27,11 @@ const LanguageWrapper = ({ children }) => {
       return;
     }
 
-    // Sync i18next when valid
+    // Sync i18next when valid and save to localStorage for persistence
     if (i18n.language !== pathLang) {
       i18n.changeLanguage(pathLang);
+      // Explicitly save to localStorage for persistence across navigation
+      localStorage.setItem('i18nextLng', pathLang);
     }
   }, [navigate, location.pathname, i18n]);
 

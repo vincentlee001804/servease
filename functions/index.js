@@ -1,5 +1,5 @@
 const functions = require('firebase-functions');
-const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
@@ -7,8 +7,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-// Initialize Firebase Admin
-admin.initializeApp();
+// Initialize Firebase Admin (with error handling for re-initialization)
+try {
+  admin.initializeApp();
+} catch (error) {
+  // Admin already initialized, use existing instance
+  if (error.code !== 'app/already-initialized') {
+    throw error;
+  }
+}
 
 // Get Firestore instance
 const db = admin.firestore();
@@ -28,17 +35,50 @@ app.use(express.urlencoded({ extended: true }));
 const JWT_SECRET = 'your-super-secret-jwt-key-change-in-production';
 
 // Email transport (configure with your SMTP or Gmail App Password)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER || functions.config().smtp?.user || 'your@email.com',
-    pass: process.env.SMTP_PASS || functions.config().smtp?.pass || 'app-password'
+// Lazy initialization to avoid issues with functions.config() in v2 functions
+let transporter = null;
+const getTransporter = () => {
+  if (!transporter) {
+    try {
+      // Try to get config, but don't fail if it's not available
+      let smtpUser = process.env.SMTP_USER;
+      let smtpPass = process.env.SMTP_PASS;
+      
+      try {
+        const config = functions.config();
+        smtpUser = smtpUser || config.smtp?.user || 'your@email.com';
+        smtpPass = smtpPass || config.smtp?.pass || 'app-password';
+      } catch (configError) {
+        // functions.config() might not work in v2, use environment variables or defaults
+        console.warn('Could not access functions.config(), using environment variables or defaults');
+        smtpUser = smtpUser || 'your@email.com';
+        smtpPass = smtpPass || 'app-password';
+      }
+      
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        }
+      });
+    } catch (error) {
+      console.error('Failed to initialize email transporter:', error);
+      // Create a dummy transporter that won't crash but will log errors
+      transporter = {
+        sendMail: async () => {
+          console.error('Email transporter not properly configured');
+        }
+      };
+    }
   }
-});
+  return transporter;
+};
 
 async function sendEmail(to, subject, html) {
   try {
-    await transporter.sendMail({ from: 'ServEase <no-reply@servease.app>', to, subject, html });
+    const emailTransporter = getTransporter();
+    await emailTransporter.sendMail({ from: 'ServEase <no-reply@servease.app>', to, subject, html });
   } catch (e) {
     console.error('Email send error:', e);
   }
@@ -494,30 +534,15 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
   }
 });
 
-// Scheduled function to send pending reminders (temporarily disabled for deploy)
-// exports.sendPendingReminders = onSchedule('every 5 minutes', async () => {
-//   const now = Date.now();
-//   const query = await db.collection('emailReminders')
-//     .where('status', '==', 'pending')
-//     .where('sendAt', '<=', admin.firestore.Timestamp.fromMillis(now))
-//     .limit(20)
-//     .get();
-//
-//   const batch = db.batch();
-//   for (const docSnap of query.docs) {
-//     const data = docSnap.data();
-//     await sendEmail(data.to, data.subject, data.html);
-//     batch.update(docSnap.ref, { status: 'sent', sentAt: admin.firestore.FieldValue.serverTimestamp() });
-//   }
-//   await batch.commit();
-//   return null;
-// });
-
-// Temporary minimal scheduled function to allow clean deletion
-exports.sendPendingReminders = onSchedule('every 24 hours', async () => {
-  console.log('sendPendingReminders placeholder tick');
-  return null;
-});
-
-// Expose Express app as a Firebase Function
-exports.api = functions.https.onRequest(app);
+// Expose Express app as a Firebase Function (v2 - Cloud Run)
+// Wrap Express app in a handler function for proper Cloud Run compatibility
+exports.api = onRequest(
+  {
+    region: 'us-central1',
+    cors: false, // Let Express handle CORS
+  },
+  (req, res) => {
+    // Use Express app to handle the request
+    return app(req, res);
+  }
+);
