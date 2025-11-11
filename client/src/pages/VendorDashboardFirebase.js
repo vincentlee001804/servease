@@ -3,14 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18next from '../i18n';
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  QrCode, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  Calendar,
+  Users,
+  Clock,
+  QrCode,
+  Plus,
+  Edit,
+  Trash2,
   Download,
   Share2,
   CheckCircle,
@@ -18,13 +18,15 @@ import {
   AlertCircle,
   X,
   Phone,
-  Mail
+  Mail,
+  Sparkles
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase-config';
 import { toast } from 'react-toastify';
 import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';
+import AIMarketingTool from '../components/AIMarketingTool';
 
 const VendorDashboardFirebase = () => {
   const { user, isAuthenticated } = useAuth();
@@ -655,6 +657,7 @@ const VendorDashboardFirebase = () => {
               {[
                 { id: 'overview', name: t('dashboard.overview'), icon: Calendar, shortName: t('dashboard.overview') },
                 { id: 'bookings', name: t('dashboard.bookings'), icon: Clock, shortName: t('dashboard.bookings') },
+                { id: 'ai', name: t('dashboard.aiMarketing'), icon: Sparkles, shortName: t('dashboard.aiMarketingShort') },
                 { id: 'services', name: t('dashboard.services'), icon: Plus, shortName: t('dashboard.services') },
                 { id: 'qr', name: t('dashboard.qrCode'), icon: QrCode, shortName: 'QR' },
                 { id: 'profile', name: t('dashboard.profile'), icon: Users, shortName: t('dashboard.profile') }
@@ -1111,6 +1114,13 @@ const VendorDashboardFirebase = () => {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* AI Marketing Tab */}
+            {activeTab === 'ai' && (
+              <div className="space-y-4">
+                <AIMarketingTool />
               </div>
             )}
 

@@ -84,86 +84,6 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-// AI: Generate marketing poster using Google Images API (Imagen 3 via Generative Language API)
-// Docs: https://ai.google.dev/gemini-api/docs/images
-app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
-  try {
-    const { imageBase64, prompt } = req.body || {};
-    if (!imageBase64 || !prompt) {
-      return res.status(400).json({ message: 'imageBase64 and prompt are required' });
-    }
-
-    const apiKey = process.env.GOOGLE_AI_API_KEY;
-    if (!apiKey) {
-      console.error('GOOGLE_AI_API_KEY is not set');
-      return res.status(500).json({ message: 'AI service not configured' });
-    }
-
-    // Call Google Images generation with a reference image and prompt to create a poster-like output
-    // Using model imagegeneration@002
-    const genResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagegeneration@002:generateImage?key=' + apiKey, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // Basic poster-like prompt augmentation
-        prompt: {
-          text: `${prompt}\nCreate a high-conversion marketing poster suitable for social media feeds (square or 4:5). Crisp typography, strong call-to-action, clear product focus.`
-        },
-        // Reference the uploaded product/service image
-        // Accept base64 without prefix
-        referenceImages: [
-          {
-            mimeType: 'image/png',
-            data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
-          }
-        ],
-        // Quality and size hints
-        imageGenerationConfig: {
-          numberOfImages: 1,
-          aspectRatio: '1:1' // good default for social
-        }
-      })
-    });
-
-    if (!genResp.ok) {
-      const text = await genResp.text();
-      console.error('Images API error:', genResp.status, text);
-      return res.status(502).json({ message: 'AI image generation failed', detail: text });
-    }
-    const genJson = await genResp.json();
-    const imageData = genJson?.candidates?.[0]?.image || genJson?.images?.[0]; // API variants
-    if (!imageData?.data) {
-      return res.status(502).json({ message: 'No image returned from AI' });
-    }
-
-    // Save to Cloud Storage
-    const buffer = Buffer.from(imageData.data, 'base64');
-    const bucket = admin.storage().bucket();
-    const filePath = `ai-posters/${req.user.email}/${Date.now()}-poster.png`;
-    const file = bucket.file(filePath);
-    await file.save(buffer, {
-      contentType: 'image/png',
-      resumable: false,
-      metadata: { cacheControl: 'public, max-age=31536000' }
-    });
-
-    // Signed URL for quick access (1 week)
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000
-    });
-
-    res.json({
-      success: true,
-      url: signedUrl,
-      storagePath: filePath
-    });
-  } catch (error) {
-    console.error('AI generate poster error:', error);
-    res.status(500).json({ message: 'Failed to generate marketing poster' });
-  }
-});
-
 // Auth middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -186,6 +106,78 @@ const authenticateToken = (req, res, next) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'ServEase API is running with Firestore' });
+});
+
+// AI: Generate marketing poster using Google Images API (Imagen 3 via Generative Language API)
+// Docs: https://ai.google.dev/gemini-api/docs/images
+app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
+  try {
+    const { imageBase64, prompt } = req.body || {};
+    if (!imageBase64 || !prompt) {
+      return res.status(400).json({ message: 'imageBase64 and prompt are required' });
+    }
+
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      console.error('GOOGLE_AI_API_KEY is not set');
+      return res.status(500).json({ message: 'AI service not configured' });
+    }
+
+    const genResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagegeneration@002:generateImage?key=' + apiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: {
+          text: `${prompt}\nCreate a high-conversion marketing poster suitable for social media feeds (square or 4:5). Crisp typography, strong call-to-action, clear product focus.`
+        },
+        referenceImages: [
+          {
+            mimeType: 'image/png',
+            data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
+          }
+        ],
+        imageGenerationConfig: {
+          numberOfImages: 1,
+          aspectRatio: '1:1'
+        }
+      })
+    });
+
+    if (!genResp.ok) {
+      const text = await genResp.text();
+      console.error('Images API error:', genResp.status, text);
+      return res.status(502).json({ message: 'AI image generation failed', detail: text });
+    }
+    const genJson = await genResp.json();
+    const imageData = genJson?.candidates?.[0]?.image || genJson?.images?.[0];
+    if (!imageData?.data) {
+      return res.status(502).json({ message: 'No image returned from AI' });
+    }
+
+    const buffer = Buffer.from(imageData.data, 'base64');
+    const bucket = admin.storage().bucket();
+    const filePath = `ai-posters/${req.user.email}/${Date.now()}-poster.png`;
+    const file = bucket.file(filePath);
+    await file.save(buffer, {
+      contentType: 'image/png',
+      resumable: false,
+      metadata: { cacheControl: 'public, max-age=31536000' }
+    });
+
+    const [signedUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      success: true,
+      url: signedUrl,
+      storagePath: filePath
+    });
+  } catch (error) {
+    console.error('AI generate poster error:', error);
+    res.status(500).json({ message: 'Failed to generate marketing poster' });
+  }
 });
 
 // Register
