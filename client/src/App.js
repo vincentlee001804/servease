@@ -20,6 +20,7 @@ import VendorDashboard from './pages/VendorDashboardFirebase';
 import Login from './pages/LoginFirebase';
 import Register from './pages/RegisterFirebase';
 import TestPage from './pages/TestPage';
+import AIMarketing from './pages/AIMarketing';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -71,6 +72,8 @@ function App() {
                 <Route path="/:lang/booking/:vendorId/:serviceId" element={<BookingPage />} />
                 <Route path="/:lang/booking-success/:vendorId" element={<BookingSuccess />} />
                 <Route path="/:lang/bookings" element={<BookingStatus />} />
+                {/* AI Marketing (testing) */}
+                <Route path="/:lang/ai" element={<AIMarketing />} />
                 
                 {/* Auth routes */}
                 <Route path="/:lang/login" element={<Login />} />
