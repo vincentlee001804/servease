@@ -23,13 +23,71 @@ const db = admin.firestore();
 // Create Express app
 const app = express();
 
-// Middleware
-app.use(cors({ 
-  origin: ['https://servease-07762363-b4f31.web.app', 'http://localhost:3000'],
-  credentials: true 
-}));
+// Middleware - CORS Configuration
+const allowedOrigins = [
+  'https://servease-07762363-b4f31.web.app',
+  'http://localhost:3000'
+];
+const previewRegex = /^https:\/\/servease-07762363-b4f31--[a-z0-9-]+\.web\.app$/i;
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+    // Check if origin is in allowed list or matches preview pattern
+    if (allowedOrigins.includes(origin) || previewRegex.test(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('Blocked CORS origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization']
+};
+
+// Manual CORS middleware to ensure headers are always set
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  const isAllowed = !origin || allowedOrigins.includes(origin) || previewRegex.test(origin);
+  
+  if (isAllowed) {
+    // Set exact origin (required when credentials: true)
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  }
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Apply CORS middleware (as backup)
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS preflight requests
+app.options('*', cors(corsOptions));
+
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // JWT Secret
 const JWT_SECRET = 'your-super-secret-jwt-key-change-in-production';
@@ -84,8 +142,8 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-// Auth middleware
-const authenticateToken = (req, res, next) => {
+// Auth middleware - supports both Firebase Auth tokens and JWT tokens
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -93,13 +151,30 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Access token required' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: 'Invalid token' });
+  try {
+    // Try Firebase Auth token first
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      req.user = {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        ...decodedToken
+      };
+      return next();
+    } catch (firebaseError) {
+      // If Firebase token verification fails, try JWT as fallback
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+          return res.status(403).json({ message: 'Invalid token' });
+        }
+        req.user = user;
+        next();
+      });
     }
-    req.user = user;
-    next();
-  });
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return res.status(403).json({ message: 'Invalid token' });
+  }
 };
 
 // Routes
@@ -108,8 +183,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'ServEase API is running with Firestore' });
 });
 
-// AI: Generate marketing poster using Google Images API (Imagen 3 via Generative Language API)
-// Docs: https://ai.google.dev/gemini-api/docs/images
+// AI: Generate marketing poster using Gemini API (gemini-2.5-flash-image)
+// Docs: https://ai.google.dev/gemini-api/docs/image-generation
+
+// Handle OPTIONS preflight for AI endpoint
+app.options('/ai/generate-poster', cors(corsOptions));
+
 app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
   try {
     const { imageBase64, prompt } = req.body || {};
@@ -123,37 +202,72 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
       return res.status(500).json({ message: 'AI service not configured' });
     }
 
-    const genResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/imagegeneration@002:generateImage?key=' + apiKey, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: {
-          text: `${prompt}\nCreate a high-conversion marketing poster suitable for social media feeds (square or 4:5). Crisp typography, strong call-to-action, clear product focus.`
-        },
-        referenceImages: [
-          {
-            mimeType: 'image/png',
-            data: imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '')
+    // Clean base64 data (remove data URL prefix if present)
+    const base64Data = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+    
+    // Determine MIME type from original imageBase64
+    let mimeType = 'image/png';
+    if (imageBase64.includes('data:image/jpeg') || imageBase64.includes('data:image/jpg')) {
+      mimeType = 'image/jpeg';
+    }
+
+    // Enhanced prompt for marketing poster
+    const enhancedPrompt = `${prompt}\nCreate a high-conversion marketing poster suitable for social media feeds (square or 4:5). Crisp typography, strong call-to-action, clear product focus.`;
+
+    // Call Gemini API with gemini-2.5-flash-image model
+    const genResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: enhancedPrompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            responseModalities: ['Image'],
+            imageConfig: {
+              aspectRatio: '4:5' // Good for social media
+            }
           }
-        ],
-        imageGenerationConfig: {
-          numberOfImages: 1,
-          aspectRatio: '1:1'
-        }
-      })
-    });
+        })
+      }
+    );
 
     if (!genResp.ok) {
       const text = await genResp.text();
-      console.error('Images API error:', genResp.status, text);
+      console.error('Gemini API error:', genResp.status, text);
       return res.status(502).json({ message: 'AI image generation failed', detail: text });
     }
+
     const genJson = await genResp.json();
-    const imageData = genJson?.candidates?.[0]?.image || genJson?.images?.[0];
-    if (!imageData?.data) {
-      return res.status(502).json({ message: 'No image returned from AI' });
+    
+    // Extract image from response parts
+    let imageData = null;
+    if (genJson.candidates && genJson.candidates[0] && genJson.candidates[0].content) {
+      const parts = genJson.candidates[0].content.parts;
+      for (const part of parts) {
+        if (part.inlineData) {
+          imageData = part.inlineData;
+          break;
+        }
+      }
     }
 
+    if (!imageData || !imageData.data) {
+      console.error('No image data in response:', JSON.stringify(genJson));
+      return res.status(502).json({ message: 'No image returned from AI', detail: JSON.stringify(genJson) });
+    }
+
+    // Convert base64 to buffer
     const buffer = Buffer.from(imageData.data, 'base64');
     const bucket = admin.storage().bucket();
     const filePath = `ai-posters/${req.user.email}/${Date.now()}-poster.png`;
@@ -171,12 +285,12 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
 
     res.json({
       success: true,
-      url: signedUrl,
+      posterUrl: signedUrl,
       storagePath: filePath
     });
   } catch (error) {
     console.error('AI generate poster error:', error);
-    res.status(500).json({ message: 'Failed to generate marketing poster' });
+    res.status(500).json({ message: 'Failed to generate marketing poster', error: error.message });
   }
 });
 

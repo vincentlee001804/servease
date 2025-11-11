@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { auth } from '../firebase-config';
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||
   'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api';
 
-const AIMarketingTool = () => {
+const AIMarketingTool = ({ vendorId }) => {
+  const { user } = useAuth();
   const [imagePreview, setImagePreview] = useState('');
   const [prompt, setPrompt] = useState(
     'Create a bold social media poster with strong call-to-action and clear pricing.'
@@ -29,27 +32,38 @@ const AIMarketingTool = () => {
       setError('Please upload an image first.');
       return;
     }
+    if (!user) {
+      setError('You must be logged in to use this feature.');
+      return;
+    }
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      // Get Firebase Auth ID token
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
       const resp = await fetch(`${API_BASE}/ai/generate-poster`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          vendorId: vendorId || user.uid,
           imageBase64: imagePreview,
           prompt
         })
       });
       const json = await resp.json();
       if (!resp.ok) {
-        throw new Error(json?.message || 'Generation failed');
+        throw new Error(json?.message || json?.detail || 'Generation failed');
       }
-      setResultUrl(json.url);
+      setResultUrl(json.posterUrl || json.url);
     } catch (e) {
       setError(e.message || 'Failed to generate image');
+      console.error('AI Marketing Tool Error:', e);
     } finally {
       setLoading(false);
     }
