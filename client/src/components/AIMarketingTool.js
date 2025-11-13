@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2, Wand2, X, CheckCircle2, AlertCircle, Lightbulb, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../config/firebase-config';
 
@@ -8,11 +9,11 @@ const API_BASE =
   'https://api-6b4nslsuyq-uc.a.run.app';
 
 const AIMarketingTool = ({ vendorId }) => {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [imagePreview, setImagePreview] = useState('');
-  const [prompt, setPrompt] = useState(
-    'Create a bold social media poster with strong call-to-action and clear pricing.'
-  );
+  const [prompt, setPrompt] = useState(t('aiMarketing.defaultPrompt'));
+  const [isDefaultPrompt, setIsDefaultPrompt] = useState(true);
   const [enhancePrompt, setEnhancePrompt] = useState(true); // Default to enabled
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState('');
@@ -28,7 +29,7 @@ const AIMarketingTool = ({ vendorId }) => {
 
   const handleFile = (file) => {
     if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file.');
+      setError(t('aiMarketing.pleaseUploadImageFile'));
       return;
     }
     const reader = new FileReader();
@@ -58,6 +59,19 @@ const AIMarketingTool = ({ vendorId }) => {
     setImagePreview('');
     setResultUrl('');
     setError('');
+  };
+
+  // Update default prompt when language changes
+  useEffect(() => {
+    if (isDefaultPrompt) {
+      setPrompt(t('aiMarketing.defaultPrompt'));
+    }
+  }, [i18n.language, t, isDefaultPrompt]);
+
+  // Track if user has modified the prompt
+  const handlePromptChange = (e) => {
+    setPrompt(e.target.value);
+    setIsDefaultPrompt(false);
   };
 
   // AI Prompt Enhancement function
@@ -163,11 +177,11 @@ const AIMarketingTool = ({ vendorId }) => {
     setError('');
     setResultUrl('');
     if (!imagePreview) {
-      setError('Please upload an image first.');
+      setError(t('aiMarketing.pleaseUploadImage'));
       return;
     }
     if (!user) {
-      setError('You must be logged in to use this feature.');
+      setError(t('aiMarketing.mustBeLoggedIn'));
       return;
     }
     setLoading(true);
@@ -210,7 +224,7 @@ const AIMarketingTool = ({ vendorId }) => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (e) {
-      setError(e.message || 'Failed to generate image');
+      setError(e.message || t('aiMarketing.failedToGenerate'));
       console.error('AI Marketing Tool Error:', e);
     } finally {
       setLoading(false);
@@ -230,11 +244,11 @@ const AIMarketingTool = ({ vendorId }) => {
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-              AI Personalized Marketing
-              <span className="text-xs font-normal bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Beta</span>
+              {t('aiMarketing.title')}
+              <span className="text-xs font-normal bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t('aiMarketing.beta')}</span>
             </h3>
             <p className="text-sm text-gray-600">
-              Transform your product images into stunning social media posters with AI-powered enhancement.
+              {t('aiMarketing.description')}
             </p>
           </div>
         </div>
@@ -247,7 +261,7 @@ const AIMarketingTool = ({ vendorId }) => {
           <div className="mb-6">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
               <ImageIcon className="w-4 h-4 text-blue-500" />
-              Product / Service Image
+              {t('aiMarketing.productImage')}
             </label>
             <div
               onDragOver={handleDragOver}
@@ -269,7 +283,7 @@ const AIMarketingTool = ({ vendorId }) => {
                   <button
                     onClick={clearImage}
                     className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                    title="Remove image"
+                    title={t('aiMarketing.removeImage')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -277,9 +291,9 @@ const AIMarketingTool = ({ vendorId }) => {
               ) : (
                 <div className="text-gray-400">
                   <Upload className={`w-12 h-12 mx-auto mb-3 ${isDragging ? 'text-blue-500' : ''}`} />
-                  <p className="font-medium mb-1">Drag & drop your image here</p>
-                  <p className="text-xs">or click to browse</p>
-                  <p className="text-xs mt-2 text-gray-400">Supports: JPG, PNG, WebP</p>
+                  <p className="font-medium mb-1">{t('aiMarketing.dragDrop')}</p>
+                  <p className="text-xs">{t('aiMarketing.orClick')}</p>
+                  <p className="text-xs mt-2 text-gray-400">{t('aiMarketing.supports')}</p>
                 </div>
               )}
               <input
@@ -295,7 +309,7 @@ const AIMarketingTool = ({ vendorId }) => {
           <div className="mb-6">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
               <Zap className="w-4 h-4 text-yellow-500" />
-              Creative Direction
+              {t('aiMarketing.creativeDirection')}
             </label>
             
             {/* AI Prompt Enhancement Toggle */}
@@ -305,8 +319,8 @@ const AIMarketingTool = ({ vendorId }) => {
                   <Wand2 className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <span className="text-sm font-semibold text-gray-900 block">AI Prompt Enhancement</span>
-                  <span className="text-xs text-gray-500">Auto-enhance your prompt for better results</span>
+                  <span className="text-sm font-semibold text-gray-900 block">{t('aiMarketing.promptEnhancement')}</span>
+                  <span className="text-xs text-gray-500">{t('aiMarketing.promptEnhancementDesc')}</span>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -322,11 +336,11 @@ const AIMarketingTool = ({ vendorId }) => {
             
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={handlePromptChange}
               rows={5}
               maxLength={maxPromptLength}
               className="w-full border-2 border-gray-200 rounded-lg p-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none transition-all resize-none"
-              placeholder="Example: Create a bold social media poster with strong call-to-action and clear pricing RM199. Use vibrant colors and modern design."
+              placeholder={t('aiMarketing.promptPlaceholder')}
             />
             
             <div className="flex items-center justify-between mt-2">
@@ -334,7 +348,7 @@ const AIMarketingTool = ({ vendorId }) => {
                 {enhancePrompt && (
                   <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
                     <Lightbulb className="w-3 h-3" />
-                    <span>Enhancement active</span>
+                    <span>{t('aiMarketing.enhancementActive')}</span>
                   </div>
                 )}
               </div>
@@ -353,12 +367,12 @@ const AIMarketingTool = ({ vendorId }) => {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                <span>Generating poster...</span>
+                <span>{t('aiMarketing.generatingPoster')}</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5 mr-2" />
-                <span>Generate Poster</span>
+                <span>{t('aiMarketing.generatePoster')}</span>
               </>
             )}
           </button>
@@ -375,7 +389,7 @@ const AIMarketingTool = ({ vendorId }) => {
           {showSuccess && (
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
               <CheckCircle2 className="w-5 h-5 text-green-500" />
-              <p className="text-sm text-green-700 font-medium">Poster generated successfully!</p>
+              <p className="text-sm text-green-700 font-medium">{t('aiMarketing.posterGenerated')}</p>
             </div>
           )}
         </div>
@@ -384,7 +398,7 @@ const AIMarketingTool = ({ vendorId }) => {
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
             <Sparkles className="w-4 h-4 text-green-500" />
-            Generated Result
+            {t('aiMarketing.generatedResult')}
           </label>
           <div className="border-2 border-gray-200 rounded-xl min-h-[400px] flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
             {loading ? (
@@ -395,8 +409,8 @@ const AIMarketingTool = ({ vendorId }) => {
                     <Sparkles className="w-6 h-6 text-blue-500 animate-pulse" />
                   </div>
                 </div>
-                <p className="text-gray-600 font-medium mt-4">Creating your poster...</p>
-                <p className="text-xs text-gray-400 mt-1">This may take 10-30 seconds</p>
+                <p className="text-gray-600 font-medium mt-4">{t('aiMarketing.creatingPoster')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('aiMarketing.mayTakeTime')}</p>
               </div>
             ) : resultUrl ? (
               <div className="w-full p-4">
@@ -416,7 +430,7 @@ const AIMarketingTool = ({ vendorId }) => {
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg"
                   >
                     <Download className="w-4 h-4" />
-                    Download Poster
+                    {t('aiMarketing.downloadPoster')}
                   </a>
                   <a
                     href={resultUrl}
@@ -424,7 +438,7 @@ const AIMarketingTool = ({ vendorId }) => {
                     rel="noreferrer"
                     className="px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all"
                   >
-                    View Full Size
+                    {t('aiMarketing.viewFullSize')}
                   </a>
                 </div>
               </div>
@@ -433,8 +447,8 @@ const AIMarketingTool = ({ vendorId }) => {
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
                   <ImageIcon className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-gray-500 font-medium mb-1">No poster generated yet</p>
-                <p className="text-xs text-gray-400">Upload an image and generate your first poster</p>
+                <p className="text-gray-500 font-medium mb-1">{t('aiMarketing.noPosterYet')}</p>
+                <p className="text-xs text-gray-400">{t('aiMarketing.uploadAndGenerate')}</p>
               </div>
             )}
           </div>
