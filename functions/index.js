@@ -29,6 +29,8 @@ const allowedOrigins = [
   'http://localhost:3000'
 ];
 const previewRegex = /^https:\/\/servease-07762363-b4f31--[a-z0-9-]+\.web\.app$/i;
+// Allow any localhost port for development
+const localhostRegex = /^http:\/\/localhost:\d+$/;
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -36,8 +38,8 @@ const corsOptions = {
     if (!origin) {
       return callback(null, true);
     }
-    // Check if origin is in allowed list or matches preview pattern
-    if (allowedOrigins.includes(origin) || previewRegex.test(origin)) {
+    // Check if origin is in allowed list, matches preview pattern, or is localhost
+    if (allowedOrigins.includes(origin) || previewRegex.test(origin) || localhostRegex.test(origin)) {
       callback(null, true);
     } else {
       console.warn('Blocked CORS origin:', origin);
@@ -60,8 +62,8 @@ app.use((req, res, next) => {
     console.log('CORS check:', { method: req.method, origin, path: req.path });
   }
   
-  // Check if origin is allowed
-  const isAllowed = !origin || allowedOrigins.includes(origin) || previewRegex.test(origin);
+  // Check if origin is allowed (including any localhost port for development)
+  const isAllowed = !origin || allowedOrigins.includes(origin) || previewRegex.test(origin) || localhostRegex.test(origin);
   
   if (isAllowed) {
     // Set exact origin (required when credentials: true)
@@ -248,9 +250,7 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
       mimeType = 'image/jpeg';
     }
 
-    // Enhanced prompt for marketing poster
-    const enhancedPrompt = `${prompt}\nCreate a high-conversion marketing poster suitable for social media feeds (square or 4:5). Crisp typography, strong call-to-action, clear product focus.`;
-
+    // Use the prompt as-is (frontend handles enhancement if enabled)
     // Call Gemini API with gemini-2.5-flash-image model
     const genResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
@@ -260,7 +260,7 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
         body: JSON.stringify({
           contents: [{
             parts: [
-              { text: enhancedPrompt },
+              { text: prompt },
               {
                 inlineData: {
                   mimeType: mimeType,
@@ -773,6 +773,22 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
     console.error('Booking status update error:', error);
     res.status(500).json({ message: 'Failed to update booking status' });
   }
+});
+
+// Global error handler - ensures all errors return JSON
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({
+      message: err.message || 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  }
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // Expose Express app as a Firebase Function (v2 - Cloud Run)
