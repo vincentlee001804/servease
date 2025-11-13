@@ -6,7 +6,7 @@ import {
   Smartphone, 
   Calendar, 
   Globe, 
-  Users, 
+  Sparkles, 
   CheckCircle
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -50,10 +50,10 @@ const HomeModern = () => {
       color: 'from-yellow-500 to-yellow-600',
     },
     {
-      icon: <Users className="w-6 h-6" />,
-      title: t('features.customerMgmt.title'),
-      description: t('features.customerMgmt.description'),
-      color: 'from-red-500 to-red-600',
+      icon: <Sparkles className="w-6 h-6" />,
+      title: t('features.aiMarketing.title'),
+      description: t('features.aiMarketing.description'),
+      color: 'from-purple-500 to-pink-600',
     },
     {
       icon: <CheckCircle className="w-6 h-6" />,
