@@ -2,20 +2,13 @@
   "name": "servease",
   "version": "1.0.0",
   "description": "ServEase - Digital Service Menu and Booking System",
-  "main": "server.js",
   "scripts": {
-    "setup": "node setup.js",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "server": "cd server && npm run dev",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
-    "start": "node server.js",
-    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
-    "render-postbuild": "cd client && npm install && npm run build",
-    "firebase-deploy": "node deploy-firebase.js",
+    "install-all": "npm install && cd client && npm install && cd ../functions && npm install",
+    "firebase-deploy": "firebase deploy",
     "firebase-serve": "firebase serve",
-    "firebase-emulators": "firebase emulators:start",
-    "deploy-complete": "node deploy-complete.js"
+    "firebase-emulators": "firebase emulators:start"
   },
   "keywords": [
     "booking",
