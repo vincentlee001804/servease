@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import i18next from '../i18n';
-import { getLanguageName } from '../i18n';
+import i18next from '../config/i18n';
+import { getLanguageName } from '../config/i18n';
 import { 
   Clock, 
   MapPin, 
@@ -22,7 +22,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase-config';
+import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 
 const VendorPageFirebase = () => {

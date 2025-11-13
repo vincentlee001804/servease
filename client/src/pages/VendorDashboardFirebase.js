@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import i18next from '../i18n';
+import i18next from '../config/i18n';
 import {
   Calendar,
   Users,
@@ -22,7 +22,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase-config';
+import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';

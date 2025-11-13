@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getLanguageName, getSupportedLanguages } from '../i18n';
+import { getLanguageName, getSupportedLanguages } from '../config/i18n';
 import { Languages } from 'lucide-react';
 
 const LanguageSwitcher = () => {

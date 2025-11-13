@@ -68,3 +68,4 @@ export const getSupportedLanguages = () => Object.keys(languageNames);
 export const isValidLanguage = (code) => Object.keys(languageMap).includes(code);
 
 export default i18next;
+

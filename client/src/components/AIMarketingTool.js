@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2, Wand2, X, CheckCircle2, AlertCircle, Lightbulb, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { auth } from '../firebase-config';
+import { auth } from '../config/firebase-config';
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||

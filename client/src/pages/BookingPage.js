@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../firebase-config';
+import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import { Calendar, Clock, User, DollarSign, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';

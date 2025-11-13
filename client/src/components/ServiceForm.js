@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { X, Save, Languages, Loader2 } from 'lucide-react';
 import { doc, setDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase-config';
+import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import { translateWithFallback } from '../utils/translation';
 

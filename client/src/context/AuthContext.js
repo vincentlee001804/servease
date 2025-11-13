@@ -8,7 +8,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase-config';
+import { auth, db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();

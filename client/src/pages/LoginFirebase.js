@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import i18next from '../i18n';
+import i18next from '../config/i18n';
 import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
 
 const LoginFirebase = () => {

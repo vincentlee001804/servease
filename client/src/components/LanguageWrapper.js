@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getSupportedLanguages, isValidLanguage } from '../i18n';
+import { getSupportedLanguages, isValidLanguage } from '../config/i18n';
 
 const LanguageWrapper = ({ children }) => {
   const navigate = useNavigate();

@@ -4,7 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // i18n
-import './i18n';
+import './config/i18n';
 
 // Components
 import Header from './components/HeaderModern';
