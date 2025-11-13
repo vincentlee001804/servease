@@ -55,6 +55,11 @@ const corsOptions = {
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
+  // Log for debugging
+  if (req.method === 'OPTIONS' || origin) {
+    console.log('CORS check:', { method: req.method, origin, path: req.path });
+  }
+  
   // Check if origin is allowed
   const isAllowed = !origin || allowedOrigins.includes(origin) || previewRegex.test(origin);
   
@@ -69,11 +74,18 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-  }
-  
-  // Handle preflight OPTIONS request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    
+    // Handle preflight OPTIONS request immediately
+    if (req.method === 'OPTIONS') {
+      console.log('OPTIONS preflight handled for origin:', origin);
+      return res.status(200).end();
+    }
+  } else {
+    console.warn('CORS blocked:', { origin, path: req.path, method: req.method });
+    // Still handle OPTIONS even if origin doesn't match (for debugging)
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
   }
   
   next();
@@ -145,9 +157,21 @@ async function sendEmail(to, subject, html) {
 // Auth middleware - supports both Firebase Auth tokens and JWT tokens
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    console.warn('Auth middleware: missing Authorization header', {
+      path: req.path,
+      method: req.method,
+      headers: req.headers
+    });
+  }
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
+    console.warn('Auth middleware: no token extracted', {
+      path: req.path,
+      method: req.method,
+      authHeader
+    });
     return res.status(401).json({ message: 'Access token required' });
   }
 
@@ -155,6 +179,11 @@ const authenticateToken = async (req, res, next) => {
     // Try Firebase Auth token first
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
+      console.log('Auth middleware: Firebase token verified', {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+        path: req.path
+      });
       req.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,
@@ -162,9 +191,17 @@ const authenticateToken = async (req, res, next) => {
       };
       return next();
     } catch (firebaseError) {
+      console.warn('Auth middleware: Firebase verify failed, falling back to JWT', {
+        error: firebaseError.message,
+        path: req.path
+      });
       // If Firebase token verification fails, try JWT as fallback
       jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
+          console.warn('Auth middleware: JWT verify failed', {
+            error: err.message,
+            path: req.path
+          });
           return res.status(403).json({ message: 'Invalid token' });
         }
         req.user = user;
@@ -269,25 +306,43 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
 
     // Convert base64 to buffer
     const buffer = Buffer.from(imageData.data, 'base64');
-    const bucket = admin.storage().bucket();
-    const filePath = `ai-posters/${req.user.email}/${Date.now()}-poster.png`;
-    const file = bucket.file(filePath);
-    await file.save(buffer, {
-      contentType: 'image/png',
-      resumable: false,
-      metadata: { cacheControl: 'public, max-age=31536000' }
-    });
+    
+    // Try to save to Firebase Storage, fallback to base64 if it fails
+    try {
+      // Use explicit bucket name from Firebase config
+      const bucketName = 'servease-07762363-b4f31.firebasestorage.app';
+      const bucket = admin.storage().bucket(bucketName);
+      
+      const filePath = `ai-posters/${req.user.email || req.user.uid}/${Date.now()}-poster.png`;
+      const file = bucket.file(filePath);
+      
+      await file.save(buffer, {
+        contentType: 'image/png',
+        resumable: false,
+        metadata: { cacheControl: 'public, max-age=31536000' }
+      });
 
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 7 * 24 * 60 * 60 * 1000
-    });
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000
+      });
 
-    res.json({
-      success: true,
-      posterUrl: signedUrl,
-      storagePath: filePath
-    });
+      return res.json({
+        success: true,
+        posterUrl: signedUrl,
+        storagePath: filePath
+      });
+    } catch (storageError) {
+      // If storage fails (bucket doesn't exist, permissions issue, etc.), return base64 directly
+      console.warn('Storage save failed, returning base64 image directly:', storageError.message);
+      const base64Image = `data:image/png;base64,${imageData.data}`;
+      return res.json({
+        success: true,
+        posterUrl: base64Image,
+        storagePath: null,
+        note: 'Image returned as base64 (storage unavailable)'
+      });
+    }
   } catch (error) {
     console.error('AI generate poster error:', error);
     res.status(500).json({ message: 'Failed to generate marketing poster', error: error.message });
@@ -725,10 +780,12 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
 exports.api = onRequest(
   {
     region: 'us-central1',
-    cors: false, // Let Express handle CORS
+    cors: true, // Enable CORS at function level - Express will handle fine-grained control
+    secrets: ['GOOGLE_AI_API_KEY'], // Reference the secret
   },
   (req, res) => {
     // Use Express app to handle the request
+    // Express middleware will handle CORS filtering and additional headers
     return app(req, res);
   }
 );

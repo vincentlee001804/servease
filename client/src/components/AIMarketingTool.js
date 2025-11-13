@@ -5,7 +5,7 @@ import { auth } from '../firebase-config';
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||
-  'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api';
+  'https://api-6b4nslsuyq-uc.a.run.app';
 
 const AIMarketingTool = ({ vendorId }) => {
   const { user } = useAuth();
@@ -38,8 +38,12 @@ const AIMarketingTool = ({ vendorId }) => {
     }
     setLoading(true);
     try {
-      // Get Firebase Auth ID token
-      const token = await auth.currentUser?.getIdToken();
+      // Ensure we have the latest Firebase Auth ID token
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error('Authentication required');
+      }
+      const token = await firebaseUser.getIdToken(true); // Force refresh to ensure validity
       if (!token) {
         throw new Error('Authentication required');
       }
@@ -48,7 +52,7 @@ const AIMarketingTool = ({ vendorId }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           vendorId: vendorId || user.uid,
