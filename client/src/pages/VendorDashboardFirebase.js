@@ -370,12 +370,12 @@ const VendorDashboardFirebase = () => {
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error(t('dashboard.profileImageUploadFailed'));
       return;
     }
     
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      toast.error('Image size should be less than 5MB');
+      toast.error(t('dashboard.profileImageUploadFailed'));
       return;
     }
     
@@ -403,10 +403,10 @@ const VendorDashboardFirebase = () => {
         updatedAt: new Date()
       });
       
-      toast.success('Profile image uploaded successfully');
+      toast.success(t('dashboard.profileImageUploaded'));
     } catch (error) {
       console.error('Error uploading profile image:', error);
-      toast.error('Failed to upload profile image');
+      toast.error(t('dashboard.profileImageUploadFailed'));
     } finally {
       setUploadingProfileImage(false);
     }
@@ -418,12 +418,12 @@ const VendorDashboardFirebase = () => {
     if (!file) return;
     
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error(t('dashboard.coverImageUploadFailed'));
       return;
     }
     
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Image size should be less than 10MB');
+      toast.error(t('dashboard.coverImageUploadFailed'));
       return;
     }
     
@@ -451,10 +451,10 @@ const VendorDashboardFirebase = () => {
         updatedAt: new Date()
       });
       
-      toast.success('Cover image uploaded successfully');
+      toast.success(t('dashboard.coverImageUploaded'));
     } catch (error) {
       console.error('Error uploading cover image:', error);
-      toast.error('Failed to upload cover image');
+      toast.error(t('dashboard.coverImageUploadFailed'));
     } finally {
       setUploadingCoverImage(false);
     }
@@ -1049,7 +1049,7 @@ const VendorDashboardFirebase = () => {
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium text-gray-900">Business Profile</h3>
+                  <h3 className="text-lg font-medium text-gray-900">{t('dashboard.businessProfile')}</h3>
                   <button
                     onClick={() => setIsEditingProfile(!isEditingProfile)}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -1063,7 +1063,7 @@ const VendorDashboardFirebase = () => {
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
                     {/* Cover Image Upload */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.coverImage')}</label>
                       <div className="relative">
                         <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300">
                           {coverImagePreview ? (
@@ -1076,18 +1076,18 @@ const VendorDashboardFirebase = () => {
                             <div className="w-full h-full flex items-center justify-center">
                               <div className="text-center">
                                 <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                <p className="text-sm text-gray-500">No cover image</p>
+                                <p className="text-sm text-gray-500">{t('dashboard.noCoverImage')}</p>
                               </div>
                             </div>
                           )}
                         </div>
                         <label className="absolute bottom-2 right-2 bg-white px-3 py-1.5 rounded-md shadow-md hover:bg-gray-50 cursor-pointer border border-gray-300">
                           {uploadingCoverImage ? (
-                            <span className="text-sm text-gray-600">Uploading...</span>
+                            <span className="text-sm text-gray-600">{t('dashboard.uploading')}</span>
                           ) : (
                             <span className="text-sm text-gray-700 flex items-center gap-1">
                               <Upload className="w-4 h-4" />
-                              {coverImagePreview ? 'Change' : 'Upload'}
+                              {coverImagePreview ? t('dashboard.change') : t('dashboard.upload')}
                             </span>
                           )}
                           <input
@@ -1099,12 +1099,12 @@ const VendorDashboardFirebase = () => {
                           />
                         </label>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Recommended: 1200x400px, max 10MB</p>
+                      <p className="text-xs text-gray-500 mt-1">{t('dashboard.coverImageRecommendation')}</p>
                     </div>
 
                     {/* Profile Image Upload */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.profileImage')}</label>
                       <div className="flex items-center gap-4">
                         <div className="relative">
                           <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300 flex items-center justify-center">
@@ -1134,8 +1134,8 @@ const VendorDashboardFirebase = () => {
                           </label>
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm text-gray-600 mb-1">Upload a profile picture for your business</p>
-                          <p className="text-xs text-gray-500">Recommended: Square image, max 5MB</p>
+                          <p className="text-sm text-gray-600 mb-1">{t('dashboard.uploadProfilePicture')}</p>
+                          <p className="text-xs text-gray-500">{t('dashboard.profileImageRecommendation')}</p>
                         </div>
                       </div>
                     </div>
