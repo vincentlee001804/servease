@@ -3,14 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
-import {
-  Calendar,
-  Users,
-  Clock,
-  QrCode,
-  Plus,
-  Edit,
-  Trash2,
+import { 
+  Calendar, 
+  Users, 
+  Clock, 
+  QrCode, 
+  Plus, 
+  Edit, 
+  Trash2, 
   Download,
   Share2,
   CheckCircle,
@@ -19,10 +19,14 @@ import {
   X,
   Phone,
   Mail,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon,
+  Upload,
+  Camera
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../config/firebase-config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';
@@ -118,6 +122,17 @@ const VendorDashboardFirebase = () => {
     saturday: { open: '09:00', close: '17:00', isOpen: true },
     sunday: { open: '09:00', close: '17:00', isOpen: false }
   });
+  
+  // Image states
+  const [profileImage, setProfileImage] = useState(null);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [profileImagePreview, setProfileImagePreview] = useState('');
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
+  
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverImagePreview, setCoverImagePreview] = useState('');
+  const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
 
   const fetchDashboardData = async () => {
     console.log('fetchDashboardData called', { isFetching: isFetchingRef.current, user: !!user });
@@ -202,7 +217,9 @@ const VendorDashboardFirebase = () => {
             email: vendorData.email,
             address: vendorData.businessInfo?.address || '',
             description: vendorData.businessInfo?.description || '',
-            operatingHours: vendorData.operatingHours || {}
+            operatingHours: vendorData.operatingHours || {},
+            profileImageUrl: vendorData.profileImageUrl || '',
+            coverImageUrl: vendorData.coverImageUrl || ''
           },
           stats: {
             totalBookings,
@@ -225,6 +242,12 @@ const VendorDashboardFirebase = () => {
         setAddress(vendorData.businessInfo?.address || '');
         setDescription(vendorData.businessInfo?.description || '');
         setOperatingHours(vendorData.operatingHours || operatingHours);
+        
+        // Set image URLs
+        setProfileImageUrl(vendorData.profileImageUrl || '');
+        setProfileImagePreview(vendorData.profileImageUrl || '');
+        setCoverImageUrl(vendorData.coverImageUrl || '');
+        setCoverImagePreview(vendorData.coverImageUrl || '');
         
         // Update existing vendor profile to include isActive field if missing
         if (vendorData.isActive === undefined) {
@@ -341,13 +364,109 @@ const VendorDashboardFirebase = () => {
     }
   }, [isAuthenticated, user]);
 
+  // Handle profile image upload
+  const handleProfileImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+    
+    setProfileImage(file);
+    setUploadingProfileImage(true);
+    
+    try {
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => setProfileImagePreview(reader.result);
+      reader.readAsDataURL(file);
+      
+      // Upload to Firebase Storage
+      const imageRef = ref(storage, `vendor-profiles/${user.uid}/profile-${Date.now()}.${file.name.split('.').pop()}`);
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+      
+      setProfileImageUrl(downloadURL);
+      setProfileImagePreview(downloadURL);
+      
+      // Update Firestore immediately
+      const vendorRef = doc(db, 'vendors', user.uid);
+      await updateDoc(vendorRef, {
+        profileImageUrl: downloadURL,
+        updatedAt: new Date()
+      });
+      
+      toast.success('Profile image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      toast.error('Failed to upload profile image');
+    } finally {
+      setUploadingProfileImage(false);
+    }
+  };
+  
+  // Handle cover image upload
+  const handleCoverImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      toast.error('Image size should be less than 10MB');
+      return;
+    }
+    
+    setCoverImage(file);
+    setUploadingCoverImage(true);
+    
+    try {
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => setCoverImagePreview(reader.result);
+      reader.readAsDataURL(file);
+      
+      // Upload to Firebase Storage
+      const imageRef = ref(storage, `vendor-profiles/${user.uid}/cover-${Date.now()}.${file.name.split('.').pop()}`);
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+      
+      setCoverImageUrl(downloadURL);
+      setCoverImagePreview(downloadURL);
+      
+      // Update Firestore immediately
+      const vendorRef = doc(db, 'vendors', user.uid);
+      await updateDoc(vendorRef, {
+        coverImageUrl: downloadURL,
+        updatedAt: new Date()
+      });
+      
+      toast.success('Cover image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading cover image:', error);
+      toast.error('Failed to upload cover image');
+    } finally {
+      setUploadingCoverImage(false);
+    }
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
     
     try {
       const vendorRef = doc(db, 'vendors', user.uid);
-      await updateDoc(vendorRef, {
+      const updateData = {
         businessName: businessName,
         contactInfo: {
           phone: phone,
@@ -360,7 +479,17 @@ const VendorDashboardFirebase = () => {
         },
         operatingHours: operatingHours,
         updatedAt: new Date()
-      });
+      };
+      
+      // Include image URLs if they exist
+      if (profileImageUrl) {
+        updateData.profileImageUrl = profileImageUrl;
+      }
+      if (coverImageUrl) {
+        updateData.coverImageUrl = coverImageUrl;
+      }
+      
+      await updateDoc(vendorRef, updateData);
 
       toast.success(t('dashboard.profileUpdated'));
       setIsEditingProfile(false);
@@ -728,11 +857,11 @@ const VendorDashboardFirebase = () => {
                     const defaultStart = startHour || 8;
                     const defaultEnd = endHour || 20;
                     for (let hour = defaultStart; hour <= defaultEnd; hour++) {
-                      timeSlots.push({
-                        time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
-                        hour: hour,
-                        bookings: []
-                      });
+                        timeSlots.push({
+                          time: hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`,
+                          hour: hour,
+                          bookings: []
+                        });
                     }
 
                     // Assign bookings to time slots
@@ -932,6 +1061,85 @@ const VendorDashboardFirebase = () => {
 
                 {isEditingProfile ? (
                   <form onSubmit={handleProfileUpdate} className="space-y-6">
+                    {/* Cover Image Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Cover Image</label>
+                      <div className="relative">
+                        <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden border-2 border-dashed border-gray-300">
+                          {coverImagePreview ? (
+                            <img 
+                              src={coverImagePreview} 
+                              alt="Cover preview" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="text-center">
+                                <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                <p className="text-sm text-gray-500">No cover image</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <label className="absolute bottom-2 right-2 bg-white px-3 py-1.5 rounded-md shadow-md hover:bg-gray-50 cursor-pointer border border-gray-300">
+                          {uploadingCoverImage ? (
+                            <span className="text-sm text-gray-600">Uploading...</span>
+                          ) : (
+                            <span className="text-sm text-gray-700 flex items-center gap-1">
+                              <Upload className="w-4 h-4" />
+                              {coverImagePreview ? 'Change' : 'Upload'}
+                            </span>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverImageChange}
+                            className="hidden"
+                            disabled={uploadingCoverImage}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Recommended: 1200x400px, max 10MB</p>
+                    </div>
+
+                    {/* Profile Image Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300 flex items-center justify-center">
+                            {profileImagePreview ? (
+                              <img 
+                                src={profileImagePreview} 
+                                alt="Profile preview" 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Camera className="w-8 h-8 text-gray-400" />
+                            )}
+                          </div>
+                          <label className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-1.5 rounded-full shadow-md hover:bg-blue-700 cursor-pointer">
+                            {uploadingProfileImage ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Camera className="w-4 h-4" />
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleProfileImageChange}
+                              className="hidden"
+                              disabled={uploadingProfileImage}
+                            />
+                          </label>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600 mb-1">Upload a profile picture for your business</p>
+                          <p className="text-xs text-gray-500">Recommended: Square image, max 5MB</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.businessName')}</label>
@@ -1063,6 +1271,40 @@ const VendorDashboardFirebase = () => {
                   </form>
                 ) : (
                   <div className="space-y-4">
+                    {/* Display Cover Image */}
+                    {dashboardData?.vendor?.coverImageUrl && (
+                      <div className="w-full h-48 rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={dashboardData.vendor.coverImageUrl} 
+                          alt="Cover" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Display Profile Image */}
+                    <div className="flex items-center gap-4 pb-4 border-b">
+                      <div className="w-20 h-20 rounded-full bg-gray-100 overflow-hidden border-2 border-gray-300 flex items-center justify-center">
+                        {dashboardData?.vendor?.profileImageUrl ? (
+                          <img 
+                            src={dashboardData.vendor.profileImageUrl} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <span className="text-2xl font-bold text-white">
+                              {dashboardData?.vendor?.businessName?.charAt(0) || 'B'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{dashboardData?.vendor?.businessName || 'Business'}</h4>
+                        <p className="text-sm text-gray-600">{dashboardData?.vendor?.businessType || 'Business Type'}</p>
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm font-medium text-gray-500">{t('dashboard.businessName')}</p>

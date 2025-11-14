@@ -31,7 +31,7 @@ import LanguageWrapper from './components/LanguageWrapper';
 const ProtectedRoute = ({ children }) => {
   const { user, loading, isLoggingIn } = useAuth();
   const location = useLocation();
-
+  
   if (loading || isLoggingIn) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -39,20 +39,20 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-
+  
   if (!user) {
     const segments = location.pathname.split('/').filter(Boolean);
     const lang = segments[0] || 'en';
     return <Navigate to={`/${lang}/login`} replace />;
   }
-
+  
   return children;
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+      <AuthProvider>
+        <Router>
         <LanguageProvider>
           <LanguageWrapper>
           <div className="App">
@@ -102,8 +102,8 @@ function App() {
           </div>
           </LanguageWrapper>
         </LanguageProvider>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
   );
 }
 

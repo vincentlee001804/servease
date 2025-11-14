@@ -37,6 +37,7 @@ const VendorPageFirebase = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   
   // Sync i18next language with URL language changes
   useEffect(() => {
@@ -226,64 +227,153 @@ const VendorPageFirebase = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gray-50 py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card className="shadow-sm">
-            <CardContent className="py-4 pl-4 pr-2">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div className="flex items-center">
-                  <h1 className="text-2xl font-bold text-gray-900 truncate">
-                    {vendor.businessName || 'Business Profile'}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto justify-start lg:justify-end">
-                  {/* Language Selector */}
-                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 min-w-0">
-                    <Languages className="w-4 h-4 text-blue-500 flex-shrink-0"/>
-                    <select
-                      value={lang || 'en'}
-                      onChange={(e) => handleLanguageChange(e.target.value)}
-                      className="text-sm font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 min-w-0"
-                    >
-                      <option value="en">{getLanguageName('en')}</option>
-                      <option value="bm">{getLanguageName('bm')}</option>
-                      <option value="jtzw">{getLanguageName('jtzw')}</option>
-                    </select>
-                  </div>
-                  
-                  {/* Bookings Button */}
-                  <div className="flex items-center space-x-2 px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate(`/${lang}/bookings`)}>
-                    <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{t('vendorPage.bookingStatus')}</span>
-                  </div>
-                  
-                  {/* Share Button */}
-                  <button 
-                    className="inline-flex items-center justify-center w-8 h-8 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0 mr-0"
-                    onClick={handleShare}
-                    aria-label="Share vendor"
-                  >
-                    <Share2 className="w-4 h-4 text-purple-500" />
-                  </button>
-                </div>
+      {/* Cover Image Section - Smaller on Mobile */}
+      {vendor?.coverImageUrl && (
+        <div className="w-full h-40 sm:h-56 lg:h-64 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
+          <img 
+            src={vendor.coverImageUrl} 
+            alt="Cover" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+        </div>
+      )}
+      
+      {/* Compact Header - Mobile Optimized */}
+      <div className={`bg-white border-b border-gray-200 sticky top-0 z-10 ${vendor?.coverImageUrl ? '' : 'lg:static'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between gap-3">
+            {/* Vendor Name with Profile Image */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden border-2 border-white shadow-md flex items-center justify-center flex-shrink-0">
+                {vendor?.profileImageUrl ? (
+                  <img 
+                    src={vendor.profileImageUrl} 
+                    alt={vendor.businessName} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg sm:text-xl font-bold text-white">
+                    {vendor.businessName?.charAt(0) || 'B'}
+                  </span>
+                )}
               </div>
-            </CardContent>
-          </Card>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                  {vendor.businessName || 'Business Profile'}
+                </h1>
+                <p className="text-xs text-gray-500 truncate">{vendor.businessType}</p>
+              </div>
+            </div>
+            
+            {/* Action Buttons - Compact on Mobile */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Language Selector - Clickable Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                  className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 h-9 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0 min-w-[60px] sm:min-w-0"
+                >
+                  <Languages className="w-4 h-4 text-blue-500 flex-shrink-0"/>
+                  <span className="text-xs sm:text-sm font-medium text-gray-900 hidden sm:inline">
+                    {getLanguageName(lang || 'en')}
+                  </span>
+                  <span className="text-xs font-medium text-gray-900 sm:hidden">
+                    {lang?.toUpperCase() || 'EN'}
+                  </span>
+                </button>
+                
+                {/* Language Dropdown Menu */}
+                {showLanguageMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-20" 
+                      onClick={() => setShowLanguageMenu(false)}
+                    ></div>
+                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('en');
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          lang === 'en' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <Languages className="w-4 h-4" />
+                        {getLanguageName('en')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('bm');
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          lang === 'bm' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <Languages className="w-4 h-4" />
+                        {getLanguageName('bm')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLanguageChange('jtzw');
+                          setShowLanguageMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                          lang === 'jtzw' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <Languages className="w-4 h-4" />
+                        {getLanguageName('jtzw')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Bookings Button - Icon Only on Mobile */}
+              <button 
+                className="inline-flex items-center justify-center w-9 h-9 sm:px-3 sm:py-1.5 sm:w-auto bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={() => navigate(`/${lang}/bookings`)}
+                title={t('vendorPage.bookingStatus')}
+              >
+                <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-900 whitespace-nowrap hidden sm:inline ml-2">{t('vendorPage.bookingStatus')}</span>
+              </button>
+              
+              {/* Share Button */}
+              <button 
+                className="inline-flex items-center justify-center w-9 h-9 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors flex-shrink-0"
+                onClick={handleShare}
+                aria-label="Share vendor"
+              >
+                <Share2 className="w-4 h-4 text-purple-500" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Vendor Info Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+          {/* Vendor Info Sidebar - Hidden on Mobile (info shown in header) */}
+          <div className="lg:col-span-1 hidden lg:block">
+            <Card className="sticky top-20">
               <CardHeader className="pb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-2xl font-bold text-white">
-                      {vendor.businessName?.charAt(0) || 'B'}
-                    </span>
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg overflow-hidden border-2 border-white">
+                    {vendor.profileImageUrl ? (
+                      <img 
+                        src={vendor.profileImageUrl} 
+                        alt={vendor.businessName} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-white">
+                        {vendor.businessName?.charAt(0) || 'B'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-xl text-gray-900 mb-1">{vendor.businessName}</CardTitle>
@@ -374,10 +464,10 @@ const VendorPageFirebase = () => {
             </Card>
           </div>
 
-          {/* Services Section */}
+          {/* Services Section - Full Width on Mobile */}
           <div className="lg:col-span-2">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('vendorPage.availableServices')}</h2>
+            <div className="mb-4 lg:mb-6">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-3 lg:mb-4">{t('vendorPage.availableServices')}</h2>
               
               {/* Search and Filter */}
               <div className="flex flex-col sm:flex-row gap-4 mb-6">

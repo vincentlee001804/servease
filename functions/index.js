@@ -9,7 +9,7 @@ const nodemailer = require('nodemailer');
 
 // Initialize Firebase Admin (with error handling for re-initialization)
 try {
-  admin.initializeApp();
+admin.initializeApp();
 } catch (error) {
   // Admin already initialized, use existing instance
   if (error.code !== 'app/already-initialized') {
@@ -128,8 +128,8 @@ const getTransporter = () => {
       }
       
       transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
+  service: 'gmail',
+  auth: {
           user: smtpUser,
           pass: smtpPass
         }
@@ -142,7 +142,7 @@ const getTransporter = () => {
           console.error('Email transporter not properly configured');
         }
       };
-    }
+  }
   }
   return transporter;
 };
@@ -198,17 +198,17 @@ const authenticateToken = async (req, res, next) => {
         path: req.path
       });
       // If Firebase token verification fails, try JWT as fallback
-      jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
           console.warn('Auth middleware: JWT verify failed', {
             error: err.message,
             path: req.path
           });
-          return res.status(403).json({ message: 'Invalid token' });
-        }
-        req.user = user;
-        next();
-      });
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  });
     }
   } catch (error) {
     console.error('Auth middleware error:', error);

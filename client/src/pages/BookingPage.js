@@ -226,107 +226,86 @@ const BookingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate(`/vendor/${vendorId}`)}
-                className="w-full sm:w-auto"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Services
-              </Button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Book Service</h1>
-                <p className="text-gray-600 mt-2 truncate">
-                  {vendor.businessName} • {service.name?.en || service.name}
-                </p>
-              </div>
+      {/* Compact Header - Mobile Optimized */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 lg:static">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/vendor/${vendorId}`)}
+              className="flex-shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex-1 min-w-0 text-center">
+              <h1 className="text-lg font-bold text-gray-900 truncate">Book Service</h1>
+              <p className="text-xs text-gray-500 truncate">{service.name?.en || service.name}</p>
             </div>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => navigate('/bookings')}
-              className="flex items-center w-full sm:w-auto"
+              className="flex-shrink-0"
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Check Booking Status
+              <Calendar className="h-4 w-4" />
             </Button>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Service Details */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                  Service Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{service.name?.en || service.name}</h3>
-                  <p className="text-gray-600 mt-1">{service.description?.en || service.description}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                    <span className="text-sm">{service.duration} minutes</span>
-                        </div>
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 mr-2 text-gray-500" />
-                    <span className="text-sm">Max 1 person</span>
-                      </div>
-                    </div>
-
-                <div className="flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                  <span className="text-lg font-semibold text-green-600">
-                    {service.priceType === 'fixed' && `RM ${service.price}`}
-                    {service.priceType === 'range' && `RM ${service.priceRange?.min || 0} - ${service.priceRange?.max || 0}`}
-                    {service.priceType === 'from' && `From RM ${service.price}`}
+      {/* Cover Image - Smaller on Mobile */}
+      {vendor?.coverImageUrl && (
+        <div className="w-full h-32 sm:h-48 lg:h-64 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
+          <img 
+            src={vendor.coverImageUrl} 
+            alt="Cover" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+        </div>
+      )}
+      
+      <div className="max-w-4xl mx-auto px-4 py-4 lg:py-6">
+        {/* Mobile: Booking Form First, Desktop: Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          {/* Booking Form - Prominent on Mobile */}
+          <div className="lg:col-span-2 order-1">
+            <Card className="sticky top-16 lg:top-0">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">Booking Information</CardTitle>
+                  {/* Compact Vendor Info on Mobile */}
+                  <div className="lg:hidden flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden border-2 border-white flex items-center justify-center">
+                      {vendor?.profileImageUrl ? (
+                        <img 
+                          src={vendor.profileImageUrl} 
+                          alt={vendor.businessName} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-bold text-white">
+                          {vendor?.businessName?.charAt(0) || 'B'}
                         </span>
-                      </div>
-              </CardContent>
-            </Card>
-
-            {/* Vendor Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Vendor Information</CardTitle>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{vendor?.businessName}</span>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <p className="font-medium">{vendor.businessName}</p>
-                  <p className="text-sm text-gray-600">{vendor.businessInfo?.address}</p>
-                  <p className="text-sm text-gray-600">{vendor.contactInfo?.phone}</p>
-            </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Booking Form */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Booking Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Customer Details */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Your Details</h3>
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-700">Your Details</h3>
                     <Input
                       name="customerName"
                       placeholder="Full Name *"
                       value={formData.customerName}
                       onChange={handleInputChange}
                       required
+                      className="h-11"
                     />
                     <Input
                       name="customerEmail"
@@ -335,73 +314,75 @@ const BookingPage = () => {
                       value={formData.customerEmail}
                       onChange={handleInputChange}
                       required
+                      className="h-11"
                     />
                     <Input
                       name="customerPhone"
                       placeholder="Phone Number *"
                       value={formData.customerPhone}
                       onChange={handleInputChange}
-                  required
-                />
-              </div>
+                      required
+                      className="h-11"
+                    />
+                  </div>
 
                   {/* Date & Time Selection */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium">Select Date & Time</h3>
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm text-gray-700">Select Date & Time</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
                       {availableSlots.map((slot, index) => (
-                      <button
+                        <button
                           key={index}
                           type="button"
                           onClick={() => handleSlotSelect(slot)}
-                          className={`p-3 text-left border rounded-lg transition-colors ${
+                          className={`p-2.5 text-left border rounded-lg transition-all ${
                             selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
                           }`}
                         >
-                          <div className="text-sm font-medium">{slot.displayDate}</div>
-                          <div className="text-xs text-gray-600">{slot.displayTime}</div>
-                      </button>
-                    ))}
+                          <div className="text-xs font-semibold">{slot.displayDate}</div>
+                          <div className="text-xs text-gray-600 mt-0.5">{slot.displayTime}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-            </div>
 
                   {/* Additional Notes */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Additional Notes (Optional)</label>
-                  <textarea
+                    <label className="text-sm font-semibold text-gray-700">Additional Notes (Optional)</label>
+                    <textarea
                       name="notes"
                       value={formData.notes}
                       onChange={handleInputChange}
                       placeholder="Any special requests or notes..."
-                      className="w-full p-3 border border-gray-300 rounded-lg resize-none"
-                    rows={3}
-                  />
-                </div>
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
+                      rows={3}
+                    />
+                  </div>
 
                   {/* Price Summary */}
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Estimated Price:</span>
-                      <span className="text-lg font-semibold text-green-600">
+                      <span className="font-semibold text-gray-700">Estimated Price:</span>
+                      <span className="text-xl font-bold text-green-600">
                         RM {calculatePrice()}
                       </span>
-              </div>
-                    <p className="text-xs text-gray-600 mt-1">
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
                       Final price may vary based on specific requirements
                     </p>
-            </div>
+                  </div>
 
                   {/* Submit Button */}
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full h-12 text-base font-semibold" 
                     disabled={submitting || !selectedSlot}
                   >
                     {submitting ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
                         Submitting...
                       </>
                     ) : (
@@ -411,8 +392,81 @@ const BookingPage = () => {
                 </form>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Service & Vendor Details - Sidebar on Desktop, Collapsible on Mobile */}
+          <div className="space-y-4 order-2 lg:order-2">
+            {/* Service Details - Compact */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                  Service Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <h3 className="font-semibold text-base">{service.name?.en || service.name}</h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description?.en || service.description}</p>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center text-gray-600">
+                    <Clock className="h-4 w-4 mr-1.5" />
+                    <span>{service.duration} min</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <User className="h-4 w-4 mr-1.5" />
+                    <span>Max 1</span>
                   </div>
                 </div>
+
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Price:</span>
+                    <span className="text-lg font-bold text-green-600">
+                      {service.priceType === 'fixed' && `RM ${service.price}`}
+                      {service.priceType === 'range' && `RM ${service.priceRange?.min || 0}-${service.priceRange?.max || 0}`}
+                      {service.priceType === 'from' && `From RM ${service.price}`}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vendor Info - Compact */}
+            <Card className="lg:block hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Vendor Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden border-2 border-white shadow-md flex items-center justify-center flex-shrink-0">
+                    {vendor?.profileImageUrl ? (
+                      <img 
+                        src={vendor.profileImageUrl} 
+                        alt={vendor.businessName} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold text-white">
+                        {vendor?.businessName?.charAt(0) || 'B'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-gray-900 truncate">{vendor.businessName}</p>
+                    <p className="text-xs text-gray-500 truncate">{vendor.businessInfo?.address}</p>
+                  </div>
+                </div>
+                {vendor.contactInfo?.phone && (
+                  <p className="text-xs text-gray-600">{vendor.contactInfo.phone}</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+        </div>
       </div>
     </div>
   );
