@@ -14,12 +14,13 @@ const AIMarketingTool = ({ vendorId }) => {
   const [imagePreview, setImagePreview] = useState('');
   const [prompt, setPrompt] = useState(t('aiMarketing.defaultPrompt'));
   const [isDefaultPrompt, setIsDefaultPrompt] = useState(true);
-  const [enhancePrompt, setEnhancePrompt] = useState(true); // Default to enabled
+  const [enhancePrompt, setEnhancePrompt] = useState(false); // Default to disabled (needs improvement)
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState('');
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showFullSizeModal, setShowFullSizeModal] = useState(false);
 
   const onFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -432,14 +433,12 @@ const AIMarketingTool = ({ vendorId }) => {
                     <Download className="w-4 h-4" />
                     {t('aiMarketing.downloadPoster')}
                   </a>
-                  <a
-                    href={resultUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => setShowFullSizeModal(true)}
                     className="px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all"
                   >
                     {t('aiMarketing.viewFullSize')}
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -454,6 +453,41 @@ const AIMarketingTool = ({ vendorId }) => {
           </div>
         </div>
       </div>
+
+      {/* Full Size Image Modal */}
+      {showFullSizeModal && resultUrl && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+          onClick={() => setShowFullSizeModal(false)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            <button
+              onClick={() => setShowFullSizeModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={resultUrl}
+              alt="Generated poster - Full size"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+              <a
+                href={resultUrl}
+                download="ai-poster.png"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
