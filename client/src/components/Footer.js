@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Logo from './Logo';
 
 const Footer = () => {
   const { t } = useTranslation(['footer', 'common']);
@@ -20,11 +21,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
-              </div>
-              <span className="text-xl font-bold">ServEase</span>
+            <div className="mb-4">
+              <Logo size="md" variant="dark" />
             </div>
             <p className="text-gray-400 mb-4">
               {t('footer:company.description')}

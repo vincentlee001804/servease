@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import Logo from '../components/Logo';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -50,9 +51,7 @@ const Login = () => {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">S</span>
-            </div>
+            <Logo size="lg" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             {t('login')}
