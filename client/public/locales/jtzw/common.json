@@ -55,7 +55,7 @@
     "durationMinutes": "{{count}} 分钟",
     "maxClients": "最多 {{count}} 人",
     "priceLabel": "价格：",
-    "fromPrice": "起价 RM {{price}}",
+    "fromPrice": "RM {{price}} 起",
     "vendorInfo": "商家信息",
     "requestSuccess": "预订请求提交成功！",
     "requestFailed": "提交预订失败，请重试。",
