@@ -163,8 +163,8 @@ const BookingPage = () => {
       return;
     }
     
-    if (!formData.customerName || !formData.customerEmail || !formData.customerPhone) {
-      toast.error('Please fill in all required fields');
+    if (!formData.customerName || !formData.customerPhone) {
+      toast.error('Please enter your name and phone number');
       return;
     }
 
@@ -310,10 +310,9 @@ const BookingPage = () => {
                     <Input
                       name="customerEmail"
                       type="email"
-                      placeholder="Email Address *"
+                      placeholder="Email Address (Optional)"
                       value={formData.customerEmail}
                       onChange={handleInputChange}
-                      required
                       className="h-11"
                     />
                     <Input
