@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
@@ -11,6 +12,7 @@ import { Input } from '../components/ui/input';
 const BookingPage = () => {
   const { vendorId, serviceId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
   
   const [vendor, setVendor] = useState(null);
   const [service, setService] = useState(null);
@@ -44,7 +46,7 @@ const BookingPage = () => {
       const vendorSnap = await getDoc(vendorRef);
       
       if (!vendorSnap.exists()) {
-        toast.error('Vendor not found');
+        toast.error(t('vendorPage.notFound'));
         navigate(-1); // Go back to previous page instead of home
         return;
       }
@@ -57,7 +59,7 @@ const BookingPage = () => {
       const serviceSnap = await getDoc(serviceRef);
       
       if (!serviceSnap.exists()) {
-        toast.error('Service not found');
+        toast.error(t('bookingForm.serviceNotFoundTitle'));
         navigate(`/vendor/${vendorId}`);
         return;
       }
@@ -70,7 +72,7 @@ const BookingPage = () => {
       
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load booking information');
+      toast.error(t('bookingForm.loadError'));
     } finally {
       setLoading(false);
     }
@@ -159,12 +161,12 @@ const BookingPage = () => {
     e.preventDefault();
     
     if (!selectedSlot) {
-      toast.error('Please select a date and time');
+      toast.error(t('bookingForm.selectSlotError'));
       return;
     }
     
     if (!formData.customerName || !formData.customerPhone) {
-      toast.error('Please enter your name and phone number');
+      toast.error(t('bookingForm.requiredFieldsError'));
       return;
     }
 
@@ -193,12 +195,12 @@ const BookingPage = () => {
       
       const docRef = await addDoc(collection(db, 'bookings'), bookingData);
       
-      toast.success('Booking request submitted successfully!');
+      toast.success(t('bookingForm.requestSuccess'));
       navigate(`/booking-success/${vendorId}?bookingId=${docRef.id}`);
       
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error('Failed to submit booking. Please try again.');
+      toast.error(t('bookingForm.requestFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -216,9 +218,9 @@ const BookingPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h2>
-          <p className="text-gray-600 mb-6">The service you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate(`/vendor/${vendorId}`)}>Back to Vendor</Button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('bookingForm.serviceNotFoundTitle')}</h2>
+          <p className="text-gray-600 mb-6">{t('bookingForm.serviceNotFoundDescription')}</p>
+          <Button onClick={() => navigate(`/vendor/${vendorId}`)}>{t('bookingForm.backToVendor')}</Button>
         </div>
       </div>
     );
@@ -239,7 +241,7 @@ const BookingPage = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 min-w-0 text-center">
-              <h1 className="text-lg font-bold text-gray-900 truncate">Book Service</h1>
+              <h1 className="text-lg font-bold text-gray-900 truncate">{t('bookingForm.title')}</h1>
               <p className="text-xs text-gray-500 truncate">{service.name?.en || service.name}</p>
             </div>
             <Button 
@@ -274,7 +276,7 @@ const BookingPage = () => {
             <Card className="sticky top-16 lg:top-0">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">Booking Information</CardTitle>
+                  <CardTitle className="text-xl">{t('bookingForm.infoTitle')}</CardTitle>
                   {/* Compact Vendor Info on Mobile */}
                   <div className="lg:hidden flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden border-2 border-white flex items-center justify-center">
@@ -298,10 +300,10 @@ const BookingPage = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Customer Details */}
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-sm text-gray-700">Your Details</h3>
+                    <h3 className="font-semibold text-sm text-gray-700">{t('bookingForm.yourDetails')}</h3>
                     <Input
                       name="customerName"
-                      placeholder="Full Name *"
+                      placeholder={t('bookingForm.fullNamePlaceholder')}
                       value={formData.customerName}
                       onChange={handleInputChange}
                       required
@@ -310,14 +312,14 @@ const BookingPage = () => {
                     <Input
                       name="customerEmail"
                       type="email"
-                      placeholder="Email Address (Optional)"
+                      placeholder={t('bookingForm.emailPlaceholder')}
                       value={formData.customerEmail}
                       onChange={handleInputChange}
                       className="h-11"
                     />
                     <Input
                       name="customerPhone"
-                      placeholder="Phone Number *"
+                      placeholder={t('bookingForm.phonePlaceholder')}
                       value={formData.customerPhone}
                       onChange={handleInputChange}
                       required
@@ -327,7 +329,7 @@ const BookingPage = () => {
 
                   {/* Date & Time Selection */}
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-sm text-gray-700">Select Date & Time</h3>
+                    <h3 className="font-semibold text-sm text-gray-700">{t('booking.selectDateTime')}</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
                       {availableSlots.map((slot, index) => (
                         <button
@@ -349,12 +351,12 @@ const BookingPage = () => {
 
                   {/* Additional Notes */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700">Additional Notes (Optional)</label>
+                    <label className="text-sm font-semibold text-gray-700">{t('bookingForm.additionalNotes')}</label>
                     <textarea
                       name="notes"
                       value={formData.notes}
                       onChange={handleInputChange}
-                      placeholder="Any special requests or notes..."
+                      placeholder={t('bookingForm.notesPlaceholder')}
                       className="w-full p-3 border border-gray-300 rounded-lg resize-none text-sm"
                       rows={3}
                     />
@@ -363,13 +365,13 @@ const BookingPage = () => {
                   {/* Price Summary */}
                   <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold text-gray-700">Estimated Price:</span>
+                      <span className="font-semibold text-gray-700">{t('bookingForm.estimatedPrice')}:</span>
                       <span className="text-xl font-bold text-green-600">
                         RM {calculatePrice()}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Final price may vary based on specific requirements
+                      {t('bookingForm.priceDisclaimer')}
                     </p>
                   </div>
 
@@ -382,10 +384,10 @@ const BookingPage = () => {
                     {submitting ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                        Submitting...
+                        {t('common.loading')}
                       </>
                     ) : (
-                      'Submit Booking Request'
+                      t('bookingForm.submit')
                     )}
                   </Button>
                 </form>
@@ -400,7 +402,7 @@ const BookingPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                  Service Details
+                  {t('bookingForm.serviceDetails')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -412,21 +414,21 @@ const BookingPage = () => {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center text-gray-600">
                     <Clock className="h-4 w-4 mr-1.5" />
-                    <span>{service.duration} min</span>
+                    <span>{t('bookingForm.durationMinutes', { count: service.duration || 0 })}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <User className="h-4 w-4 mr-1.5" />
-                    <span>Max 1</span>
+                    <span>{t('bookingForm.maxClients', { count: service.maxClients || service.maxGuests || 1 })}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Price:</span>
+                    <span className="text-sm text-gray-600">{t('bookingForm.priceLabel')}</span>
                     <span className="text-lg font-bold text-green-600">
                       {service.priceType === 'fixed' && `RM ${service.price}`}
                       {service.priceType === 'range' && `RM ${service.priceRange?.min || 0}-${service.priceRange?.max || 0}`}
-                      {service.priceType === 'from' && `From RM ${service.price}`}
+                      {service.priceType === 'from' && t('bookingForm.fromPrice', { price: service.price || 0 })}
                     </span>
                   </div>
                 </div>
@@ -436,7 +438,7 @@ const BookingPage = () => {
             {/* Vendor Info - Compact */}
             <Card className="lg:block hidden">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Vendor Information</CardTitle>
+                <CardTitle className="text-base">{t('bookingForm.vendorInfo')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 mb-3">
