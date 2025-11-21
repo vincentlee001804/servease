@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
-import { Calendar, Clock, User, DollarSign, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, User, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -29,13 +31,16 @@ const BookingPage = () => {
     notes: ''
   });
   
-  // Available time slots
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsByDate, setSlotsByDate] = useState({});
+  const [availableDates, setAvailableDates] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedDateObj, setSelectedDateObj] = useState(null);
 
   useEffect(() => {
     fetchVendorAndService();
   }, [vendorId, serviceId]);
+
+  const formatDateKey = (date) => date.toISOString().split('T')[0];
 
   const fetchVendorAndService = async () => {
     try {
@@ -79,52 +84,76 @@ const BookingPage = () => {
   };
 
   const generateAvailableSlots = (operatingHours) => {
-    const slots = [];
+    const slotsMap = {};
+    const datesList = [];
     const today = new Date();
-    
-    for (let i = 0; i < 7; i++) {
+    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+
+    for (let i = 0; i < 14; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      
       const dayHours = operatingHours[dayName];
-      if (dayHours && dayHours.isOpen) {
-        const startTime = dayHours.open;
-        const endTime = dayHours.close;
-        
-        // Generate 30-minute slots
-        const start = new Date(`${date.toDateString()} ${startTime}`);
-        const end = new Date(`${date.toDateString()} ${endTime}`);
-        
+
+      if (dayHours?.isOpen) {
+        const start = new Date(`${date.toDateString()} ${dayHours.open}`);
+        const end = new Date(`${date.toDateString()} ${dayHours.close}`);
+        const dayKey = formatDateKey(date);
+        const slots = [];
         let current = new Date(start);
+
         while (current < end) {
-          const timeString = current.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false 
-          });
-          
-          slots.push({
-            date: date.toISOString().split('T')[0],
-            time: timeString,
-            displayDate: date.toLocaleDateString('en-US', { 
-              weekday: 'short', 
-              month: 'short', 
-              day: 'numeric' 
-            }),
-            displayTime: current.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit',
-              hour12: true 
-            })
-          });
-          
+          const slotDate = new Date(current);
+          if (slotDate > now) {
+            slots.push({
+              date: dayKey,
+              time: slotDate.toTimeString().slice(0, 5),
+              displayDate: date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+              }),
+              displayTime: slotDate.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            });
+          }
           current.setMinutes(current.getMinutes() + 30);
+        }
+
+        if (slots.length) {
+          slotsMap[dayKey] = slots;
+          datesList.push(new Date(date));
         }
       }
     }
-    
-    setAvailableSlots(slots);
+
+    setSlotsByDate(slotsMap);
+    setAvailableDates(datesList);
+
+    const firstDate = datesList[0] || null;
+    if (firstDate) {
+      const key = formatDateKey(firstDate);
+      const firstSlot = slotsMap[key]?.[0] || null;
+      setSelectedDateObj(firstDate);
+      setSelectedSlot(firstSlot);
+      setFormData(prev => ({
+        ...prev,
+        selectedDate: firstSlot?.date || '',
+        selectedTime: firstSlot?.time || ''
+      }));
+    } else {
+      setSelectedDateObj(null);
+      setSelectedSlot(null);
+      setFormData(prev => ({
+        ...prev,
+        selectedDate: '',
+        selectedTime: ''
+      }));
+    }
   };
 
   const handleInputChange = (e) => {
@@ -132,6 +161,29 @@ const BookingPage = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleDateChange = (date) => {
+    if (!date) {
+      setSelectedDateObj(null);
+      setSelectedSlot(null);
+      setFormData(prev => ({
+        ...prev,
+        selectedDate: '',
+        selectedTime: ''
+      }));
+      return;
+    }
+
+    setSelectedDateObj(date);
+    const key = formatDateKey(date);
+    const firstSlot = slotsByDate[key]?.[0] || null;
+    setSelectedSlot(firstSlot);
+    setFormData(prev => ({
+      ...prev,
+      selectedDate: firstSlot?.date || '',
+      selectedTime: firstSlot?.time || ''
     }));
   };
 
@@ -143,6 +195,12 @@ const BookingPage = () => {
       selectedTime: slot.time
     }));
   };
+
+  const slotsForSelectedDate = useMemo(() => {
+    if (!selectedDateObj) return [];
+    const key = formatDateKey(selectedDateObj);
+    return slotsByDate[key] || [];
+  }, [selectedDateObj, slotsByDate]);
 
   const calculatePrice = () => {
     if (!service) return 0;
@@ -330,22 +388,40 @@ const BookingPage = () => {
                   {/* Date & Time Selection */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-gray-700">{t('booking.selectDateTime')}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
-                      {availableSlots.map((slot, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleSlotSelect(slot)}
-                          className={`p-2.5 text-left border rounded-lg transition-all ${
-                            selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
-                              ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
-                          }`}
-                        >
-                          <div className="text-xs font-semibold">{slot.displayDate}</div>
-                          <div className="text-xs text-gray-600 mt-0.5">{slot.displayTime}</div>
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <DatePicker
+                        selected={selectedDateObj}
+                        onChange={handleDateChange}
+                        includeDates={availableDates}
+                        minDate={new Date()}
+                        placeholderText={t('bookingForm.datePlaceholder')}
+                        dateFormat="EEE, MMM d"
+                        className="w-full h-11 border border-gray-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        calendarStartDay={1}
+                      />
+                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-lg">
+                        {slotsForSelectedDate.length > 0 ? (
+                          slotsForSelectedDate.map((slot, index) => (
+                            <button
+                              key={`${slot.date}-${slot.time}-${index}`}
+                              type="button"
+                              onClick={() => handleSlotSelect(slot)}
+                              className={`p-2 text-left border rounded-lg transition-all ${
+                                selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
+                                  ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                                  : 'border-transparent hover:border-gray-200 bg-white'
+                              }`}
+                            >
+                              <div className="text-xs font-semibold">{slot.displayDate}</div>
+                              <div className="text-xs text-gray-600 mt-0.5">{slot.displayTime}</div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="col-span-2 text-xs text-gray-500 p-2 text-center">
+                            {t('bookingForm.noSlots')}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

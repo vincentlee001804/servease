@@ -51,6 +51,8 @@
     "submit": "Hantar Permintaan Tempahan",
     "selectSlotError": "Sila pilih tarikh dan masa",
     "requiredFieldsError": "Sila masukkan nama dan nombor telefon anda",
+    "datePlaceholder": "Pilih tarikh",
+    "noSlots": "Tiada slot masa tersedia untuk hari ini.",
     "serviceDetails": "Butiran Perkhidmatan",
     "durationMinutes": "{{count}} min",
     "maxClients": "Maks {{count}}",

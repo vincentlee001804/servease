@@ -51,6 +51,8 @@
     "submit": "Submit Booking Request",
     "selectSlotError": "Please select a date and time",
     "requiredFieldsError": "Please enter your name and phone number",
+    "datePlaceholder": "Choose a date",
+    "noSlots": "No available time slots for this day.",
     "serviceDetails": "Service Details",
     "durationMinutes": "{{count}} min",
     "maxClients": "Max {{count}}",
