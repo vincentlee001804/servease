@@ -156,6 +156,18 @@ async function sendEmail(to, subject, html) {
   }
 }
 
+const formatICSDate = (date) => {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+};
+
+const escapeICSText = (text = '') => {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n|\n|\r/g, '\\n');
+};
+
 // Auth middleware - supports both Firebase Auth tokens and JWT tokens
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -689,6 +701,91 @@ app.post('/bookings', async (req, res) => {
   } catch (error) {
     console.error('Booking creation error:', error);
     res.status(500).json({ message: 'Failed to create booking' });
+  }
+});
+
+app.get('/bookings/:bookingId/ics', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { code } = req.query;
+
+    if (!code) {
+      return res.status(400).json({ message: 'Confirmation code is required' });
+    }
+
+    const bookingDoc = await db.collection('bookings').doc(bookingId).get();
+    if (!bookingDoc.exists) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const booking = bookingDoc.data();
+    if (
+      !booking.confirmationCode ||
+      booking.confirmationCode.toUpperCase() !== String(code).toUpperCase()
+    ) {
+      return res.status(403).json({ message: 'Invalid confirmation code' });
+    }
+
+    const vendorDoc = booking.vendorEmail
+      ? await db.collection('vendors').doc(booking.vendorEmail).get()
+      : null;
+    const vendor = vendorDoc?.exists ? vendorDoc.data() : null;
+
+    const dateString = booking.bookingDate || booking.date;
+    const timeString = booking.bookingTime || booking.startTime || '09:00';
+
+    if (!dateString) {
+      return res.status(400).json({ message: 'Booking date is missing' });
+    }
+
+    const startDate = new Date(`${dateString}T${timeString}`);
+    if (isNaN(startDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid booking date or time' });
+    }
+
+    const durationMinutes = booking.totalDuration || 60;
+    const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+
+    const summary = booking.serviceName
+      ? `ServEase Booking - ${booking.serviceName}`
+      : 'ServEase Booking';
+    const location = vendor?.businessInfo?.address || vendor?.businessName || '';
+    const descriptionLines = [
+      `Vendor: ${vendor?.businessName || booking.vendorEmail || ''}`,
+      `Customer: ${booking.customerName || ''}`,
+      booking.notes ? `Notes: ${booking.notes}` : '',
+      '',
+      `Manage booking: https://servease-07762363-b4f31.web.app/vendor/${encodeURIComponent(booking.vendorEmail || '')}`
+    ].filter(Boolean);
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ServEase//Calendar//EN',
+      'BEGIN:VEVENT',
+      `UID:${bookingId}@servease`,
+      `DTSTAMP:${formatICSDate(new Date())}`,
+      `DTSTART:${formatICSDate(startDate)}`,
+      `DTEND:${formatICSDate(endDate)}`,
+      `SUMMARY:${escapeICSText(summary)}`,
+      location ? `LOCATION:${escapeICSText(location)}` : '',
+      `DESCRIPTION:${escapeICSText(descriptionLines.join('\n'))}`,
+      'STATUS:CONFIRMED',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ]
+      .filter(Boolean)
+      .join('\r\n');
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="servease-booking-${bookingId}.ics"`
+    );
+    return res.status(200).send(icsContent);
+  } catch (error) {
+    console.error('Generate ICS error:', error);
+    return res.status(500).json({ message: 'Failed to generate calendar invite' });
   }
 });
 

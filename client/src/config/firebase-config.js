@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -18,6 +19,24 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Enable App Check debug token for local development
+const appCheckGlobal =
+  typeof window !== 'undefined'
+    ? window
+    : typeof global !== 'undefined'
+    ? global
+    : undefined;
+
+if (process.env.NODE_ENV !== 'production' && appCheckGlobal) {
+  appCheckGlobal.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+
+// Initialize App Check (reCAPTCHA v3)
+export const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('6LdB_RIsAAAAANT_FpnTvxBD0YkIobLlbsYZDMPr'),
+  isTokenAutoRefreshEnabled: true,
+});
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);

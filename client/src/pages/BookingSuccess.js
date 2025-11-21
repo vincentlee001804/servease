@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
-import { CheckCircle, Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, Eye } from 'lucide-react';
+import { CheckCircle, Calendar, CalendarPlus, Clock, User, Phone, Mail, MapPin, ArrowLeft, Eye } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api'
+  : 'http://localhost:8000';
 
 const BookingSuccess = () => {
   const { vendorId } = useParams();
@@ -30,6 +34,14 @@ const BookingSuccess = () => {
       return `From RM ${b.servicePrice ?? b.price ?? 0}`;
     }
     return `RM ${b.price ?? 0}`;
+  };
+
+  const handleAddToCalendar = () => {
+    if (!booking || !booking.confirmationCode || !bookingId) return;
+    const calendarUrl = `${API_BASE_URL}/bookings/${bookingId}/ics?code=${encodeURIComponent(
+      booking.confirmationCode
+    )}`;
+    window.open(calendarUrl, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -285,6 +297,16 @@ const BookingSuccess = () => {
             <Eye className="h-4 w-4 mr-2" />
             View All Bookings
           </Button>
+          {booking && booking.confirmationCode && (
+            <Button 
+              onClick={handleAddToCalendar}
+              variant="secondary"
+              className="flex-1"
+            >
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Add to Calendar
+            </Button>
+          )}
         </div>
       </div>
     </div>
