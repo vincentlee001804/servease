@@ -396,24 +396,24 @@ const BookingPage = () => {
                         minDate={new Date()}
                         placeholderText={t('bookingForm.datePlaceholder')}
                         dateFormat="EEE, MMM d"
-                        className="w-full h-11 border border-gray-300 rounded-lg px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-12 border border-gray-200 rounded-lg px-3 text-sm font-semibold text-gray-800 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         calendarStartDay={1}
                       />
-                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-lg">
+                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-lg bg-white shadow-sm">
                         {slotsForSelectedDate.length > 0 ? (
                           slotsForSelectedDate.map((slot, index) => (
                             <button
                               key={`${slot.date}-${slot.time}-${index}`}
                               type="button"
                               onClick={() => handleSlotSelect(slot)}
-                              className={`p-2 text-left border rounded-lg transition-all ${
+                              className={`p-2 text-left border rounded-lg text-sm transition-all ${
                                 selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
                                   ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                                   : 'border-transparent hover:border-gray-200 bg-white'
                               }`}
                             >
-                              <div className="text-xs font-semibold">{slot.displayDate}</div>
-                              <div className="text-xs text-gray-600 mt-0.5">{slot.displayTime}</div>
+                              <div className="font-semibold">{slot.displayDate}</div>
+                              <div className="text-gray-600 mt-0.5 text-sm">{slot.displayTime}</div>
                             </button>
                           ))
                         ) : (
