@@ -52,7 +52,26 @@
     "selectSlotError": "Sila pilih tarikh dan masa",
     "requiredFieldsError": "Sila masukkan nama dan nombor telefon anda",
     "datePlaceholder": "Pilih tarikh",
+    "dateCarousel": {
+      "label": "Pilih hari",
+      "hint": "14 hari terdekat",
+      "previous": "Hari sebelumnya",
+      "next": "Hari seterusnya"
+    },
+    "todayLabel": "Hari Ini",
+    "noAvailableDates": "Tiada tarikh tersedia buat masa ini. Sila cuba lagi.",
     "noSlots": "Tiada slot masa tersedia untuk hari ini.",
+    "timeSegments": {
+      "morning": "Pagi",
+      "afternoon": "Tengah hari",
+      "evening": "Petang/Malam"
+    },
+    "timeGrid": {
+      "label": "Slot masa tersedia",
+      "selected": "Dipilih: {{time}}",
+      "tapHint": "Pilih slot masa",
+      "slotCount": "{{slotCount}} slot"
+    },
     "serviceDetails": "Butiran Perkhidmatan",
     "durationMinutes": "{{count}} min",
     "maxClients": "Maks {{count}}",

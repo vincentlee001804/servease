@@ -52,7 +52,26 @@
     "selectSlotError": "Please select a date and time",
     "requiredFieldsError": "Please enter your name and phone number",
     "datePlaceholder": "Choose a date",
+    "dateCarousel": {
+      "label": "Pick a day",
+      "hint": "Next 14 available days",
+      "previous": "Previous days",
+      "next": "Next days"
+    },
+    "todayLabel": "Today",
+    "noAvailableDates": "No available dates yet. Please check back soon.",
     "noSlots": "No available time slots for this day.",
+    "timeSegments": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "timeGrid": {
+      "label": "Available slots",
+      "selected": "Selected: {{time}}",
+      "tapHint": "Tap a slot to select",
+      "slotCount": "{{slotCount}} slots"
+    },
     "serviceDetails": "Service Details",
     "durationMinutes": "{{count}} min",
     "maxClients": "Max {{count}}",

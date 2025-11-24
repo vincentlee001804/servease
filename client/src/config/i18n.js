@@ -62,6 +62,20 @@ i18next
     debug: process.env.NODE_ENV === 'development'
   });
 
+// Add custom plural rule for Simplified Chinese custom code
+const registerJtzwPluralRule = () => {
+  const pluralResolver = i18next.services?.pluralResolver;
+  if (pluralResolver && !pluralResolver.getRule('jtzw')) {
+    pluralResolver.addRule('jtzw', {
+      numbers: [1],
+      plurals: () => 0
+    });
+  }
+};
+
+i18next.on('initialized', registerJtzwPluralRule);
+registerJtzwPluralRule();
+
 // Export language utilities
 export const getLanguageName = (code) => languageNames[code] || code;
 export const getSupportedLanguages = () => Object.keys(languageNames);

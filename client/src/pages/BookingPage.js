@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
-import { Calendar, Clock, User, ArrowLeft, CheckCircle } from 'lucide-react';
+import { format, isSameDay, isToday } from 'date-fns';
+import { enUS, ms, zhCN } from 'date-fns/locale';
+import { Calendar, Clock, User, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -14,7 +14,7 @@ import { Input } from '../components/ui/input';
 const BookingPage = () => {
   const { vendorId, serviceId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   
   const [vendor, setVendor] = useState(null);
   const [service, setService] = useState(null);
@@ -35,6 +35,36 @@ const BookingPage = () => {
   const [availableDates, setAvailableDates] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedDateObj, setSelectedDateObj] = useState(null);
+  const dateStripRef = useRef(null);
+
+  const localeMap = {
+    en: enUS,
+    bm: ms,
+    jtzw: zhCN
+  };
+  const languageCode = i18n.language;
+  const currentLocale = localeMap[languageCode] || enUS;
+  const isChineseLanguage = languageCode === 'jtzw';
+
+  const formatDayMonthYear = (date) => {
+    if (!date) return '';
+    if (isChineseLanguage) {
+      return format(date, 'd/M/yyyy', { locale: currentLocale });
+    }
+    const day = format(date, 'd', { locale: currentLocale });
+    const month = format(date, 'MMM', { locale: currentLocale });
+    const year = format(date, 'yyyy', { locale: currentLocale });
+    return `${day} ${month} ${year}`;
+  };
+
+  const formatSelectedDateLabel = (date) => {
+    if (!date) return '';
+    if (isChineseLanguage) {
+      const dayName = format(date, 'EEEE', { locale: currentLocale });
+      return `${dayName}, ${formatDayMonthYear(date)}`;
+    }
+    return format(date, 'EEEE, d MMM', { locale: currentLocale });
+  };
 
   useEffect(() => {
     fetchVendorAndService();
@@ -109,16 +139,7 @@ const BookingPage = () => {
             slots.push({
               date: dayKey,
               time: slotDate.toTimeString().slice(0, 5),
-              displayDate: date.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              }),
-              displayTime: slotDate.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })
+              dateTime: slotDate
             });
           }
           current.setMinutes(current.getMinutes() + 30);
@@ -201,6 +222,39 @@ const BookingPage = () => {
     const key = formatDateKey(selectedDateObj);
     return slotsByDate[key] || [];
   }, [selectedDateObj, slotsByDate]);
+
+  const segmentedSlots = useMemo(() => {
+    if (!slotsForSelectedDate.length) return [];
+
+    const segments = [
+      { key: 'morning', startHour: 5, endHour: 12, label: t('bookingForm.timeSegments.morning') },
+      { key: 'afternoon', startHour: 12, endHour: 18, label: t('bookingForm.timeSegments.afternoon') },
+      { key: 'evening', startHour: 18, endHour: 24, label: t('bookingForm.timeSegments.evening') },
+    ];
+
+    return segments
+      .map(segment => ({
+        ...segment,
+        slots: slotsForSelectedDate.filter(slot => {
+          if (!slot?.dateTime) return false;
+          const hour = slot.dateTime.getHours();
+          if (segment.key === 'evening') {
+            return hour >= segment.startHour;
+          }
+          return hour >= segment.startHour && hour < segment.endHour;
+        })
+      }))
+      .filter(segment => segment.slots.length > 0);
+  }, [slotsForSelectedDate, t]);
+
+  const handleDateStripScroll = (direction) => {
+    if (!dateStripRef.current) return;
+    const scrollAmount = direction === 'left' ? -200 : 200;
+    dateStripRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
+  };
 
   const calculatePrice = () => {
     if (!service) return 0;
@@ -388,39 +442,139 @@ const BookingPage = () => {
                   {/* Date & Time Selection */}
                   <div className="space-y-3">
                     <h3 className="font-semibold text-sm text-gray-700">{t('booking.selectDateTime')}</h3>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      <DatePicker
-                        selected={selectedDateObj}
-                        onChange={handleDateChange}
-                        includeDates={availableDates}
-                        minDate={new Date()}
-                        placeholderText={t('bookingForm.datePlaceholder')}
-                        dateFormat="EEE, MMM d"
-                        className="w-full h-12 border border-gray-200 rounded-lg px-3 text-sm font-semibold text-gray-800 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        calendarStartDay={1}
-                      />
-                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-gray-200 rounded-lg bg-white shadow-sm">
-                        {slotsForSelectedDate.length > 0 ? (
-                          slotsForSelectedDate.map((slot, index) => (
-                            <button
-                              key={`${slot.date}-${slot.time}-${index}`}
-                              type="button"
-                              onClick={() => handleSlotSelect(slot)}
-                              className={`p-2 text-left border rounded-lg text-sm transition-all ${
-                                selectedSlot?.date === slot.date && selectedSlot?.time === slot.time
-                                  ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                                  : 'border-transparent hover:border-gray-200 bg-white'
-                              }`}
-                            >
-                              <div className="font-semibold">{slot.displayDate}</div>
-                              <div className="text-gray-600 mt-0.5 text-sm">{slot.displayTime}</div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="col-span-2 text-xs text-gray-500 p-2 text-center">
-                            {t('bookingForm.noSlots')}
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-gray-500">{t('bookingForm.dateCarousel.label')}</p>
+                            <p className="text-xs text-gray-400">{t('bookingForm.dateCarousel.hint')}</p>
                           </div>
-                        )}
+                          <div className="hidden sm:flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleDateStripScroll('left')}
+                              className="h-8 w-8"
+                              aria-label={t('bookingForm.dateCarousel.previous')}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleDateStripScroll('right')}
+                              className="h-8 w-8"
+                              aria-label={t('bookingForm.dateCarousel.next')}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div
+                          ref={dateStripRef}
+                          className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory"
+                        >
+                          {availableDates.length > 0 ? (
+                            availableDates.map((date) => {
+                              const isSelected = selectedDateObj && isSameDay(date, selectedDateObj);
+                              const isCurrentDay = isToday(date);
+                              return (
+                                <button
+                                  key={date.toISOString()}
+                                  type="button"
+                                  onClick={() => handleDateChange(date)}
+                                  className={`min-w-[110px] snap-start rounded-2xl border px-3 py-2 text-left transition-all ${
+                                    isSelected
+                                      ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
+                                      : 'border-gray-200 bg-white text-gray-900 shadow-sm hover:border-blue-300'
+                                  }`}
+                                >
+                                  <span className="text-xs uppercase tracking-wide flex items-center gap-1">
+                                    {isCurrentDay ? t('bookingForm.todayLabel') : format(date, 'EEE', { locale: currentLocale })}
+                                    {isCurrentDay && (
+                                      <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-blue-600'}`}></span>
+                                    )}
+                                  </span>
+                                  <div className="text-2xl font-bold leading-tight">
+                                    {format(date, 'd', { locale: currentLocale })}
+                                  </div>
+                                  {!isChineseLanguage && (
+                                    <span className={`text-xs ${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>
+                                      {format(date, 'MMM yyyy', { locale: currentLocale })}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="text-sm text-gray-500">
+                              {t('bookingForm.noAvailableDates')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-2xl border border-gray-100 bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-wide text-gray-500">{t('bookingForm.timeGrid.label')}</p>
+                            {selectedDateObj && (
+                              <p className="text-sm font-medium text-gray-900">
+                                {formatSelectedDateLabel(selectedDateObj)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {selectedSlot
+                              ? t('bookingForm.timeGrid.selected', {
+                                  time: selectedSlot?.dateTime
+                                    ? format(selectedSlot.dateTime, 'p', { locale: currentLocale })
+                                    : selectedSlot?.time
+                                })
+                              : t('bookingForm.timeGrid.tapHint')}
+                          </div>
+                        </div>
+                        <div className="space-y-4 max-h-56 overflow-y-auto pr-1">
+                          {segmentedSlots.length > 0 ? (
+                            segmentedSlots.map(segment => (
+                              <div key={segment.key} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    {segment.label}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400">
+                                    {t('bookingForm.timeGrid.slotCount', { slotCount: segment.slots.length })}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                  {segment.slots.map((slot) => {
+                                    const isSelected = selectedSlot?.date === slot.date && selectedSlot?.time === slot.time;
+                                    return (
+                                      <button
+                                        key={`${slot.date}-${slot.time}`}
+                                        type="button"
+                                        onClick={() => handleSlotSelect(slot)}
+                                        className={`rounded-lg border px-2 py-1.5 text-center text-sm font-semibold transition-all ${
+                                          isSelected
+                                            ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                                            : 'border-gray-200 bg-white text-gray-900 hover:border-blue-300'
+                                        }`}
+                                      >
+                                        <div>{slot.dateTime ? format(slot.dateTime, 'p', { locale: currentLocale }) : slot.time}</div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-xs text-gray-500 text-center py-6">
+                              {t('bookingForm.noSlots')}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
