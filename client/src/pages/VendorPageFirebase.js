@@ -173,18 +173,26 @@ const VendorPageFirebase = () => {
 
   const formatPriceValue = (value) => {
     const numeric = parseFloat(value);
-    if (Number.isNaN(numeric)) return '0';
-    return Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(2);
+    if (Number.isNaN(numeric)) return null;
+    return Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(2).replace(/\.00$/, '');
+  };
+
+  const resolvePriceValue = (...values) => {
+    for (const val of values) {
+      if (val === undefined || val === null || val === '') continue;
+      const formatted = formatPriceValue(val);
+      if (formatted !== null) return formatted;
+    }
+    return '0';
   };
 
   const getPriceLabel = (service) => {
     const priceType = service.priceType || 'fixed';
-    const fallback = service.priceRange?.min ?? service.price ?? 0;
-    const baseValue = formatPriceValue(fallback);
+    const baseValue = resolvePriceValue(service.price, service.priceRange?.min, service.priceRange?.max);
 
     if (priceType === 'range') {
-      const min = formatPriceValue(service.priceRange?.min ?? fallback);
-      const max = formatPriceValue(service.priceRange?.max ?? service.priceRange?.min ?? fallback);
+      const min = resolvePriceValue(service.priceRange?.min, service.price);
+      const max = resolvePriceValue(service.priceRange?.max, min);
       return t('vendorPage.priceRange', { min, max });
     }
 
