@@ -87,6 +87,8 @@
   },
   "services": {
     "price": "Harga",
+    "priceFrom": "Daripada",
+    "priceCurrency": "RM {{price}}",
     "description": "Penerangan",
     "requirements": "Keperluan"
   },

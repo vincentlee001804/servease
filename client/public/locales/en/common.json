@@ -87,6 +87,8 @@
   },
   "services": {
     "price": "Price",
+    "priceFrom": "From",
+    "priceCurrency": "RM {{price}}",
     "description": "Description",
     "requirements": "Requirements"
   },

@@ -508,11 +508,13 @@ const VendorPageFirebase = () => {
                           <p className="text-gray-600 mt-1">{service.category}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">
-                            ${service.price}
+                          <div className="text-sm uppercase tracking-wide text-gray-500">
+                            {service.priceType === 'range' || service.priceType === 'from' ? t('vendorPage.priceFrom') : t('vendorPage.price')}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {service.duration} minutes
+                          <div className="text-2xl font-bold text-blue-600">
+                            {t('vendorPage.priceCurrency', {
+                              price: service.priceRange?.min || service.price
+                            })}
                           </div>
                         </div>
                       </div>
