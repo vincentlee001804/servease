@@ -535,15 +535,9 @@ const VendorPageFirebase = () => {
                       )}
                       
                       <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.duration} {t('vendorPage.minutes')}
-                          </div>
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
-                            {t('vendorPage.maxPeople', { count: service.maxCapacity || 1 })}
-                          </div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {service.duration} {t('vendorPage.minutes')}
                         </div>
                         <Button 
                           onClick={() => handleBookService(service.id)}
