@@ -71,9 +71,12 @@ router.post('/register', [
     await user.save();
 
     // Generate JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || (() => {
+      throw new Error('JWT_SECRET environment variable is not set');
+    })();
     const token = jwt.sign(
       { userId: user._id, role: user.role },
-      'servease_super_secret_jwt_key_2024',
+      JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -128,9 +131,12 @@ router.post('/login', [
     await user.save();
 
     // Generate JWT token
+    const JWT_SECRET = process.env.JWT_SECRET || (() => {
+      throw new Error('JWT_SECRET environment variable is not set');
+    })();
     const token = jwt.sign(
       { userId: user._id, role: user.role },
-      'servease_super_secret_jwt_key_2024',
+      JWT_SECRET,
       { expiresIn: '7d' }
     );
 

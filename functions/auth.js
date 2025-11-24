@@ -11,7 +11,10 @@ const auth = async (req, res, next) => {
 
     console.log('Token received:', token.substring(0, 20) + '...');
     
-    const decoded = jwt.verify(token, 'servease_super_secret_jwt_key_2024');
+    const JWT_SECRET = process.env.JWT_SECRET || (() => {
+      throw new Error('JWT_SECRET environment variable is not set');
+    })();
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId);
     
     if (!user) {

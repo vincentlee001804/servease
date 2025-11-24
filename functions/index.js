@@ -1,3 +1,12 @@
+// Load environment variables from .env file in local development
+if (process.env.NODE_ENV !== 'production' && !process.env.FUNCTIONS_EMULATOR) {
+  try {
+    require('dotenv').config();
+  } catch (e) {
+    // dotenv not installed, that's okay for production
+  }
+}
+
 const functions = require('firebase-functions');
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
@@ -103,8 +112,11 @@ app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// JWT Secret
-const JWT_SECRET = 'your-super-secret-jwt-key-change-in-production';
+// JWT Secret - Load from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.error('JWT_SECRET environment variable is not set!');
+  throw new Error('JWT_SECRET must be set in environment variables');
+})();
 
 // Email transport (configure with your SMTP or Gmail App Password)
 // Lazy initialization to avoid issues with functions.config() in v2 functions
@@ -118,13 +130,17 @@ const getTransporter = () => {
       
       try {
         const config = functions.config();
-        smtpUser = smtpUser || config.smtp?.user || 'your@email.com';
-        smtpPass = smtpPass || config.smtp?.pass || 'app-password';
+        smtpUser = smtpUser || config.smtp?.user || process.env.SMTP_USER;
+        smtpPass = smtpPass || config.smtp?.pass || process.env.SMTP_PASS;
       } catch (configError) {
-        // functions.config() might not work in v2, use environment variables or defaults
-        console.warn('Could not access functions.config(), using environment variables or defaults');
-        smtpUser = smtpUser || 'your@email.com';
-        smtpPass = smtpPass || 'app-password';
+        // functions.config() might not work in v2, use environment variables
+        console.warn('Could not access functions.config(), using environment variables');
+        smtpUser = smtpUser || process.env.SMTP_USER;
+        smtpPass = smtpPass || process.env.SMTP_PASS;
+      }
+      
+      if (!smtpUser || !smtpPass) {
+        console.warn('SMTP credentials not configured. Email functionality will be disabled.');
       }
       
       transporter = nodemailer.createTransport({
