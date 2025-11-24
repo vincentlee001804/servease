@@ -258,7 +258,7 @@ const VendorPageFirebase = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="bg-white border-b border-gray-100">
         <div className="w-full">
           <div className="relative">
@@ -272,75 +272,78 @@ const VendorPageFirebase = () => {
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
               )}
-              <div className="absolute inset-0 bg-black/15"></div>
             </div>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-white pb-6">
-              <div className="relative flex flex-col items-center text-center gap-3 -mt-16">
-                <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-semibold">
-                  {vendor?.profileImageUrl ? (
-                    <img 
-                      src={vendor.profileImageUrl}
-                      alt={vendor.businessName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    vendor.businessName?.charAt(0) || 'B'
-                  )}
-                </div>
-                <div className="px-4">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {vendor.businessName || 'Business Profile'}
-                  </h1>
-                  <p className="text-sm text-gray-500">
-                    {vendor.businessType}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-                      className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                      aria-label="Change language"
-                    >
-                      <Languages className="w-4 h-4" />
-                    </button>
-                    {showLanguageMenu && (
-                      <>
-                        <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
-                        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
-                          {['en', 'bm', 'jtzw'].map((code) => (
-                            <button
-                              key={code}
-                              onClick={() => {
-                                handleLanguageChange(code);
-                                setShowLanguageMenu(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                                lang === code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              <Languages className="w-4 h-4" />
-                              {getLanguageName(code)}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-white pb-4">
+              <div className="relative flex flex-col gap-4 -mt-2">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="-mt-6 w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-semibold">
+                      {vendor?.profileImageUrl ? (
+                        <img 
+                          src={vendor.profileImageUrl}
+                          alt={vendor.businessName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        vendor.businessName?.charAt(0) || 'B'
+                      )}
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">
+                        {vendor.businessName || 'Business Profile'}
+                      </h1>
+                      <p className="text-sm text-gray-500">
+                        {vendor.businessType}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                    onClick={() => navigate(`/${lang}/bookings`)}
-                    aria-label="Booking status"
-                  >
-                    <Calendar className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                    onClick={handleShare}
-                    aria-label="Share vendor"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                        className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                        aria-label="Change language"
+                      >
+                        <Languages className="w-4 h-4" />
+                      </button>
+                      {showLanguageMenu && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
+                          <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
+                            {['en', 'bm', 'jtzw'].map((code) => (
+                              <button
+                                key={code}
+                                onClick={() => {
+                                  handleLanguageChange(code);
+                                  setShowLanguageMenu(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                                  lang === code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                                }`}
+                              >
+                                <Languages className="w-4 h-4" />
+                                {getLanguageName(code)}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                      onClick={() => navigate(`/${lang}/bookings`)}
+                      aria-label="Booking status"
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                      onClick={handleShare}
+                      aria-label="Share vendor"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
