@@ -128,6 +128,8 @@
     "bookNow": "Tempah Sekarang",
     "priceExact": "RM {{price}}",
     "priceFrom": "Daripada RM {{price}}",
+    "priceRange": "RM {{min}} - RM {{max}}",
+    "uncategorized": "Tiada kategori",
     "noServicesFound": "Tiada perkhidmatan dijumpai",
     "adjustSearch": "Cuba laraskan kriteria carian atau penapis anda.",
     "noServicesAdded": "Vendor ini belum menambah sebarang perkhidmatan lagi.",

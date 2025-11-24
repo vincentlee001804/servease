@@ -171,6 +171,30 @@ const VendorPageFirebase = () => {
     return t(`vendorPage.days.${dayKey}`);
   };
 
+  const formatPriceValue = (value) => {
+    const numeric = parseFloat(value);
+    if (Number.isNaN(numeric)) return '0';
+    return Number.isInteger(numeric) ? numeric.toString() : numeric.toFixed(2);
+  };
+
+  const getPriceLabel = (service) => {
+    const priceType = service.priceType || 'fixed';
+    const fallback = service.priceRange?.min ?? service.price ?? 0;
+    const baseValue = formatPriceValue(fallback);
+
+    if (priceType === 'range') {
+      const min = formatPriceValue(service.priceRange?.min ?? fallback);
+      const max = formatPriceValue(service.priceRange?.max ?? service.priceRange?.min ?? fallback);
+      return t('vendorPage.priceRange', { min, max });
+    }
+
+    if (priceType === 'from') {
+      return t('vendorPage.priceFrom', { price: baseValue });
+    }
+
+    return t('vendorPage.priceExact', { price: baseValue });
+  };
+
   const filteredServices = services.filter(service => {
     // Handle multilingual name and description
     const serviceName = getTranslatedText(service.name, '');
@@ -499,34 +523,33 @@ const VendorPageFirebase = () => {
             {/* Services Grid */}
             {filteredServices.length > 0 ? (
               <div className="grid gap-6">
-                {filteredServices.map((service) => {
-                  const basePrice = service.priceRange?.min ?? service.price ?? 0;
-                  const formattedPrice = Number(basePrice).toFixed(2).replace(/\.00$/, '');
-                  const priceKey = (service.priceType === 'range' || service.priceType === 'from')
-                    ? 'vendorPage.priceFrom'
-                    : 'vendorPage.priceExact';
-                  
-                  return (
-                    <Card key={service.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl">{getTranslatedText(service.name, service.name)}</CardTitle>
-                          <p className="text-gray-600 mt-1">{service.category}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {t(priceKey, { price: formattedPrice })}
+                {filteredServices.map((service) => (
+                  <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="space-y-1">
+                          <CardTitle className="text-xl text-gray-900">
+                            {getTranslatedText(service.name, service.name)}
+                          </CardTitle>
+                          <div className="text-sm text-gray-500 flex items-center gap-2 flex-wrap">
+                            <span>{service.category || t('vendorPage.uncategorized')}</span>
                           </div>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold">
+                            {getPriceLabel(service)}
+                          </span>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700 mb-4">{getTranslatedText(service.description, service.description)}</p>
+                    <CardContent className="space-y-4 pt-0">
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {getTranslatedText(service.description, service.description)}
+                      </p>
                       
                       {service.features && service.features.length > 0 && (
-                        <div className="mb-4">
-                          <h4 className="font-medium text-gray-900 mb-2">{t('vendorPage.features')}</h4>
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-gray-900">{t('vendorPage.features')}</h4>
                           <ul className="space-y-1">
                             {service.features.map((feature, index) => (
                               <li key={index} className="flex items-center text-sm text-gray-600">
@@ -538,23 +561,22 @@ const VendorPageFirebase = () => {
                         </div>
                       )}
                       
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {service.duration} {t('vendorPage.minutes')}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center text-sm text-gray-500 gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>{service.duration || 0} {t('vendorPage.minutes')}</span>
                         </div>
                         <Button 
                           onClick={() => handleBookService(service.id)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                         >
                           <BookOpen className="w-4 h-4 mr-2" />
                           {t('vendorPage.bookNow')}
                         </Button>
                       </div>
                     </CardContent>
-                    </Card>
-                  );
-                })}
+                  </Card>
+                ))}
               </div>
             ) : (
               <div className="text-center py-12">
