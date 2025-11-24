@@ -214,7 +214,7 @@ const VendorPageFirebase = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['all', ...new Set(services.map(service => service.category))];
+  const categories = ['all', ...new Set(services.map(service => service.category).filter(Boolean))];
 
   // Wait for translations to be ready
   if (!ready) {
@@ -275,7 +275,7 @@ const VendorPageFirebase = () => {
               <div className="absolute inset-0 bg-black/15"></div>
             </div>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-white pb-6">
-              <div className="relative flex flex-col items-center text-center gap-3 -mt-10">
+              <div className="relative flex flex-col items-center text-center gap-3 -mt-16">
                 <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-semibold">
                   {vendor?.profileImageUrl ? (
                     <img 
@@ -287,7 +287,7 @@ const VendorPageFirebase = () => {
                     vendor.businessName?.charAt(0) || 'B'
                   )}
                 </div>
-                <div>
+                <div className="px-4">
                   <h1 className="text-2xl font-bold text-gray-900">
                     {vendor.businessName || 'Business Profile'}
                   </h1>
@@ -295,57 +295,38 @@ const VendorPageFirebase = () => {
                     {vendor.businessType}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowLanguageMenu(!showLanguageMenu)}
-                    className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                    aria-label="Change language"
-                  >
-                    <Languages className="w-4 h-4" />
-                  </button>
-                  {showLanguageMenu && (
-                    <>
-                      <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
-                      <div className="absolute top-full mt-2 right-4 sm:right-auto w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
-                        <button
-                          onClick={() => {
-                            handleLanguageChange('en');
-                            setShowLanguageMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                            lang === 'en' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                          }`}
-                        >
-                          <Languages className="w-4 h-4" />
-                          {getLanguageName('en')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleLanguageChange('bm');
-                            setShowLanguageMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                            lang === 'bm' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                          }`}
-                        >
-                          <Languages className="w-4 h-4" />
-                          {getLanguageName('bm')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleLanguageChange('jtzw');
-                            setShowLanguageMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                            lang === 'jtzw' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                          }`}
-                        >
-                          <Languages className="w-4 h-4" />
-                          {getLanguageName('jtzw')}
-                        </button>
-                      </div>
-                    </>
-                  )}
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                      className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                      aria-label="Change language"
+                    >
+                      <Languages className="w-4 h-4" />
+                    </button>
+                    {showLanguageMenu && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
+                        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
+                          {['en', 'bm', 'jtzw'].map((code) => (
+                            <button
+                              key={code}
+                              onClick={() => {
+                                handleLanguageChange(code);
+                                setShowLanguageMenu(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                                lang === code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              <Languages className="w-4 h-4" />
+                              {getLanguageName(code)}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button
                     className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
                     onClick={() => navigate(`/${lang}/bookings`)}
@@ -482,29 +463,37 @@ const VendorPageFirebase = () => {
               <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-3 lg:mb-4">{t('vendorPage.availableServices')}</h2>
               
               {/* Search and Filter */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder={t('vendorPage.searchServices')}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+              <div className="flex flex-col gap-4 mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    placeholder={t('vendorPage.searchServices')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? t('vendorPage.allCategories') : category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                  {categories.map(category => {
+                    const isActive = selectedCategory === category;
+                    const label = category === 'all'
+                      ? t('vendorPage.allCategories')
+                      : category?.charAt(0).toUpperCase() + category.slice(1);
+                    return (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-4 py-2 rounded-full border text-sm font-medium whitespace-nowrap transition ${
+                          isActive
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -512,7 +501,7 @@ const VendorPageFirebase = () => {
             {filteredServices.length > 0 ? (
               <div className="grid gap-4">
                 {filteredServices.map((service) => (
-                  <Card key={service.id} className="hover:shadow-md transition-shadow">
+                  <Card key={service.id} className="hover:shadow-md transition-shadow border border-gray-100 shadow-sm">
                     <CardContent className="p-4 sm:p-5">
                       <div className="flex items-start gap-4 flex-wrap">
                         <div className="flex-1 space-y-2 min-w-[60%]">
@@ -533,7 +522,7 @@ const VendorPageFirebase = () => {
                               {getTranslatedText(service.description, service.description)}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 text-sm text-gray-500">
+                          <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
                               <span>{service.duration || 0} {t('vendorPage.minutes')}</span>
