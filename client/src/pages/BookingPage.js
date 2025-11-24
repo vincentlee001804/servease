@@ -641,15 +641,9 @@ const BookingPage = () => {
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description?.en || service.description}</p>
                 </div>
                 
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-1.5" />
-                    <span>{t('bookingForm.durationMinutes', { count: service.duration || 0 })}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <User className="h-4 w-4 mr-1.5" />
-                    <span>{t('bookingForm.maxClients', { count: service.maxClients || service.maxGuests || 1 })}</span>
-                  </div>
+                <div className="flex items-center text-gray-600 text-sm">
+                  <Clock className="h-4 w-4 mr-1.5" />
+                  <span>{t('bookingForm.durationMinutes', { count: service.duration || 0 })}</span>
                 </div>
 
                 <div className="pt-2 border-t border-gray-100">
