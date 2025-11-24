@@ -87,8 +87,6 @@
   },
   "services": {
     "price": "Price",
-    "priceFrom": "From",
-    "priceCurrency": "RM {{price}}",
     "description": "Description",
     "requirements": "Requirements"
   },
@@ -128,6 +126,8 @@
     "minutes": "min",
     "maxPeople": "Max {{count}} people",
     "bookNow": "Book Now",
+    "priceExact": "RM {{price}}",
+    "priceFrom": "From RM {{price}}",
     "noServicesFound": "No services found",
     "adjustSearch": "Try adjusting your search or filter criteria.",
     "noServicesAdded": "This vendor hasn't added any services yet.",

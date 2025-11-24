@@ -87,8 +87,6 @@
   },
   "services": {
     "price": "Harga",
-    "priceFrom": "Daripada",
-    "priceCurrency": "RM {{price}}",
     "description": "Penerangan",
     "requirements": "Keperluan"
   },
@@ -128,6 +126,8 @@
     "minutes": "min",
     "maxPeople": "Maksimum {{count}} orang",
     "bookNow": "Tempah Sekarang",
+    "priceExact": "RM {{price}}",
+    "priceFrom": "Daripada RM {{price}}",
     "noServicesFound": "Tiada perkhidmatan dijumpai",
     "adjustSearch": "Cuba laraskan kriteria carian atau penapis anda.",
     "noServicesAdded": "Vendor ini belum menambah sebarang perkhidmatan lagi.",

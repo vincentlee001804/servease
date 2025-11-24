@@ -87,8 +87,6 @@
   },
   "services": {
     "price": "价格",
-    "priceFrom": "起",
-    "priceCurrency": "RM {{price}}",
     "description": "描述",
     "requirements": "要求"
   },
@@ -128,6 +126,8 @@
     "minutes": "分钟",
     "maxPeople": "最多 {{count}} 人",
     "bookNow": "立即预订",
+    "priceExact": "RM {{price}}",
+    "priceFrom": "RM {{price}}起",
     "noServicesFound": "未找到服务",
     "adjustSearch": "请尝试调整搜索或筛选条件。",
     "noServicesAdded": "此供应商尚未添加任何服务。",

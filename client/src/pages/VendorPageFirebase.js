@@ -499,8 +499,15 @@ const VendorPageFirebase = () => {
             {/* Services Grid */}
             {filteredServices.length > 0 ? (
               <div className="grid gap-6">
-                {filteredServices.map((service) => (
-                  <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                {filteredServices.map((service) => {
+                  const basePrice = service.priceRange?.min ?? service.price ?? 0;
+                  const formattedPrice = Number(basePrice).toFixed(2).replace(/\.00$/, '');
+                  const priceKey = (service.priceType === 'range' || service.priceType === 'from')
+                    ? 'vendorPage.priceFrom'
+                    : 'vendorPage.priceExact';
+                  
+                  return (
+                    <Card key={service.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
@@ -508,13 +515,8 @@ const VendorPageFirebase = () => {
                           <p className="text-gray-600 mt-1">{service.category}</p>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm uppercase tracking-wide text-gray-500">
-                            {service.priceType === 'range' || service.priceType === 'from' ? t('vendorPage.priceFrom') : t('vendorPage.price')}
-                          </div>
                           <div className="text-2xl font-bold text-blue-600">
-                            {t('vendorPage.priceCurrency', {
-                              price: service.priceRange?.min || service.price
-                            })}
+                            {t(priceKey, { price: formattedPrice })}
                           </div>
                         </div>
                       </div>
@@ -550,8 +552,9 @@ const VendorPageFirebase = () => {
                         </Button>
                       </div>
                     </CardContent>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
