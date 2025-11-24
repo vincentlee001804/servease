@@ -3,7 +3,6 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -31,49 +30,6 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-const shouldEnableAppCheck =
-  process.env.REACT_APP_ENABLE_APPCHECK !== 'false';
-
-if (process.env.NODE_ENV !== 'production') {
-  console.log(
-    `App Check enabled: ${shouldEnableAppCheck} (REACT_APP_ENABLE_APPCHECK=${process.env.REACT_APP_ENABLE_APPCHECK})`
-  );
-}
-
-// Enable App Check debug token for local development (optional)
-const appCheckGlobal =
-  typeof window !== 'undefined'
-    ? window
-    : typeof global !== 'undefined'
-    ? global
-    : undefined;
-
-if (
-  shouldEnableAppCheck &&
-  process.env.NODE_ENV !== 'production' &&
-  appCheckGlobal
-) {
-  const debugToken = process.env.REACT_APP_APPCHECK_DEBUG_TOKEN;
-  if (debugToken) {
-    appCheckGlobal.FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
-    console.log('Using App Check debug token');
-  } else {
-    console.warn(
-      'App Check debug token not set. Set REACT_APP_APPCHECK_DEBUG_TOKEN in .env to re-use the same token.'
-    );
-  }
-}
-
-// Initialize App Check (reCAPTCHA v3) only if enabled
-export const appCheck = shouldEnableAppCheck
-  ? initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(
-        process.env.REACT_APP_RECAPTCHA_SITE_KEY
-      ),
-      isTokenAutoRefreshEnabled: true,
-    })
-  : null;
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
