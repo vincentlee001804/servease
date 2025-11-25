@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
-import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -42,15 +43,65 @@ const BookingStatus = () => {
         bookingsData.push({ id: doc.id, ...doc.data() });
       });
       
-      // Sort on client side to avoid composite index requirement
-      bookingsData.sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-        return dateB - dateA; // Sort by newest first
+      // Smart sorting: Split into Upcoming and Past, then sort each group
+      const now = new Date();
+      const upcoming = [];
+      const past = [];
+      
+      bookingsData.forEach((booking) => {
+        // Create a Date object from bookingDate and bookingTime
+        const bookingDate = booking.bookingDate;
+        const bookingTime = booking.bookingTime;
+        
+        let bookingDateTime;
+        if (bookingDate) {
+          if (bookingDate instanceof Date) {
+            bookingDateTime = new Date(bookingDate);
+          } else if (bookingDate.toDate) {
+            // Firestore Timestamp
+            bookingDateTime = bookingDate.toDate();
+          } else {
+            // String date
+            bookingDateTime = new Date(bookingDate);
+          }
+          
+          // If bookingTime exists, combine it with the date
+          if (bookingTime) {
+            const [hours, minutes] = bookingTime.split(':');
+            if (hours && minutes) {
+              bookingDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            }
+          } else {
+            // Default to start of day if no time
+            bookingDateTime.setHours(0, 0, 0, 0);
+          }
+        } else {
+          // Fallback to createdAt if no bookingDate
+          bookingDateTime = booking.createdAt?.toDate?.() || new Date(booking.createdAt || 0);
+        }
+        
+        // Compare with current date/time
+        if (bookingDateTime >= now) {
+          upcoming.push({ ...booking, _sortDateTime: bookingDateTime });
+        } else {
+          past.push({ ...booking, _sortDateTime: bookingDateTime });
+        }
       });
       
-      console.log('Found bookings:', bookingsData.length);
-      setBookings(bookingsData);
+      // Sort Upcoming: Date Ascending (nearest first)
+      upcoming.sort((a, b) => a._sortDateTime - b._sortDateTime);
+      
+      // Sort Past: Date Descending (most recent first)
+      past.sort((a, b) => b._sortDateTime - a._sortDateTime);
+      
+      // Merge: Upcoming first, then Past
+      const sortedBookings = [...upcoming, ...past];
+      
+      // Remove the temporary _sortDateTime property
+      sortedBookings.forEach(booking => delete booking._sortDateTime);
+      
+      console.log('Found bookings:', sortedBookings.length, `(${upcoming.length} upcoming, ${past.length} past)`);
+      setBookings(sortedBookings);
       setHasSearched(true); // Set hasSearched to true after search completes
       
       if (bookingsData.length === 0) {
@@ -79,20 +130,23 @@ const BookingStatus = () => {
   };
 
   const handleBackNavigation = () => {
+    // Extract language from current URL path
+    const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+    
     // Check if we came from a vendor page
     const referrer = document.referrer;
     if (referrer && referrer.includes('/vendor/')) {
       // Extract vendor ID from referrer URL
       const vendorIdMatch = referrer.match(/\/vendor\/([^\/\?]+)/);
       if (vendorIdMatch) {
-        navigate(`/vendor/${vendorIdMatch[1]}`);
+        navigate(`/${pathLang}/vendor/${vendorIdMatch[1]}`);
         return;
       }
     }
     
     // Check if there's a vendor ID in the bookings
     if (bookings.length > 0 && bookings[0].vendorId) {
-      navigate(`/vendor/${bookings[0].vendorId}`);
+      navigate(`/${pathLang}/vendor/${bookings[0].vendorId}`);
       return;
     }
     
@@ -103,7 +157,6 @@ const BookingStatus = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
@@ -166,6 +219,75 @@ const BookingStatus = () => {
     return `RM ${booking.price}`;
   };
 
+  // Handler for Cancel button
+  const handleCancelBooking = async (booking) => {
+    const confirmed = window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const bookingRef = doc(db, 'bookings', booking.id);
+      await updateDoc(bookingRef, {
+        status: 'cancelled',
+        updatedAt: new Date()
+      });
+      
+      // Update local state
+      setBookings(prevBookings => 
+        prevBookings.map(b => 
+          b.id === booking.id ? { ...b, status: 'cancelled' } : b
+        )
+      );
+      
+      toast.success('Booking cancelled successfully');
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      toast.error('Failed to cancel booking. Please try again.');
+    }
+  };
+
+  // Handler for Reschedule button
+  const handleRescheduleBooking = (booking) => {
+    // Extract language from current URL path
+    const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+    
+    // Navigate to booking page with booking data in state for pre-filling
+    navigate(`/${pathLang}/booking/${booking.vendorId}/${booking.serviceId}`, {
+      state: {
+        bookingId: booking.id,
+        bookingData: {
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone,
+          selectedDate: booking.bookingDate,
+          selectedTime: booking.bookingTime,
+          notes: booking.notes
+        },
+        isReschedule: true
+      }
+    });
+  };
+
+  // Handler for Reorder button
+  const handleReorderBooking = (booking) => {
+    // Extract language from current URL path
+    const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+    
+    // Navigate to booking page with customer data pre-filled for reordering
+    navigate(`/${pathLang}/booking/${booking.vendorId}/${booking.serviceId}`, {
+      state: {
+        bookingData: {
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone,
+          notes: booking.notes || ''
+        },
+        isReorder: true
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -178,111 +300,135 @@ const BookingStatus = () => {
   console.log('BookingStatus render - hasSearched:', hasSearched, 'loading:', loading, 'bookings.length:', bookings.length);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-            <Button 
-              variant="outline" 
-              onClick={handleBackNavigation}
-              className="flex items-center w-full sm:w-auto"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Vendor
-            </Button>
-            <div className="text-center sm:text-right">
-              <p className="text-sm text-gray-500">Total Bookings</p>
-              <p className="text-2xl font-bold text-blue-600">{bookings.length}</p>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Email Input Form - Centered */}
+        {!hasSearched && (
+          <div className="relative">
+            {/* Back Button - Top Left */}
+            <div className="absolute top-6 left-0">
+              <button
+                onClick={handleBackNavigation}
+                className="flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </button>
+            </div>
+            
+            <div className="flex flex-col justify-center h-[80vh] max-w-md mx-auto">
+
+            {/* Illustration */}
+            <div className="mb-8 flex justify-center">
+              <svg className="w-48 h-48 text-blue-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
+              <p className="text-base text-gray-600">Enter your email to view your service bookings</p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEmailSubmit} className="space-y-6">
+              {/* Floating Label Input */}
+              <div className="relative">
+                <input
+                  type="email"
+                  id="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="peer w-full px-4 pt-6 pb-2 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                  placeholder=" "
+                  required
+                />
+                <label
+                  htmlFor="email"
+                  className={`absolute left-4 transition-all duration-200 ${
+                    customerEmail 
+                      ? 'top-2 text-sm text-blue-600 font-medium' 
+                      : 'top-4 text-base text-gray-500 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-600 peer-focus:font-medium'
+                  }`}
+                >
+                  Email Address
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <Button 
+                type="submit" 
+                className="w-full py-4 text-lg font-semibold rounded-xl bg-blue-600 hover:bg-blue-700" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Searching...
+                  </>
+                ) : (
+                  'View My Bookings'
+                )}
+              </Button>
+            </form>
             </div>
           </div>
-          
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">My Bookings</h1>
-            <p className="text-base sm:text-lg text-gray-600">View and manage your service bookings</p>
-          </div>
-        </div>
-
-        {/* Email Input Form */}
-        {!hasSearched && (
-          <Card className="mb-8 shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-              <CardTitle className="text-xl text-center">Find Your Bookings</CardTitle>
-              <p className="text-gray-600 text-center">Enter your email address to view your service bookings</p>
-            </CardHeader>
-            <CardContent className="p-8">
-              <form onSubmit={handleEmailSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg transition-colors"
-                    required
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  className="w-full py-4 text-lg font-semibold rounded-xl" 
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Searching...
-                    </>
-                  ) : (
-                    'View My Bookings'
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
         )}
 
         {/* Loading State */}
         {loading && (
-          <Card className="mb-6">
-            <CardContent className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Searching for your bookings...</p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">Searching for your bookings...</p>
+          </div>
         )}
 
         {/* Bookings List */}
         {hasSearched && !loading && (
           <>
-            {/* Search Results Header */}
-            <Card className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-              <CardContent className="py-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-600">Searching for bookings with:</p>
-                      <p className="font-semibold text-gray-900 text-lg truncate">{customerEmail}</p>
-                    </div>
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center mb-4">
+                <button
+                  onClick={handleBackNavigation}
+                  className="flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back
+                </button>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                My Bookings
+                <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full font-normal">
+                  {bookings.length}
+                </span>
+              </h1>
+            </div>
+
+            {/* User Context Bar - Enhanced */}
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-xl p-4 mb-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-gray-200 flex-shrink-0">
+                    <Mail className="h-5 w-5 text-gray-600" />
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setHasSearched(false);
-                      setBookings([]);
-                    }}
-                    className="border-green-300 text-green-700 hover:bg-green-50 w-full sm:w-auto flex-shrink-0"
-                  >
-                    Search Different Email
-                  </Button>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-500 font-medium mb-1">Viewing bookings for</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{customerEmail}</p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+                <button
+                  onClick={() => {
+                    setHasSearched(false);
+                    setBookings([]);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0 border border-blue-200 bg-white"
+                >
+                  Change Email
+                </button>
+              </div>
+            </div>
 
             {bookings.length === 0 ? (
               <Card className="border-0 shadow-lg">
@@ -315,122 +461,125 @@ const BookingStatus = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {bookings.map((booking, index) => (
-                  <Card key={booking.id} className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg overflow-hidden">
-                    {/* Status Header */}
-                    <div className={`h-2 ${getStatusColor(booking.status).split(' ')[0]} bg-opacity-20`}></div>
-                    
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-2">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                              <span className="text-blue-600 font-bold text-sm">#{index + 1}</span>
+              <div className="space-y-4">
+                {bookings.map((booking, index) => {
+                  // Check if customer name differs from email (simplified check)
+                  const showCustomerName = booking.customerName && 
+                    booking.customerName.toLowerCase() !== customerEmail.toLowerCase().split('@')[0];
+                  
+                  return (
+                    <Card key={booking.id} className="hover:shadow-lg transition-all duration-300 border border-gray-200 shadow-sm overflow-hidden">
+                      {/* Status Indicator Bar */}
+                      <div className={`h-1 ${getStatusColor(booking.status).split(' ')[0]} bg-opacity-30`}></div>
+                      
+                      <CardContent className="p-5">
+                        {/* Row 1: Service Title (Left) + Price + Status (Right) */}
+                        <div className="flex items-start justify-between mb-3">
+                          <CardTitle className="text-lg font-bold text-gray-900 truncate flex-1 pr-4">
+                            {booking.serviceName}
+                          </CardTitle>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-xl font-bold text-blue-600 mb-1">
+                              {formatPrice(booking)}
                             </div>
-                            <CardTitle className="text-xl text-gray-900">{booking.serviceName}</CardTitle>
-                          </div>
-                          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
-                            {getStatusIcon(booking.status)}
-                            <span className="ml-2 capitalize">{booking.status}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-green-600 mb-1">
-                            {formatPrice(booking)}
-                          </div>
-                          <p className="text-sm text-gray-500">Price</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="pt-0">
-                      {/* Booking Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div className="flex items-center p-4 bg-gray-50 rounded-xl">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                            <Calendar className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{formatDate(booking.bookingDate)}</p>
-                            <p className="text-sm text-gray-600">Appointment Date</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center p-4 bg-gray-50 rounded-xl">
-                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                            <Clock className="h-5 w-5 text-purple-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{formatTime(booking.bookingTime)}</p>
-                            <p className="text-sm text-gray-600">Appointment Time</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center p-4 bg-gray-50 rounded-xl">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                            <User className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{booking.customerName}</p>
-                            <p className="text-sm text-gray-600">Customer Name</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Special Notes */}
-                      {booking.notes && (
-                        <div className="mb-6">
-                          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                            <div className="flex">
-                              <div className="flex-shrink-0">
-                                <AlertCircle className="h-5 w-5 text-yellow-400" />
-                              </div>
-                              <div className="ml-3">
-                                <h4 className="text-sm font-medium text-yellow-800">Special Notes</h4>
-                                <p className="text-sm text-yellow-700 mt-1">{booking.notes}</p>
-                              </div>
+                            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                              {getStatusIcon(booking.status)}
+                              <span className="ml-1 capitalize">{booking.status}</span>
                             </div>
                           </div>
                         </div>
-                      )}
 
-                      {/* Footer */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-gray-200 gap-4">
-                        <div className="text-sm text-gray-500">
-                          <p className="font-medium">Booked on</p>
-                          <p>{new Date(booking.createdAt?.toDate?.() || booking.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}</p>
+                        {/* Row 2: Details Grid (2 columns) + Customer Name (full width) */}
+                        <div className="grid grid-cols-2 gap-4 my-3">
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm font-medium">{formatDate(booking.bookingDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm font-medium">{formatTime(booking.bookingTime)}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/vendor/${booking.vendorId}`)}
-                            className="border-blue-300 text-blue-700 hover:bg-blue-50 w-full sm:w-auto"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Vendor
-                          </Button>
-                          {booking.status === 'pending' && (
+                        
+                        {/* Customer Name - Full Width */}
+                        {showCustomerName && (
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-500">
+                              Customer: <span className="text-gray-700">{booking.customerName}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Special Notes */}
+                        {booking.notes && (
+                          <div className="mb-3">
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r">
+                              <div className="flex gap-2">
+                                <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <h4 className="text-xs font-medium text-yellow-800 mb-1">Special Notes</h4>
+                                  <p className="text-sm text-yellow-700">{booking.notes}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Row 3: Action Footer (Gray Background) */}
+                        <div className="bg-gray-50 -mx-5 -mb-5 px-5 py-3 mt-4 flex gap-2">
+                          {booking.status === 'completed' ? (
                             <Button 
+                              variant="outline" 
                               size="sm"
-                              className="bg-yellow-600 hover:bg-yellow-700 text-white w-full sm:w-auto"
+                              onClick={() => handleReorderBooking(booking)}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-white text-xs"
                             >
-                              <Clock className="h-4 w-4 mr-2" />
-                              Awaiting Confirmation
+                              <RotateCw className="h-3 w-3 mr-1.5" />
+                              Reorder
+                            </Button>
+                          ) : booking.status === 'confirmed' || booking.status === 'pending' ? (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleRescheduleBooking(booking)}
+                                className="border-gray-300 text-gray-700 hover:bg-white bg-white text-xs flex-1"
+                              >
+                                <Calendar className="h-3 w-3 mr-1.5" />
+                                Reschedule
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleCancelBooking(booking)}
+                                className="border-red-300 text-red-600 hover:bg-red-50 bg-white text-xs flex-1"
+                              >
+                                <XCircle className="h-3 w-3 mr-1.5" />
+                                Cancel
+                              </Button>
+                            </>
+                          ) : booking.status === 'cancelled' ? (
+                            // No action buttons for cancelled bookings
+                            null
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+                                navigate(`/${pathLang}/vendor/${booking.vendorId}`);
+                              }}
+                              className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-white text-xs"
+                            >
+                              <Eye className="h-3 w-3 mr-1.5" />
+                              View
                             </Button>
                           )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </>

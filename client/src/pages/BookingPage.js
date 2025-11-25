@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import { format, isSameDay, isToday } from 'date-fns';
@@ -14,12 +14,15 @@ import { Input } from '../components/ui/input';
 const BookingPage = () => {
   const { vendorId, serviceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation('common');
   
   const [vendor, setVendor] = useState(null);
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isReschedule, setIsReschedule] = useState(false);
+  const [bookingId, setBookingId] = useState(null);
   
   // Booking form data
   const [formData, setFormData] = useState({
@@ -69,6 +72,46 @@ const BookingPage = () => {
   useEffect(() => {
     fetchVendorAndService();
   }, [vendorId, serviceId]);
+
+  // Handle reschedule and reorder state from navigation
+  useEffect(() => {
+    if (location.state?.isReschedule && location.state?.bookingData) {
+      setIsReschedule(true);
+      setBookingId(location.state.bookingId);
+      const bookingData = location.state.bookingData;
+      
+      // Pre-fill form with booking data
+      setFormData({
+        customerName: bookingData.customerName || '',
+        customerEmail: bookingData.customerEmail || '',
+        customerPhone: bookingData.customerPhone || '',
+        selectedDate: bookingData.selectedDate || '',
+        selectedTime: bookingData.selectedTime || '',
+        notes: bookingData.notes || ''
+      });
+      
+      // Set selected date and time if available
+      if (bookingData.selectedDate) {
+        const dateObj = new Date(bookingData.selectedDate);
+        setSelectedDateObj(dateObj);
+      }
+      if (bookingData.selectedTime) {
+        // Find and set the matching slot
+        // This will be handled when slots are loaded
+      }
+    } else if (location.state?.isReorder && location.state?.bookingData) {
+      // Pre-fill form with customer data for reorder (no date/time pre-filled)
+      const bookingData = location.state.bookingData;
+      setFormData({
+        customerName: bookingData.customerName || '',
+        customerEmail: bookingData.customerEmail || '',
+        customerPhone: bookingData.customerPhone || '',
+        selectedDate: '',
+        selectedTime: '',
+        notes: bookingData.notes || ''
+      });
+    }
+  }, [location.state]);
 
   const formatDateKey = (date) => date.toISOString().split('T')[0];
 
@@ -295,24 +338,45 @@ const BookingPage = () => {
         bookingDate: formData.selectedDate,
         bookingTime: formData.selectedTime,
         notes: formData.notes,
-        status: 'pending',
         price: calculatePrice(),
         // Store service pricing information for proper display
         servicePriceType: service.priceType,
         servicePrice: service.price,
         servicePriceRange: service.priceRange,
-        createdAt: new Date(),
         updatedAt: new Date()
       };
-      
-      const docRef = await addDoc(collection(db, 'bookings'), bookingData);
-      
-      toast.success(t('bookingForm.requestSuccess'));
-      navigate(`/booking-success/${vendorId}?bookingId=${docRef.id}`);
+
+      if (isReschedule && bookingId) {
+        // Update existing booking for reschedule
+        const bookingRef = doc(db, 'bookings', bookingId);
+        await updateDoc(bookingRef, {
+          ...bookingData,
+          status: 'pending', // Reset to pending when rescheduled
+          rescheduledAt: new Date()
+        });
+        
+        toast.success('Booking rescheduled successfully!');
+        // Navigate back to bookings page - it will use email from localStorage
+        // Extract language from current URL path
+        const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+        navigate(`/${pathLang}/bookings`);
+      } else {
+        // Create new booking
+        const newBookingData = {
+          ...bookingData,
+          status: 'pending',
+          createdAt: new Date()
+        };
+        
+        const docRef = await addDoc(collection(db, 'bookings'), newBookingData);
+        
+        toast.success(t('bookingForm.requestSuccess'));
+        navigate(`/booking-success/${vendorId}?bookingId=${docRef.id}`);
+      }
       
     } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error(t('bookingForm.requestFailed'));
+      console.error('Error saving booking:', error);
+      toast.error(isReschedule ? 'Failed to reschedule booking' : t('bookingForm.requestFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -353,8 +417,16 @@ const BookingPage = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 min-w-0 text-center">
-              <h1 className="text-lg font-bold text-gray-900 truncate">{t('bookingForm.title')}</h1>
+              <h1 className="text-lg font-bold text-gray-900 truncate">
+                {isReschedule ? 'Reschedule Booking' : location.state?.isReorder ? 'Reorder Service' : t('bookingForm.title')}
+              </h1>
               <p className="text-xs text-gray-500 truncate">{service.name?.en || service.name}</p>
+              {isReschedule && (
+                <p className="text-xs text-blue-600 mt-1">Select a new date and time</p>
+              )}
+              {location.state?.isReorder && (
+                <p className="text-xs text-blue-600 mt-1">Book this service again</p>
+              )}
             </div>
             <Button 
               variant="outline" 
