@@ -138,7 +138,8 @@ const BookingPage = () => {
       
       if (!serviceSnap.exists()) {
         toast.error(t('bookingForm.serviceNotFoundTitle'));
-        navigate(`/vendor/${vendorId}`);
+        const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+        navigate(`/${pathLang}/vendor/${vendorId}`);
         return;
       }
       
@@ -371,7 +372,8 @@ const BookingPage = () => {
         const docRef = await addDoc(collection(db, 'bookings'), newBookingData);
         
         toast.success(t('bookingForm.requestSuccess'));
-        navigate(`/booking-success/${vendorId}?bookingId=${docRef.id}`);
+        const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+        navigate(`/${pathLang}/booking-success/${vendorId}?bookingId=${docRef.id}`);
       }
       
     } catch (error) {
@@ -396,7 +398,10 @@ const BookingPage = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('bookingForm.serviceNotFoundTitle')}</h2>
           <p className="text-gray-600 mb-6">{t('bookingForm.serviceNotFoundDescription')}</p>
-          <Button onClick={() => navigate(`/vendor/${vendorId}`)}>{t('bookingForm.backToVendor')}</Button>
+          <Button onClick={() => {
+            const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+            navigate(`/${pathLang}/vendor/${vendorId}`);
+          }}>{t('bookingForm.backToVendor')}</Button>
         </div>
       </div>
     );
@@ -411,7 +416,10 @@ const BookingPage = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate(`/vendor/${vendorId}`)}
+              onClick={() => {
+                const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+                navigate(`/${pathLang}/vendor/${vendorId}`);
+              }}
               className="flex-shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -431,7 +439,10 @@ const BookingPage = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/bookings')}
+              onClick={() => {
+                const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+                navigate(`/${pathLang}/bookings`);
+              }}
               className="flex-shrink-0"
             >
               <Calendar className="h-4 w-4" />
@@ -440,17 +451,25 @@ const BookingPage = () => {
         </div>
       </div>
 
-      {/* Cover Image - Smaller on Mobile */}
-      {vendor?.coverImageUrl && (
-        <div className="w-full h-32 sm:h-48 lg:h-64 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
-          <img 
-            src={vendor.coverImageUrl} 
-            alt="Cover" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        </div>
-      )}
+      {/* Cover Image - Always show for consistent layout */}
+      <div className="w-full h-32 sm:h-48 lg:h-64 bg-gradient-to-r from-blue-500 to-purple-600 relative overflow-hidden">
+        {vendor?.coverImageUrl ? (
+          <>
+            <img 
+              src={vendor.coverImageUrl} 
+              alt={vendor.businessName || "Cover"} 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-white text-2xl font-bold opacity-50">
+              {vendor?.businessName?.charAt(0) || 'S'}
+            </span>
+          </div>
+        )}
+      </div>
       
       <div className="max-w-4xl mx-auto px-4 py-4 lg:py-6">
         {/* Mobile: Booking Form First, Desktop: Side by Side */}
