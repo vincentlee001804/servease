@@ -506,14 +506,14 @@ const VendorPageFirebase = () => {
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-md transition-shadow border border-gray-100 shadow-sm">
                     <CardContent className="p-4 sm:p-5">
-                      <div className="flex items-start gap-4 flex-wrap">
-                        <div className="flex-1 space-y-2 min-w-[60%]">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <CardTitle className="text-lg font-semibold text-gray-900">
+                      <div className="flex justify-between items-center gap-4">
+                        <div className="flex-1 pr-4 space-y-2 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-semibold text-gray-900 truncate">
                               {getTranslatedText(service.name, service.name)}
                             </CardTitle>
                           {service.category && (
-                            <span className="px-3 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium uppercase tracking-wide">
+                            <span className="px-3 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium uppercase tracking-wide flex-shrink-0">
                               {service.category}
                               </span>
                             )}
@@ -527,17 +527,17 @@ const VendorPageFirebase = () => {
                           )}
                           <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{service.duration || 0} {t('vendorPage.minutes')}</span>
+                              <Clock className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{service.duration || 0} {t('vendorPage.minutes')}</span>
                             </div>
-                            <span className="text-blue-600 font-semibold">
+                            <span className="text-blue-600 font-semibold truncate">
                               {getPriceLabel(service)}
                             </span>
                           </div>
                         </div>
                         <Button 
                           onClick={() => handleBookService(service.id)}
-                          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 h-10 rounded-lg text-sm font-semibold flex-shrink-0"
+                          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0"
                         >
                           <BookOpen className="w-4 h-4 mr-2" />
                           {t('vendorPage.bookNow')}
