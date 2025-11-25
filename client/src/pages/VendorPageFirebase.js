@@ -505,11 +505,12 @@ const VendorPageFirebase = () => {
               <div className="grid gap-4">
                 {filteredServices.map((service) => (
                   <Card key={service.id} className="hover:shadow-md transition-shadow border border-gray-100 shadow-sm">
-                    <CardContent className="p-4 sm:p-5">
-                      <div className="flex justify-between items-center gap-4">
-                        <div className="flex-1 pr-4 space-y-2 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                    <CardContent className="p-4 md:p-6">
+                      <div className="flex justify-between items-stretch w-full gap-4">
+                        {/* Left Column: Service Info */}
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CardTitle className="text-lg font-semibold text-gray-900">
                               {getTranslatedText(service.name, service.name)}
                             </CardTitle>
                           {service.category && (
@@ -525,23 +526,24 @@ const VendorPageFirebase = () => {
                               {getTranslatedText(service.description, service.description)}
                             </p>
                           )}
-                          <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate">{service.duration || 0} {t('vendorPage.minutes')}</span>
-                            </div>
-                            <span className="text-blue-600 font-semibold truncate">
-                              {getPriceLabel(service)}
-                            </span>
+                          <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <Clock className="w-4 h-4 flex-shrink-0" />
+                            <span>{service.duration || 0} {t('vendorPage.minutes')}</span>
                           </div>
                         </div>
-                        <Button 
-                          onClick={() => handleBookService(service.id)}
-                          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0"
-                        >
-                          <BookOpen className="w-4 h-4 mr-2" />
-                          {t('vendorPage.bookNow')}
-                        </Button>
+                        {/* Right Column: Price and Button */}
+                        <div className="flex flex-col items-end justify-between flex-shrink-0">
+                          <span className="text-blue-600 font-semibold text-right whitespace-nowrap">
+                            {getPriceLabel(service)}
+                          </span>
+                          <Button 
+                            onClick={() => handleBookService(service.id)}
+                            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap"
+                          >
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            {t('vendorPage.bookNow')}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

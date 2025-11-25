@@ -33,7 +33,7 @@
     "notes": "Nota (Pilihan)",
     "totalPrice": "Jumlah Harga",
     "duration": "Tempoh",
-    "bookNow": "Tempah Sekarang",
+    "bookNow": "Tempah",
     "bookingSuccess": "Tempahan Berjaya!",
     "confirmationCode": "Kod Pengesahan"
   },
@@ -125,7 +125,7 @@
     "features": "Ciri-ciri:",
     "minutes": "min",
     "maxPeople": "Maksimum {{count}} orang",
-    "bookNow": "Tempah Sekarang",
+    "bookNow": "Tempah",
     "priceExact": "RM {{price}}",
     "priceFrom": "Daripada RM {{price}}",
     "priceRange": "RM {{min}} - RM {{max}}",
