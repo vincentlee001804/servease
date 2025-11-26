@@ -24,7 +24,7 @@ import {
   Upload,
   Camera
 } from 'lucide-react';
-import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase-config';
 import { toast } from 'react-toastify';
@@ -79,6 +79,8 @@ const VendorDashboardFirebase = () => {
   const [saving, setSaving] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [hasFetchedData, setHasFetchedData] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isFetchingRef = useRef(false);
 
   // Format booking price using booking's stored pricing when available,
@@ -681,6 +683,39 @@ const VendorDashboardFirebase = () => {
     } catch (error) {
       console.error('Error deleting service:', error);
       toast.error(t('dashboard.serviceDeleteFailed'));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const vendorRef = doc(db, 'vendors', user.uid);
+      
+      // Delete all services for this vendor
+      const servicesQuery = query(
+        collection(db, 'services'),
+        where('vendorId', '==', user.uid)
+      );
+      const servicesSnapshot = await getDocs(servicesQuery);
+      const deleteServicePromises = servicesSnapshot.docs.map(serviceDoc => 
+        deleteDoc(doc(db, 'services', serviceDoc.id))
+      );
+      await Promise.all(deleteServicePromises);
+      
+      // Delete the vendor document
+      await deleteDoc(vendorRef);
+      
+      toast.success('Business profile deleted successfully');
+      
+      // Sign out and redirect to home
+      // Note: We'll use window.location since auth context might be cleared
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -1354,6 +1389,25 @@ const VendorDashboardFirebase = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Danger Zone - Delete Account */}
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
+                        <h4 className="text-red-700 font-bold text-lg mb-2">Delete Business Profile</h4>
+                        <p className="text-red-600 text-sm mb-4">
+                          Permanently remove your business, services, and booking history from ServEase. This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Account
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1719,6 +1773,71 @@ const VendorDashboardFirebase = () => {
               setEditingService(null);
             }}
           />
+        )}
+
+        {/* Delete Account Confirmation Modal */}
+        {showDeleteConfirm && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              onClick={() => !deleting && setShowDeleteConfirm(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Delete Business Profile</h3>
+                    <p className="text-sm text-gray-500">This action cannot be undone</p>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <p className="text-gray-700 mb-2">
+                    Are you sure you want to permanently delete your business profile?
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    This will remove:
+                  </p>
+                  <ul className="text-sm text-gray-600 mt-2 ml-4 list-disc">
+                    <li>Your business profile and all information</li>
+                    <li>All your services</li>
+                    <li>All booking history</li>
+                    <li>Your QR code and booking links</li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleting}
+                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        Delete Account
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
