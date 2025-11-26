@@ -16,14 +16,10 @@ const BookingStatus = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    // Pre-fill email from localStorage if available (for convenience only)
-    // But DO NOT auto-search - always show the lookup screen first
-    const savedEmail = localStorage.getItem('customerEmail');
-    if (savedEmail) {
-      setCustomerEmail(savedEmail);
-      // Explicitly do NOT call fetchBookings here
-      // User must click "View My Bookings" to search
-    }
+    // Always start with empty email field
+    // Do NOT pre-fill from localStorage to ensure users enter their own email
+    // User must explicitly enter their email and click "View My Bookings"
+    setCustomerEmail('');
   }, []);
 
   const fetchBookings = async (email) => {
