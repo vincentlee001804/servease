@@ -284,7 +284,9 @@
     "emailRequired": "Email is required",
     "emailInvalid": "Email is invalid",
     "passwordRequired": "Password is required",
-    "enterValidEmailToReset": "Enter a valid email to reset password"
+    "enterValidEmailToReset": "Enter a valid email to reset password",
+    "continueWithGoogle": "Continue with Google",
+    "orContinueWithEmail": "or continue with email"
   },
   "aiMarketing": {
     "title": "AI Personalized Marketing",

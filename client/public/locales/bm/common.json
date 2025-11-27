@@ -284,7 +284,9 @@
     "emailRequired": "Emel diperlukan",
     "emailInvalid": "Emel tidak sah",
     "passwordRequired": "Kata laluan diperlukan",
-    "enterValidEmailToReset": "Masukkan emel yang sah untuk menetapkan semula kata laluan"
+    "enterValidEmailToReset": "Masukkan emel yang sah untuk menetapkan semula kata laluan",
+    "continueWithGoogle": "Teruskan dengan Google",
+    "orContinueWithEmail": "atau teruskan dengan emel"
   },
   "aiMarketing": {
     "title": "Pemasaran AI Peribadi",

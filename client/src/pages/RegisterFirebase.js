@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
@@ -28,8 +28,9 @@ const RegisterFirebase = () => {
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [errors, setErrors] = useState({});
   const [slideDirection, setSlideDirection] = useState('forward');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { register } = useAuth();
+  const { register, signInWithGoogle, user, isLoggingIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
@@ -52,6 +53,13 @@ const RegisterFirebase = () => {
     { number: 2, title: 'Business', fields: ['businessName', 'businessType', 'phone'] },
     { number: 3, title: 'Address', fields: ['address.street', 'address.city', 'address.state', 'address.postalCode'] }
   ];
+
+  useEffect(() => {
+    if (user && !isLoggingIn) {
+      const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+      navigate(`/${lang}/dashboard`, { replace: true });
+    }
+  }, [user, isLoggingIn, navigate, pathLang]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -231,6 +239,20 @@ const RegisterFirebase = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!signInWithGoogle) return;
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result?.success) {
+        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+        navigate(`/${lang}/dashboard`, { replace: true });
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
@@ -300,6 +322,25 @@ const RegisterFirebase = () => {
                     : 'opacity-0 translate-x-full z-0 pointer-events-none'
               }`}>
                 <div className="space-y-4">
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={googleLoading}
+                      className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
+                        G
+                      </span>
+                      {googleLoading ? 'Connecting...' : 'Sign up with Google'}
+                    </button>
+                    <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
+                      <span className="h-px flex-1 bg-gray-200"></span>
+                      <span>Or create with email</span>
+                      <span className="h-px flex-1 bg-gray-200"></span>
+                    </div>
+                  </div>
+
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address

@@ -11,10 +11,11 @@ const LoginFirebase = () => {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const { login, user, isLoggingIn, resetPassword } = useAuth();
+  const { login, user, isLoggingIn, resetPassword, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
@@ -129,6 +130,20 @@ const LoginFirebase = () => {
     await resetPassword(formData.email);
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!signInWithGoogle) return;
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result?.success) {
+        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+        navigate(`/${lang}/dashboard`, { replace: true });
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -146,6 +161,25 @@ const LoginFirebase = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Google Sign-In */}
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+            >
+              <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
+                G
+              </span>
+              {googleLoading ? t('login.signingIn') : t('login.continueWithGoogle')}
+            </button>
+
+            <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
+              <span className="h-px flex-1 bg-gray-200"></span>
+              <span>{t('login.orContinueWithEmail')}</span>
+              <span className="h-px flex-1 bg-gray-200"></span>
+            </div>
+
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">

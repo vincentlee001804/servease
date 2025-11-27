@@ -5,13 +5,68 @@ import {
   signOut, 
   onAuthStateChanged,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+const getDefaultOperatingHours = () => ({
+  monday: { open: '09:00', close: '17:00', isOpen: true },
+  tuesday: { open: '09:00', close: '17:00', isOpen: true },
+  wednesday: { open: '09:00', close: '17:00', isOpen: true },
+  thursday: { open: '09:00', close: '17:00', isOpen: true },
+  friday: { open: '09:00', close: '17:00', isOpen: true },
+  saturday: { open: '09:00', close: '17:00', isOpen: true },
+  sunday: { open: '09:00', close: '17:00', isOpen: false }
+});
+
+const ensureUserRecord = async (firebaseUser) => {
+  const userRef = doc(db, 'users', firebaseUser.uid);
+  const existingUser = await getDoc(userRef);
+  if (!existingUser.exists()) {
+    await setDoc(userRef, {
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName || '',
+      role: 'vendor',
+      createdAt: new Date()
+    });
+  }
+};
+
+const ensureVendorProfile = async (firebaseUser) => {
+  const vendorRef = doc(db, 'vendors', firebaseUser.uid);
+  const existingVendor = await getDoc(vendorRef);
+  if (!existingVendor.exists()) {
+    await setDoc(vendorRef, {
+      email: firebaseUser.email,
+      businessName: firebaseUser.displayName || 'My Business',
+      contactInfo: {
+        phone: '',
+        email: firebaseUser.email
+      },
+      businessInfo: {
+        type: '',
+        description: '',
+        address: ''
+      },
+      operatingHours: getDefaultOperatingHours(),
+      services: [],
+      qrCode: {
+        code: '',
+        shortUrl: '',
+        qrImage: ''
+      },
+      createdAt: new Date()
+    });
+  }
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -125,15 +180,7 @@ export const AuthProvider = ({ children }) => {
           description: '',
           address: address ? `${address.street || ''}, ${address.city || ''}, ${address.state || ''} ${address.postalCode || ''}`.trim() : ''
         },
-        operatingHours: {
-          monday: { open: '09:00', close: '17:00', isOpen: true },
-          tuesday: { open: '09:00', close: '17:00', isOpen: true },
-          wednesday: { open: '09:00', close: '17:00', isOpen: true },
-          thursday: { open: '09:00', close: '17:00', isOpen: true },
-          friday: { open: '09:00', close: '17:00', isOpen: true },
-          saturday: { open: '09:00', close: '17:00', isOpen: true },
-          sunday: { open: '09:00', close: '17:00', isOpen: false }
-        },
+        operatingHours: getDefaultOperatingHours(),
         services: [],
         qrCode: {
           code: '',
@@ -161,6 +208,28 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         message: errorMessage
+      };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoggingIn(true);
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+
+      await ensureUserRecord(firebaseUser);
+      await ensureVendorProfile(firebaseUser);
+
+      toast.success('Login successful!');
+      return { success: true };
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Google sign-in failed');
+      setIsLoggingIn(false);
+      return {
+        success: false,
+        message: 'Google sign-in failed'
       };
     }
   };
@@ -239,6 +308,7 @@ export const AuthProvider = ({ children }) => {
     isLoggingIn,
     login,
     register,
+    signInWithGoogle,
     logout,
     resetPassword,
     isAuthenticated: !!user
