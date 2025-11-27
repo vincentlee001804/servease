@@ -3,8 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../config/firebase-config';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 import { Eye, EyeOff, Mail, Lock, Building, Phone, MapPin, ChevronRight, CheckCircle } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const RegisterFirebase = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -29,6 +30,8 @@ const RegisterFirebase = () => {
   const [errors, setErrors] = useState({});
   const [slideDirection, setSlideDirection] = useState('forward');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [isGoogleSignup, setIsGoogleSignup] = useState(false);
+  const [suppressRedirect, setSuppressRedirect] = useState(false);
 
   const { register, signInWithGoogle, user, isLoggingIn } = useAuth();
   const navigate = useNavigate();
@@ -54,12 +57,19 @@ const RegisterFirebase = () => {
     { number: 3, title: 'Address', fields: ['address.street', 'address.city', 'address.state', 'address.postalCode'] }
   ];
 
-  useEffect(() => {
-    if (user && !isLoggingIn) {
-      const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
-      navigate(`/${lang}/dashboard`, { replace: true });
+useEffect(() => {
+  if (user && !isLoggingIn) {
+    if (suppressRedirect) {
+      setFormData(prev => ({
+        ...prev,
+        email: prev.email || user.email || ''
+      }));
+      return;
     }
-  }, [user, isLoggingIn, navigate, pathLang]);
+    const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+    navigate(`/${lang}/dashboard`, { replace: true });
+  }
+}, [user, isLoggingIn, navigate, pathLang, suppressRedirect]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,6 +111,9 @@ const RegisterFirebase = () => {
     const newErrors = {};
 
     if (step === 1) {
+      if (isGoogleSignup) {
+        return true;
+      }
       if (!formData.email) {
         newErrors.email = 'Email is required';
       } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -138,14 +151,17 @@ const RegisterFirebase = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = async () => {
+  const handleNext = async (event) => {
+    if (event) {
+      event.preventDefault();
+    }
     // Validate current step first
     if (!validateStep(currentStep)) {
       return;
     }
 
     // If on Step 1, check if email is already registered (Firestore first, then Auth as fallback)
-    if (currentStep === 1) {
+    if (currentStep === 1 && !isGoogleSignup) {
       const trimmedEmail = formData.email?.trim();
       if (!trimmedEmail) return;
 
@@ -201,6 +217,12 @@ const RegisterFirebase = () => {
       }
     }
 
+    if (isGoogleSignup && currentStep === 2) {
+      setSlideDirection('forward');
+      setCurrentStep(3);
+      return;
+    }
+
     // Proceed to next step only if email check passed (or not on step 1)
     setSlideDirection('forward');
     setCurrentStep(prev => Math.min(prev + 1, 3));
@@ -215,6 +237,77 @@ const RegisterFirebase = () => {
     e.preventDefault();
     
     if (!validateStep(3)) {
+      return;
+    }
+
+    if (isGoogleSignup) {
+      if (!user) {
+        toast.error('Please sign in with Google again to continue.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const addressParts = [
+          formData.address.street,
+          formData.address.city,
+          formData.address.state
+        ].filter(Boolean);
+        const formattedAddress = [
+          addressParts.join(', '),
+          formData.address.postalCode
+        ].filter(Boolean).join(' ');
+
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          businessName: formData.businessName,
+          businessType: formData.businessType,
+          phone: formData.phone,
+          address: formData.address,
+          role: 'vendor',
+          updatedAt: new Date()
+        }, { merge: true });
+
+        await setDoc(doc(db, 'vendors', user.uid), {
+          email: user.email,
+          businessName: formData.businessName,
+          contactInfo: {
+            phone: formData.phone || '',
+            email: user.email
+          },
+          businessInfo: {
+            type: formData.businessType || '',
+            description: '',
+            address: formattedAddress
+          },
+          operatingHours: {
+            monday: { open: '09:00', close: '17:00', isOpen: true },
+            tuesday: { open: '09:00', close: '17:00', isOpen: true },
+            wednesday: { open: '09:00', close: '17:00', isOpen: true },
+            thursday: { open: '09:00', close: '17:00', isOpen: true },
+            friday: { open: '09:00', close: '17:00', isOpen: true },
+            saturday: { open: '09:00', close: '17:00', isOpen: true },
+            sunday: { open: '09:00', close: '17:00', isOpen: false }
+          },
+          updatedAt: new Date()
+        }, { merge: true });
+
+        toast.success('Profile information saved!');
+        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
+        setSuppressRedirect(false);
+        setIsGoogleSignup(false);
+        navigate(`/${lang}/dashboard`, { replace: true });
+        setTimeout(() => {
+          if (!window.location.pathname.endsWith('/dashboard')) {
+            window.location.replace(`/${lang}/dashboard`);
+          }
+        }, 200);
+      } catch (error) {
+        console.error('Error saving Google signup details:', error);
+        toast.error('Unable to save your profile. Please try again.');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -242,12 +335,26 @@ const RegisterFirebase = () => {
   const handleGoogleSignIn = async () => {
     if (!signInWithGoogle) return;
     setGoogleLoading(true);
+    setSuppressRedirect(true);
     try {
       const result = await signInWithGoogle();
       if (result?.success) {
-        const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
-        navigate(`/${lang}/dashboard`, { replace: true });
+        setIsGoogleSignup(true);
+        setFormData(prev => ({
+          ...prev,
+          email: result.user?.email || prev.email,
+          password: '',
+          confirmPassword: ''
+        }));
+        setSlideDirection('forward');
+        setCurrentStep(2);
+      } else {
+        setSuppressRedirect(false);
       }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Google sign-in failed. Please try again.');
+      setSuppressRedirect(false);
     } finally {
       setGoogleLoading(false);
     }
@@ -312,7 +419,7 @@ const RegisterFirebase = () => {
 
           {/* Form with Slide Animation */}
           <form onSubmit={handleSubmit} className="relative flex flex-col flex-1">
-            <div className="relative min-h-[300px] overflow-hidden flex-1">
+            <div className="relative min-h-[420px] overflow-hidden flex-1">
               {/* Step 1: Account */}
               <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
                 currentStep === 1 
@@ -321,7 +428,7 @@ const RegisterFirebase = () => {
                     ? 'opacity-0 -translate-x-full z-0 pointer-events-none' 
                     : 'opacity-0 translate-x-full z-0 pointer-events-none'
               }`}>
-                <div className="space-y-4">
+                <div className="space-y-5 pb-6">
                   <div className="space-y-3">
                     <button
                       type="button"
@@ -341,6 +448,12 @@ const RegisterFirebase = () => {
                     </div>
                   </div>
 
+                  {isGoogleSignup && (
+                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                      Signed in with Google as <span className="font-semibold">{formData.email}</span>
+                    </div>
+                  )}
+
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address
@@ -356,7 +469,7 @@ const RegisterFirebase = () => {
                         autoComplete="email"
                         value={formData.email}
                         onChange={handleChange}
-                        disabled={checkingEmail}
+                        disabled={checkingEmail || isGoogleSignup}
                         className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
                           errors.email ? 'border-red-300' : 'border-gray-300'
                         }`}
@@ -371,6 +484,7 @@ const RegisterFirebase = () => {
                     {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                   </div>
 
+                  {!isGoogleSignup && (
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                       Password
@@ -405,7 +519,9 @@ const RegisterFirebase = () => {
                     </div>
                     {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                   </div>
+                  )}
 
+                  {!isGoogleSignup && (
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                       Confirm Password
@@ -440,6 +556,7 @@ const RegisterFirebase = () => {
                     </div>
                     {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
                   </div>
+                  )}
                 </div>
               </div>
 

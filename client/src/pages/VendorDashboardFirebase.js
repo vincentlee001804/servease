@@ -26,11 +26,12 @@ import {
 } from 'lucide-react';
 import { doc, getDoc, updateDoc, setDoc, collection, addDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebase-config';
+import { db, storage, auth } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';
 import AIMarketingTool from '../components/AIMarketingTool';
+import { deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, GoogleAuthProvider, EmailAuthProvider } from 'firebase/auth';
 
 const VendorDashboardFirebase = () => {
   const { user, isAuthenticated } = useAuth();
@@ -690,29 +691,48 @@ const VendorDashboardFirebase = () => {
     setDeleting(true);
     try {
       const vendorRef = doc(db, 'vendors', user.uid);
-      
+      const userRef = doc(db, 'users', user.uid);
+
+      // Delete all bookings for this vendor
+      const bookingsQuery = query(
+        collection(db, 'bookings'),
+        where('vendorId', '==', user.uid)
+      );
+      const bookingsSnapshot = await getDocs(bookingsQuery);
+      const deleteBookingsPromises = bookingsSnapshot.docs.map((bookingDoc) =>
+        deleteDoc(doc(db, 'bookings', bookingDoc.id))
+      );
+
       // Delete all services for this vendor
       const servicesQuery = query(
         collection(db, 'services'),
         where('vendorId', '==', user.uid)
       );
       const servicesSnapshot = await getDocs(servicesQuery);
-      const deleteServicePromises = servicesSnapshot.docs.map(serviceDoc => 
+      const deleteServicePromises = servicesSnapshot.docs.map((serviceDoc) =>
         deleteDoc(doc(db, 'services', serviceDoc.id))
       );
-      await Promise.all(deleteServicePromises);
-      
-      // Delete the vendor document
-      await deleteDoc(vendorRef);
-      
+
+      await Promise.all([...deleteBookingsPromises, ...deleteServicePromises]);
+
+      // Delete vendor and user documents
+      await Promise.all([deleteDoc(vendorRef), deleteDoc(userRef)]);
+
+      // Delete Firebase Auth user
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        await deleteUser(currentUser);
+      }
+
       toast.success('Business profile deleted successfully');
-      
-      // Sign out and redirect to home
-      // Note: We'll use window.location since auth context might be cleared
       window.location.href = '/';
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account. Please try again.');
+      if (error.code === 'auth/requires-recent-login') {
+        toast.error('Please re-authenticate and try deleting again.');
+      } else {
+        toast.error('Failed to delete account. Please try again.');
+      }
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);

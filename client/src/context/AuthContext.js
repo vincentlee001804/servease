@@ -222,7 +222,7 @@ export const AuthProvider = ({ children }) => {
       await ensureVendorProfile(firebaseUser);
 
       toast.success('Login successful!');
-      return { success: true };
+      return { success: true, user: firebaseUser };
     } catch (error) {
       console.error('Google sign-in error:', error);
       toast.error('Google sign-in failed');
