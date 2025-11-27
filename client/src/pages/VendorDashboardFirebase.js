@@ -51,6 +51,23 @@ const VendorDashboardFirebase = () => {
     return t(`dashboard.${dayKey}`);
   };
 
+  // Helper function to format phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phone) => {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    const digitsOnly = phone.replace(/\D/g, '');
+    // If starts with 0, remove it and add 60 (Malaysia country code)
+    if (digitsOnly.startsWith('0')) {
+      return `60${digitsOnly.substring(1)}`;
+    }
+    // If already starts with 60, keep it as is
+    if (digitsOnly.startsWith('60')) {
+      return digitsOnly;
+    }
+    // Otherwise, assume it's a local number and add 60
+    return `60${digitsOnly}`;
+  };
+
   // Helper function to get translated text (for vendor content like service names/descriptions)
   const getTranslatedText = (textObj, fallback = '') => {
     if (typeof textObj === 'string') return textObj;
@@ -203,14 +220,83 @@ const VendorDashboardFirebase = () => {
           return bookingDate && bookingDate >= today && bookingDate < tomorrow;
         });
 
-        // Get recent bookings (all bookings, sorted by creation date, most recent first)
-        const recentBookings = bookings
-          .sort((a, b) => {
-            const dateA = a.createdAt?.toDate() || new Date(0);
-            const dateB = b.createdAt?.toDate() || new Date(0);
-            return dateB - dateA;
-          })
-          .slice(0, 10); // Show last 10 bookings
+        // Get recent bookings sorted by status priority and booking date
+        // Priority: Successful (confirmed/completed) -> Pending -> Cancelled
+        const getBookingDateTime = (booking) => {
+          // Try to get booking date and time
+          let bookingDateTime;
+          
+          if (booking.bookingDate) {
+            if (booking.bookingDate instanceof Date) {
+              bookingDateTime = new Date(booking.bookingDate);
+            } else if (booking.bookingDate.toDate) {
+              // Firestore Timestamp
+              bookingDateTime = booking.bookingDate.toDate();
+            } else {
+              // String date
+              bookingDateTime = new Date(booking.bookingDate);
+            }
+            
+            // Combine with booking time if available
+            if (booking.bookingTime) {
+              const [hours, minutes] = booking.bookingTime.split(':');
+              if (hours && minutes) {
+                bookingDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+              }
+            } else {
+              bookingDateTime.setHours(0, 0, 0, 0);
+            }
+          } else {
+            // Fallback to createdAt if no bookingDate
+            bookingDateTime = booking.createdAt?.toDate?.() || new Date(booking.createdAt || 0);
+          }
+          
+          return bookingDateTime;
+        };
+
+        // Separate bookings by status
+        const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
+        const completedBookings = bookings.filter(b => b.status === 'completed');
+        const pendingBookingsList = bookings.filter(b => b.status === 'pending');
+        const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
+
+        // Sort confirmed bookings by booking date (nearest first - ascending)
+        // Example: Today is Nov 28, Nov 29 comes first, then Nov 30, etc.
+        confirmedBookings.sort((a, b) => {
+          const dateA = getBookingDateTime(a);
+          const dateB = getBookingDateTime(b);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        // Sort completed bookings by booking date (most recent first - descending)
+        // Completed bookings are in the past, so show most recent first
+        completedBookings.sort((a, b) => {
+          const dateA = getBookingDateTime(a);
+          const dateB = getBookingDateTime(b);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Sort pending bookings by booking date (nearest first - ascending)
+        pendingBookingsList.sort((a, b) => {
+          const dateA = getBookingDateTime(a);
+          const dateB = getBookingDateTime(b);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        // Sort cancelled bookings by booking date (most recent first - descending)
+        cancelledBookings.sort((a, b) => {
+          const dateA = getBookingDateTime(a);
+          const dateB = getBookingDateTime(b);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        // Combine: Confirmed (nearest first) -> Pending (nearest first) -> Completed (most recent first) -> Cancelled (most recent first)
+        const recentBookings = [
+          ...confirmedBookings,
+          ...pendingBookingsList,
+          ...completedBookings,
+          ...cancelledBookings
+        ].slice(0, 50); // Show up to 50 bookings
 
         const dashboardData = {
           vendor: {
@@ -1259,7 +1345,7 @@ const VendorDashboardFirebase = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.description')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('dashboard.bio')}</label>
                       <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
@@ -1385,7 +1471,7 @@ const VendorDashboardFirebase = () => {
                       <p className="text-lg text-gray-900">{dashboardData?.vendor?.address || t('dashboard.notSet')}</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500">{t('dashboard.description')}</p>
+                      <p className="text-sm font-medium text-gray-500">{t('dashboard.bio')}</p>
                       <p className="text-lg text-gray-900">{dashboardData?.vendor?.description || t('dashboard.notSet')}</p>
                     </div>
                     {dashboardData?.vendor?.operatingHours && (
@@ -1593,7 +1679,12 @@ const VendorDashboardFirebase = () => {
                               {booking.customerPhone && (
                                 <div className="flex items-center">
                                   <Phone className="h-4 w-4 mr-2" />
-                                  <a href={`tel:${booking.customerPhone}`} className="text-blue-600 hover:text-blue-800">
+                                  <a 
+                                    href={`https://wa.me/${formatPhoneForWhatsApp(booking.customerPhone)}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
                                     {booking.customerPhone}
                                   </a>
                                 </div>

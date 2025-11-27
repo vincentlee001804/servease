@@ -212,6 +212,7 @@
     "email": "电子邮件",
     "address": "地址",
     "description": "描述",
+    "bio": "简介",
     "operatingHours": "营业时间",
     "coverImage": "封面图片",
     "profileImage": "头像图片",
