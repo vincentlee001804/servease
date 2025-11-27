@@ -4,8 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../config/firebase-config';
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
-import { Eye, EyeOff, Mail, Lock, Building, Phone, MapPin, ChevronRight, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Building, Phone, MapPin, Clock, ChevronRight, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
+
+const getDefaultOperatingHours = () => ({
+  monday: { open: '09:00', close: '18:00', isOpen: true },
+  tuesday: { open: '09:00', close: '18:00', isOpen: true },
+  wednesday: { open: '09:00', close: '18:00', isOpen: true },
+  thursday: { open: '09:00', close: '18:00', isOpen: true },
+  friday: { open: '09:00', close: '18:00', isOpen: true },
+  saturday: { open: '09:00', close: '18:00', isOpen: false },
+  sunday: { open: '09:00', close: '18:00', isOpen: false }
+});
 
 const RegisterFirebase = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -16,22 +26,28 @@ const RegisterFirebase = () => {
     businessName: '',
     businessType: '',
     phone: '',
+    operatingNotes: '',
+    businessDescription: '',
+    coverImage: '',
+    profileImage: '',
     address: {
       street: '',
       city: '',
       state: '',
       postalCode: ''
-    }
+    },
+    operatingHours: getDefaultOperatingHours()
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [errors, setErrors] = useState({});
-  const [slideDirection, setSlideDirection] = useState('forward');
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isGoogleSignup, setIsGoogleSignup] = useState(false);
   const [suppressRedirect, setSuppressRedirect] = useState(false);
+  const [coverPreview, setCoverPreview] = useState('');
+  const [profilePreview, setProfilePreview] = useState('');
 
   const { register, signInWithGoogle, user, isLoggingIn } = useAuth();
   const navigate = useNavigate();
@@ -51,10 +67,21 @@ const RegisterFirebase = () => {
     { value: 'other', label: 'Other' }
   ];
 
+  const dayOrder = [
+    { key: 'monday', label: 'Monday' },
+    { key: 'tuesday', label: 'Tuesday' },
+    { key: 'wednesday', label: 'Wednesday' },
+    { key: 'thursday', label: 'Thursday' },
+    { key: 'friday', label: 'Friday' },
+    { key: 'saturday', label: 'Saturday' },
+    { key: 'sunday', label: 'Sunday' },
+  ];
+
   const steps = [
-    { number: 1, title: 'Account', fields: ['email', 'password', 'confirmPassword'] },
-    { number: 2, title: 'Business', fields: ['businessName', 'businessType', 'phone'] },
-    { number: 3, title: 'Address', fields: ['address.street', 'address.city', 'address.state', 'address.postalCode'] }
+    { number: 1, title: 'Account' },
+    { number: 2, title: 'Details' },
+    { number: 3, title: 'Operations' },
+    { number: 4, title: 'Location' }
   ];
 
 useEffect(() => {
@@ -107,6 +134,35 @@ useEffect(() => {
     }
   };
 
+  const handleImageChange = (type, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({
+        ...prev,
+        [type]: reader.result
+      }));
+      if (type === 'coverImage') {
+        setCoverPreview(reader.result?.toString() || '');
+      } else {
+        setProfilePreview(reader.result?.toString() || '');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageRemove = (type) => {
+    setFormData(prev => ({
+      ...prev,
+      [type]: ''
+    }));
+    if (type === 'coverImage') {
+      setCoverPreview('');
+    } else {
+      setProfilePreview('');
+    }
+  };
+
   const validateStep = (step) => {
     const newErrors = {};
 
@@ -114,36 +170,41 @@ useEffect(() => {
       if (isGoogleSignup) {
         return true;
       }
-      if (!formData.email) {
-        newErrors.email = 'Email is required';
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = 'Email is invalid';
-      }
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
 
-      if (!formData.password) {
-        newErrors.password = 'Password is required';
-      } else if (formData.password.length < 6) {
-        newErrors.password = 'Password must be at least 6 characters';
-      }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
 
-      if (!formData.confirmPassword) {
-        newErrors.confirmPassword = 'Please confirm your password';
-      } else if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
     } else if (step === 2) {
-      if (!formData.businessName) {
-        newErrors.businessName = 'Business name is required';
-      }
+    if (!formData.businessName) {
+      newErrors.businessName = 'Business name is required';
+    }
 
-      if (!formData.businessType) {
-        newErrors.businessType = 'Business type is required';
-      }
+    if (!formData.businessType) {
+      newErrors.businessType = 'Business type is required';
+    }
 
-      if (!formData.phone) {
-        newErrors.phone = 'Phone number is required';
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
       }
     } else if (step === 3) {
+      const hasOpenDay = Object.values(formData.operatingHours || {}).some(day => day.isOpen);
+      if (!hasOpenDay) {
+        newErrors.operatingHours = 'Please enable at least one day of operation';
+      }
+    } else if (step === 4) {
       // Address fields are optional, but we can add validation if needed
     }
 
@@ -218,25 +279,22 @@ useEffect(() => {
     }
 
     if (isGoogleSignup && currentStep === 2) {
-      setSlideDirection('forward');
       setCurrentStep(3);
       return;
     }
 
     // Proceed to next step only if email check passed (or not on step 1)
-    setSlideDirection('forward');
-    setCurrentStep(prev => Math.min(prev + 1, 3));
+    setCurrentStep(prev => Math.min(prev + 1, steps.length));
   };
 
   const handleBack = () => {
-    setSlideDirection('backward');
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateStep(3)) {
+    if (!validateStep(4)) {
       return;
     }
 
@@ -263,6 +321,11 @@ useEffect(() => {
           businessName: formData.businessName,
           businessType: formData.businessType,
           phone: formData.phone,
+          operationsNotes: formData.operatingNotes || '',
+          businessDescription: formData.businessDescription || '',
+          coverImage: formData.coverImage || '',
+          profileImage: formData.profileImage || '',
+          operatingHours: formData.operatingHours,
           address: formData.address,
           role: 'vendor',
           updatedAt: new Date()
@@ -277,18 +340,13 @@ useEffect(() => {
           },
           businessInfo: {
             type: formData.businessType || '',
-            description: '',
+            description: formData.businessDescription || '',
             address: formattedAddress
           },
-          operatingHours: {
-            monday: { open: '09:00', close: '17:00', isOpen: true },
-            tuesday: { open: '09:00', close: '17:00', isOpen: true },
-            wednesday: { open: '09:00', close: '17:00', isOpen: true },
-            thursday: { open: '09:00', close: '17:00', isOpen: true },
-            friday: { open: '09:00', close: '17:00', isOpen: true },
-            saturday: { open: '09:00', close: '17:00', isOpen: true },
-            sunday: { open: '09:00', close: '17:00', isOpen: false }
-          },
+          operationsNotes: formData.operatingNotes || '',
+          coverImage: formData.coverImage || '',
+          profileImage: formData.profileImage || '',
+          operatingHours: formData.operatingHours,
           updatedAt: new Date()
         }, { merge: true });
 
@@ -344,9 +402,15 @@ useEffect(() => {
           ...prev,
           email: result.user?.email || prev.email,
           password: '',
-          confirmPassword: ''
+          confirmPassword: '',
+          coverImage: '',
+          profileImage: '',
+          businessDescription: '',
+          operatingNotes: '',
+          operatingHours: getDefaultOperatingHours()
         }));
-        setSlideDirection('forward');
+        setCoverPreview('');
+        setProfilePreview('');
         setCurrentStep(2);
       } else {
         setSuppressRedirect(false);
@@ -360,6 +424,11 @@ useEffect(() => {
     }
   };
 
+
+  const totalSteps = steps.length;
+  const progressPercent = totalSteps > 1
+    ? Math.min(100, Math.max(0, ((currentStep - 1) / (totalSteps - 1)) * 100))
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
@@ -375,116 +444,88 @@ useEffect(() => {
 
           {/* Stepper */}
           <div className="mb-4">
-            <div className="grid grid-cols-3 w-full items-center relative">
-              {/* Background line spanning full width */}
+            <div className="grid grid-cols-4 w-full items-center relative">
               <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-300 z-0">
-                {/* Progress line for completed steps */}
-                <div 
+                <div
                   className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300 z-0"
-                  style={{ 
-                    width: currentStep > 1 
-                      ? currentStep > 2 
-                        ? '100%' 
-                        : '50%' 
-                      : '0%' 
-                  }}
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              
-              {/* Step circles and labels */}
               {steps.map((step) => (
                 <div key={step.number} className="flex flex-col items-center relative z-10">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative z-10 ${
-                    currentStep > step.number
-                      ? 'bg-blue-600 border-blue-600 text-white'
-                      : currentStep === step.number
-                      ? 'bg-blue-600 border-blue-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-400'
-                  }`}>
-                    {currentStep > step.number ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : (
-                      <span className="text-sm font-semibold">{step.number}</span>
-                    )}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                      currentStep >= step.number ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-400'
+                    }`}
+                  >
+                    {currentStep > step.number ? <CheckCircle className="h-5 w-5" /> : <span className="text-sm font-semibold">{step.number}</span>}
                   </div>
-                  <span className={`mt-2 text-xs font-medium text-center mx-auto ${
-                    currentStep >= step.number ? 'text-gray-900' : 'text-gray-400'
-                  }`}>
-                    {step.title}
-                  </span>
+                  <span className={`mt-2 text-xs font-medium ${currentStep >= step.number ? 'text-gray-900' : 'text-gray-400'}`}>{step.title}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Form with Slide Animation */}
-          <form onSubmit={handleSubmit} className="relative flex flex-col flex-1">
-            <div className="relative min-h-[420px] overflow-hidden flex-1">
-              {/* Step 1: Account */}
-              <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
-                currentStep === 1 
-                  ? 'opacity-100 translate-x-0 z-10 pointer-events-auto' 
-                  : slideDirection === 'forward' 
-                    ? 'opacity-0 -translate-x-full z-0 pointer-events-none' 
-                    : 'opacity-0 translate-x-full z-0 pointer-events-none'
-              }`}>
-                <div className="space-y-5 pb-6">
-                  <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      disabled={googleLoading}
-                      className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
-                        G
-                      </span>
-                      {googleLoading ? 'Connecting...' : 'Sign up with Google'}
-                    </button>
-                    <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
-                      <span className="h-px flex-1 bg-gray-200"></span>
-                      <span>Or create with email</span>
-                      <span className="h-px flex-1 bg-gray-200"></span>
-                    </div>
+          {/* Form Content */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {currentStep === 1 && (
+              <div className="space-y-5 pb-2">
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={googleLoading}
+                    className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
+                      G
+                    </span>
+                    {googleLoading ? 'Connecting...' : 'Sign up with Google'}
+                  </button>
+                  <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
+                    <span className="h-px flex-1 bg-gray-200" />
+                    <span>Or create with email</span>
+                    <span className="h-px flex-1 bg-gray-200" />
                   </div>
+                </div>
 
-                  {isGoogleSignup && (
-                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
-                      Signed in with Google as <span className="font-semibold">{formData.email}</span>
+                {isGoogleSignup && (
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                    Signed in with Google as <span className="font-semibold">{formData.email}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
                     </div>
-                  )}
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-5 w-5 text-gray-400" />
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      disabled={checkingEmail || isGoogleSignup}
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                        errors.email ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter your email"
+                    />
+                    {checkingEmail && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
                       </div>
-                      <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        disabled={checkingEmail || isGoogleSignup}
-                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                          errors.email ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="Enter your email"
-                      />
-                      {checkingEmail && (
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        </div>
-                      )}
-                    </div>
-                    {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                    )}
                   </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
 
-                  {!isGoogleSignup && (
+                {!isGoogleSignup && (
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                       Password
@@ -510,18 +551,14 @@ useEffect(() => {
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
+                        {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
                       </button>
                     </div>
                     {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                   </div>
-                  )}
+                )}
 
-                  {!isGoogleSignup && (
+                {!isGoogleSignup && (
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                       Confirm Password
@@ -547,184 +584,344 @@ useEffect(() => {
                         className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
                       </button>
                     </div>
                     {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
                   </div>
-                  )}
-                </div>
+                )}
               </div>
+            )}
 
-              {/* Step 2: Business */}
-              <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
-                currentStep === 2 
-                  ? 'opacity-100 translate-x-0 z-10 pointer-events-auto' 
-                  : currentStep < 2
-                    ? 'opacity-0 translate-x-full z-0 pointer-events-none'
-                    : 'opacity-0 -translate-x-full z-0 pointer-events-none'
-              }`}>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
-                      Business Name
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Building className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="businessName"
-                        name="businessName"
-                        type="text"
-                        value={formData.businessName}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.businessName ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="Enter your business name"
-                      />
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cover Image <span className="text-gray-400 text-xs">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <div className="h-40 w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {coverPreview ? (
+                        <>
+                          <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
+                          <div className="absolute top-3 right-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleImageRemove('coverImage')}
+                              className="px-3 py-1 text-xs font-medium bg-white/80 text-red-600 rounded-full border border-red-100 hover:bg-red-50 transition"
+                            >
+                              Remove
+                            </button>
+                            <label className="px-3 py-1 text-xs font-medium bg-white/80 text-gray-700 rounded-full border border-gray-200 hover:bg-gray-50 transition cursor-pointer">
+                              Change
+                              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('coverImage', e.target.files?.[0])} />
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex flex-col items-center justify-center text-center text-gray-500 text-sm cursor-pointer">
+                          <svg className="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12l4-4 4 4 4-4 4 4M12 4v12" />
+                          </svg>
+                          Upload Cover Image (Optional)
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('coverImage', e.target.files?.[0])} />
+                        </label>
+                      )}
                     </div>
-                    {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>}
-                  </div>
-
-                  <div>
-                    <label htmlFor="businessType" className="block text-sm font-medium text-gray-700 mb-2">
-                      Business Type
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="businessType"
-                        name="businessType"
-                        value={formData.businessType}
-                        onChange={handleChange}
-                        className={`block w-full pl-3 pr-8 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white ${
-                          errors.businessType ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Select your business type</option>
-                        {businessTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                    <div className="absolute -bottom-10 left-6">
+                      <div className="relative">
+                        <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {profilePreview ? <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" /> : <span className="text-sm text-gray-500">Logo</span>}
+                        </div>
+                        <label className="absolute -bottom-2 right-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-full cursor-pointer shadow">
+                          Edit
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('profileImage', e.target.files?.[0])} />
+                        </label>
+                        {profilePreview && (
+                          <button
+                            type="button"
+                            onClick={() => handleImageRemove('profileImage')}
+                            className="absolute -top-2 -right-2 bg-white border border-gray-200 rounded-full text-gray-500 w-6 h-6 flex items-center justify-center shadow"
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
                     </div>
-                    {errors.businessType && <p className="mt-1 text-sm text-red-600">{errors.businessType}</p>}
                   </div>
-
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.phone ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="Enter your phone number"
-                      />
-                    </div>
-                    {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-                  </div>
+                  <div className="h-10" />
                 </div>
-              </div>
 
-              {/* Step 3: Address */}
-              <div className={`absolute inset-0 transition-all duration-300 ease-in-out ${
-                currentStep === 3 
-                  ? 'opacity-100 translate-x-0 z-10 pointer-events-auto' 
-                  : 'opacity-0 translate-x-full z-0 pointer-events-none'
-              }`}>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-2">
-                      Street Address
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MapPin className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="street"
-                        name="address.street"
-                        type="text"
-                        value={formData.address.street}
-                        onChange={handleChange}
-                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter street address"
-                      />
+                <div>
+                  <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Building className="h-5 w-5 text-gray-400" />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                        City
-                      </label>
-                      <input
-                        id="city"
-                        name="address.city"
-                        type="text"
-                        value={formData.address.city}
-                        onChange={handleChange}
-                        className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="City"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                        State
-                      </label>
-                      <input
-                        id="state"
-                        name="address.state"
-                        type="text"
-                        value={formData.address.state}
-                        onChange={handleChange}
-                        className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="State"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
-                      Postal Code
-                    </label>
                     <input
-                      id="postalCode"
-                      name="address.postalCode"
+                      id="businessName"
+                      name="businessName"
                       type="text"
-                      value={formData.address.postalCode}
+                      value={formData.businessName}
                       onChange={handleChange}
-                      className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Postal code"
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.businessName ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter your business name"
+                    />
+                  </div>
+                  {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="businessType" className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Type
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="businessType"
+                      name="businessType"
+                      value={formData.businessType}
+                      onChange={handleChange}
+                      className={`block w-full pl-3 pr-8 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white ${
+                        errors.businessType ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">Select your business type</option>
+                      {businessTypes.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  {errors.businessType && <p className="mt-1 text-sm text-red-600">{errors.businessType}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Phone className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        errors.phone ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="businessDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Bio / Description
+                  </label>
+                  <textarea
+                    id="businessDescription"
+                    name="businessDescription"
+                    rows={4}
+                    value={formData.businessDescription}
+                    onChange={handleChange}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Tell customers a little about your business..."
+                  />
+                </div>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Operating Hours</h3>
+                  <p className="text-sm text-gray-500">Set your weekly availability</p>
+                </div>
+                <div className="space-y-3">
+                  {dayOrder.map(({ key: dayKey, label }) => {
+                    const dayData = formData.operatingHours?.[dayKey] || { open: '09:00', close: '18:00', isOpen: false };
+                    return (
+                      <div key={dayKey} className="rounded-2xl border border-gray-200 bg-white px-4 py-3 space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-semibold text-gray-900 text-base w-24 flex-shrink-0">{label}</span>
+                          <label className="inline-flex items-center gap-2 cursor-pointer flex-shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={dayData.isOpen}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  operatingHours: {
+                                    ...prev.operatingHours,
+                                    [dayKey]: { ...prev.operatingHours[dayKey], isOpen: checked }
+                                  }
+                                }));
+                              }}
+                              className="sr-only"
+                            />
+                            <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
+                              dayData.isOpen ? 'bg-blue-600' : 'bg-gray-300'
+                            }`}>
+                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
+                                dayData.isOpen ? 'translate-x-6' : 'translate-x-1'
+                              }`} />
+                            </span>
+                            <span className={`text-sm font-medium ${
+                              dayData.isOpen ? 'text-blue-600' : 'text-gray-500'
+                            }`}>
+                              {dayData.isOpen ? 'Open' : 'Closed'}
+                            </span>
+                          </label>
+                        </div>
+                        {dayData.isOpen && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label className="flex items-center gap-2 text-sm text-gray-600">
+                              <Clock className="w-4 h-4 text-gray-400" />
+                              <input
+                                type="time"
+                                value={dayData.open}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    operatingHours: {
+                                      ...prev.operatingHours,
+                                      [dayKey]: { ...prev.operatingHours[dayKey], open: value }
+                                    }
+                                  }));
+                                }}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-gray-600">
+                              <Clock className="w-4 h-4 text-gray-400" />
+                              <input
+                                type="time"
+                                value={dayData.close}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    operatingHours: {
+                                      ...prev.operatingHours,
+                                      [dayKey]: { ...prev.operatingHours[dayKey], close: value }
+                                    }
+                                  }));
+                                }}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div>
+                  <label htmlFor="operatingNotes" className="block text-sm font-medium text-gray-700 mb-2">
+                    Operating Notes <span className="text-gray-400 text-xs">(Optional)</span>
+                  </label>
+                  <textarea
+                    id="operatingNotes"
+                    name="operatingNotes"
+                    rows={3}
+                    value={formData.operatingNotes}
+                    onChange={handleChange}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="Share any special instructions about your operating schedule."
+                  />
+                </div>
+                {errors.operatingHours && <p className="text-sm text-red-600">{errors.operatingHours}</p>}
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-2">
+                    Street Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="street"
+                      name="address.street"
+                      type="text"
+                      value={formData.address.street}
+                      onChange={handleChange}
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter street address"
                     />
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Navigation Buttons - Always visible, mobile optimized */}
-            <div className="mt-auto flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                      City
+                    </label>
+                    <input
+                      id="city"
+                      name="address.city"
+                      type="text"
+                      value={formData.address.city}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="City"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                      State
+                    </label>
+                    <input
+                      id="state"
+                      name="address.state"
+                      type="text"
+                      value={formData.address.state}
+                      onChange={handleChange}
+                      className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="State"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
+                    Postal Code
+                  </label>
+                  <input
+                    id="postalCode"
+                    name="address.postalCode"
+                    type="text"
+                    value={formData.address.postalCode}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Postal code"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
               {currentStep > 1 && (
                 <button
                   type="button"
@@ -734,7 +931,7 @@ useEffect(() => {
                   Back
                 </button>
               )}
-              {currentStep < 3 ? (
+              {currentStep < steps.length ? (
                 <button
                   type="button"
                   onClick={handleNext}
@@ -743,12 +940,12 @@ useEffect(() => {
                 >
                   {checkingEmail ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                       Checking...
                     </>
                   ) : (
                     <>
-                      Next: {steps[currentStep].title}
+                      Next: {steps[currentStep]?.title || 'Next'}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -761,7 +958,7 @@ useEffect(() => {
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                       Creating Account...
                     </>
                   ) : (
