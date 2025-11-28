@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../config/firebase-config';
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
@@ -50,6 +51,7 @@ const RegisterFirebase = () => {
   const [profilePreview, setProfilePreview] = useState('');
 
   const { register, signInWithGoogle, user, isLoggingIn } = useAuth();
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
@@ -68,20 +70,20 @@ const RegisterFirebase = () => {
   ];
 
   const dayOrder = [
-    { key: 'monday', label: 'Monday' },
-    { key: 'tuesday', label: 'Tuesday' },
-    { key: 'wednesday', label: 'Wednesday' },
-    { key: 'thursday', label: 'Thursday' },
-    { key: 'friday', label: 'Friday' },
-    { key: 'saturday', label: 'Saturday' },
-    { key: 'sunday', label: 'Sunday' },
+    { key: 'monday', label: t('registerWizard.days.monday') },
+    { key: 'tuesday', label: t('registerWizard.days.tuesday') },
+    { key: 'wednesday', label: t('registerWizard.days.wednesday') },
+    { key: 'thursday', label: t('registerWizard.days.thursday') },
+    { key: 'friday', label: t('registerWizard.days.friday') },
+    { key: 'saturday', label: t('registerWizard.days.saturday') },
+    { key: 'sunday', label: t('registerWizard.days.sunday') },
   ];
 
   const steps = [
-    { number: 1, title: 'Account' },
-    { number: 2, title: 'Details' },
-    { number: 3, title: 'Operations' },
-    { number: 4, title: 'Location' }
+    { number: 1, title: t('registerWizard.steps.account') },
+    { number: 2, title: t('registerWizard.steps.details') },
+    { number: 3, title: t('registerWizard.steps.operations') },
+    { number: 4, title: t('registerWizard.steps.location') }
   ];
 
 useEffect(() => {
@@ -436,9 +438,9 @@ useEffect(() => {
         <div className="bg-white rounded-2xl shadow-xl py-5 px-6 sm:px-8 flex flex-col">
           {/* Header */}
           <div className="text-center mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Your Account</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('registerWizard.title')}</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Join ServEase and start managing your business bookings
+              {t('registerWizard.subtitle')}
             </p>
           </div>
 
@@ -480,24 +482,24 @@ useEffect(() => {
                     <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
                       G
                     </span>
-                    {googleLoading ? 'Connecting...' : 'Sign up with Google'}
+                    {googleLoading ? t('registerWizard.connecting') : t('registerWizard.signUpWithGoogle')}
                   </button>
                   <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
                     <span className="h-px flex-1 bg-gray-200" />
-                    <span>Or create with email</span>
+                    <span>{t('registerWizard.orCreateWithEmail')}</span>
                     <span className="h-px flex-1 bg-gray-200" />
                   </div>
                 </div>
 
                 {isGoogleSignup && (
                   <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
-                    Signed in with Google as <span className="font-semibold">{formData.email}</span>
+                    {t('registerWizard.signedInWithGoogle')} <span className="font-semibold">{formData.email}</span>
                   </div>
                 )}
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    {t('registerWizard.emailAddress')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -514,7 +516,7 @@ useEffect(() => {
                       className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
                         errors.email ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="Enter your email"
+                      placeholder={t('registerWizard.emailPlaceholder')}
                     />
                     {checkingEmail && (
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -528,7 +530,7 @@ useEffect(() => {
                 {!isGoogleSignup && (
                   <div>
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                      Password
+                      {t('registerWizard.password')}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -561,7 +563,7 @@ useEffect(() => {
                 {!isGoogleSignup && (
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password
+                      {t('registerWizard.confirmPassword')}
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -577,7 +579,7 @@ useEffect(() => {
                         className={`block w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                         }`}
-                        placeholder="Confirm your password"
+                        placeholder={t('registerWizard.confirmPasswordPlaceholder')}
                       />
                       <button
                         type="button"
@@ -597,7 +599,7 @@ useEffect(() => {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cover Image <span className="text-gray-400 text-xs">(Optional)</span>
+                    {t('registerWizard.coverImage')} <span className="text-gray-400 text-xs">{t('registerWizard.optional')}</span>
                   </label>
                   <div className="relative">
                     <div className="h-40 w-full rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
@@ -610,10 +612,10 @@ useEffect(() => {
                               onClick={() => handleImageRemove('coverImage')}
                               className="px-3 py-1 text-xs font-medium bg-white/80 text-red-600 rounded-full border border-red-100 hover:bg-red-50 transition"
                             >
-                              Remove
+                              {t('registerWizard.remove')}
                             </button>
                             <label className="px-3 py-1 text-xs font-medium bg-white/80 text-gray-700 rounded-full border border-gray-200 hover:bg-gray-50 transition cursor-pointer">
-                              Change
+                              {t('registerWizard.change')}
                               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('coverImage', e.target.files?.[0])} />
                             </label>
                           </div>
@@ -623,7 +625,7 @@ useEffect(() => {
                           <svg className="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12l4-4 4 4 4-4 4 4M12 4v12" />
                           </svg>
-                          Upload Cover Image (Optional)
+                          {t('registerWizard.uploadCoverImage')}
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('coverImage', e.target.files?.[0])} />
                         </label>
                       )}
@@ -631,10 +633,10 @@ useEffect(() => {
                     <div className="absolute -bottom-10 left-6">
                       <div className="relative">
                         <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                          {profilePreview ? <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" /> : <span className="text-sm text-gray-500">Logo</span>}
+                          {profilePreview ? <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" /> : <span className="text-sm text-gray-500">{t('registerWizard.logo')}</span>}
                         </div>
                         <label className="absolute -bottom-2 right-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-full cursor-pointer shadow">
-                          Edit
+                          {t('registerWizard.edit')}
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange('profileImage', e.target.files?.[0])} />
                         </label>
                         {profilePreview && (
@@ -654,7 +656,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Name
+                    {t('registerWizard.businessName')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -669,7 +671,7 @@ useEffect(() => {
                       className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         errors.businessName ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="Enter your business name"
+                      placeholder={t('registerWizard.businessNamePlaceholder')}
                     />
                   </div>
                   {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>}
@@ -677,7 +679,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="businessType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Type
+                    {t('registerWizard.businessType')}
                   </label>
                   <div className="relative">
                     <select
@@ -689,7 +691,7 @@ useEffect(() => {
                         errors.businessType ? 'border-red-300' : 'border-gray-300'
                       }`}
                     >
-                      <option value="">Select your business type</option>
+                      <option value="">{t('registerWizard.selectBusinessType')}</option>
                       {businessTypes.map((type) => (
                         <option key={type.value} value={type.value}>
                           {type.label}
@@ -707,7 +709,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    {t('registerWizard.phoneNumber')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -722,7 +724,7 @@ useEffect(() => {
                       className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         errors.phone ? 'border-red-300' : 'border-gray-300'
                       }`}
-                      placeholder="Enter your phone number"
+                      placeholder={t('registerWizard.phonePlaceholder')}
                     />
                   </div>
                   {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
@@ -730,7 +732,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="businessDescription" className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Bio / Description
+                    {t('registerWizard.businessBio')}
                   </label>
                   <textarea
                     id="businessDescription"
@@ -739,7 +741,7 @@ useEffect(() => {
                     value={formData.businessDescription}
                     onChange={handleChange}
                     className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    placeholder="Tell customers a little about your business..."
+                    placeholder={t('registerWizard.businessBioPlaceholder')}
                   />
                 </div>
               </div>
@@ -748,8 +750,8 @@ useEffect(() => {
             {currentStep === 3 && (
               <div className="space-y-5">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Operating Hours</h3>
-                  <p className="text-sm text-gray-500">Set your weekly availability</p>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('registerWizard.operatingHours')}</h3>
+                  <p className="text-sm text-gray-500">{t('registerWizard.setWeeklyAvailability')}</p>
                 </div>
                 <div className="space-y-3">
                   {dayOrder.map(({ key: dayKey, label }) => {
@@ -784,7 +786,7 @@ useEffect(() => {
                             <span className={`text-sm font-medium ${
                               dayData.isOpen ? 'text-blue-600' : 'text-gray-500'
                             }`}>
-                              {dayData.isOpen ? 'Open' : 'Closed'}
+                              {dayData.isOpen ? t('registerWizard.open') : t('registerWizard.closed')}
                             </span>
                           </label>
                         </div>
@@ -834,7 +836,7 @@ useEffect(() => {
                 </div>
                 <div>
                   <label htmlFor="operatingNotes" className="block text-sm font-medium text-gray-700 mb-2">
-                    Operating Notes <span className="text-gray-400 text-xs">(Optional)</span>
+                    {t('registerWizard.operatingNotes')} <span className="text-gray-400 text-xs">{t('registerWizard.optional')}</span>
                   </label>
                   <textarea
                     id="operatingNotes"
@@ -843,7 +845,7 @@ useEffect(() => {
                     value={formData.operatingNotes}
                     onChange={handleChange}
                     className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    placeholder="Share any special instructions about your operating schedule."
+                    placeholder={t('registerWizard.operatingNotesPlaceholder')}
                   />
                 </div>
                 {errors.operatingHours && <p className="text-sm text-red-600">{errors.operatingHours}</p>}
@@ -854,7 +856,7 @@ useEffect(() => {
               <div className="space-y-4">
                 <div>
                   <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-2">
-                    Street Address
+                    {t('registerWizard.streetAddress')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -867,7 +869,7 @@ useEffect(() => {
                       value={formData.address.street}
                       onChange={handleChange}
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter street address"
+                      placeholder={t('registerWizard.streetPlaceholder')}
                     />
                   </div>
                 </div>
@@ -875,7 +877,7 @@ useEffect(() => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                      City
+                      {t('registerWizard.city')}
                     </label>
                     <input
                       id="city"
@@ -884,12 +886,12 @@ useEffect(() => {
                       value={formData.address.city}
                       onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="City"
+                      placeholder={t('registerWizard.cityPlaceholder')}
                     />
                   </div>
                   <div>
                     <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                      State
+                      {t('registerWizard.state')}
                     </label>
                     <input
                       id="state"
@@ -898,14 +900,14 @@ useEffect(() => {
                       value={formData.address.state}
                       onChange={handleChange}
                       className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="State"
+                      placeholder={t('registerWizard.statePlaceholder')}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
-                    Postal Code
+                    {t('registerWizard.postalCode')}
                   </label>
                   <input
                     id="postalCode"
@@ -914,7 +916,7 @@ useEffect(() => {
                     value={formData.address.postalCode}
                     onChange={handleChange}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Postal code"
+                    placeholder={t('registerWizard.postalCodePlaceholder')}
                   />
                 </div>
               </div>
@@ -928,7 +930,7 @@ useEffect(() => {
                   onClick={handleBack}
                   className="w-full sm:w-auto px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
-                  Back
+                  {t('registerWizard.back')}
                 </button>
               )}
               {currentStep < steps.length ? (
@@ -941,11 +943,11 @@ useEffect(() => {
                   {checkingEmail ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Checking...
+                      {t('registerWizard.connecting')}
                     </>
                   ) : (
                     <>
-                      Next: {steps[currentStep]?.title || 'Next'}
+                      {t('registerWizard.nextStep', { step: steps[currentStep]?.title || t('registerWizard.next') })}
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -959,10 +961,10 @@ useEffect(() => {
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                      Creating Account...
+                      {t('registerWizard.creatingAccount')}
                     </>
                   ) : (
-                    'Complete Registration'
+                    t('registerWizard.completeRegistration')
                   )}
                 </button>
               )}
@@ -972,12 +974,12 @@ useEffect(() => {
           {/* Login Link */}
           <div className="mt-3 text-center">
             <p className="text-xs text-gray-500">
-              Already have an account?{' '}
+              {t('registerWizard.signInHere')}{' '}
               <Link
                 to={`/${pathLang}/login`}
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
               >
-                Sign in here
+                {t('registerWizard.signInLink')}
               </Link>
             </p>
           </div>

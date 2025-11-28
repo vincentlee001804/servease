@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
@@ -8,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const BookingStatus = () => {
+  const { t, i18n } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const [bookings, setBookings] = useState([]);
@@ -151,9 +153,54 @@ const BookingStatus = () => {
     navigate(-1);
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+  const formatDate = (dateInput) => {
+    if (!dateInput) return '';
+    
+    // Handle Firestore Timestamp
+    let date;
+    if (dateInput.toDate) {
+      date = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+      date = dateInput;
+    } else if (typeof dateInput === 'string') {
+      // Handle string dates like "2025-11-28"
+      date = new Date(dateInput);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        // Try parsing as YYYY-MM-DD format
+        const parts = dateInput.split('-');
+        if (parts.length === 3) {
+          date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+      }
+    } else {
+      date = new Date(dateInput);
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    const currentLang = i18n.language || 'en';
+    
+    // For Chinese (jtzw), use DD/MM/YYYY format
+    if (currentLang === 'jtzw') {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    
+    // For other languages, use locale-specific format
+    const localeMap = {
+      'en': 'en-US',
+      'bm': 'ms-MY',
+      'jtzw': 'zh-CN'
+    };
+    
+    const locale = localeMap[currentLang] || 'en-US';
+    return date.toLocaleDateString(locale, { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
@@ -161,10 +208,21 @@ const BookingStatus = () => {
   };
 
   const formatTime = (timeString) => {
+    if (!timeString) return '';
+    
     const [hours, minutes] = timeString.split(':');
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
-    return date.toLocaleTimeString('en-US', { 
+    
+    const currentLang = i18n.language || 'en';
+    const localeMap = {
+      'en': 'en-US',
+      'bm': 'ms-MY',
+      'jtzw': 'zh-CN'
+    };
+    
+    const locale = localeMap[currentLang] || 'en-US';
+    return date.toLocaleTimeString(locale, { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
@@ -218,7 +276,7 @@ const BookingStatus = () => {
 
   // Handler for Cancel button
   const handleCancelBooking = async (booking) => {
-    const confirmed = window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.");
+    const confirmed = window.confirm(t('bookingStatus.cancelConfirm'));
     if (!confirmed) {
       return;
     }
@@ -237,10 +295,10 @@ const BookingStatus = () => {
         )
       );
       
-      toast.success('Booking cancelled successfully');
+      toast.success(t('bookingStatus.cancelSuccess'));
     } catch (error) {
       console.error('Error cancelling booking:', error);
-      toast.error('Failed to cancel booking. Please try again.');
+      toast.error(t('bookingStatus.cancelError'));
     }
   };
 
@@ -305,11 +363,11 @@ const BookingStatus = () => {
             {/* Back Button - Top Left */}
             <div className="absolute top-6 left-0">
               <button
-                onClick={handleBackNavigation}
+              onClick={handleBackNavigation}
                 className="flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors"
-              >
+            >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
+                {t('bookingStatus.back')}
               </button>
             </div>
             
@@ -320,27 +378,27 @@ const BookingStatus = () => {
               <svg className="w-48 h-48 text-blue-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
-            </div>
-
+          </div>
+          
             {/* Title */}
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">My Bookings</h1>
-              <p className="text-base text-gray-600">Enter your email to view your service bookings</p>
-            </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('bookingStatus.title')}</h1>
+              <p className="text-base text-gray-600">{t('bookingStatus.subtitle')}</p>
+        </div>
 
             {/* Form */}
-            <form onSubmit={handleEmailSubmit} className="space-y-6">
+              <form onSubmit={handleEmailSubmit} className="space-y-6">
               {/* Floating Label Input */}
               <div className="relative">
-                <input
-                  type="email"
+                  <input
+                    type="email"
                   id="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
                   className="peer w-full px-4 pt-6 pb-2 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
                   placeholder=" "
-                  required
-                />
+                    required
+                  />
                 <label
                   htmlFor="email"
                   className={`absolute left-4 transition-all duration-200 ${
@@ -349,26 +407,26 @@ const BookingStatus = () => {
                       : 'top-4 text-base text-gray-500 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-600 peer-focus:font-medium'
                   }`}
                 >
-                  Email Address
+                  {t('bookingStatus.emailAddress')}
                 </label>
-              </div>
+                </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
+                <Button 
+                  type="submit" 
                 className="w-full py-4 text-lg font-semibold rounded-xl bg-blue-600 hover:bg-blue-700" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Searching...
-                  </>
-                ) : (
-                  'View My Bookings'
-                )}
-              </Button>
-            </form>
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      {t('bookingStatus.searching')}
+                    </>
+                  ) : (
+                    t('bookingStatus.viewMyBookings')
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
         )}
@@ -377,7 +435,7 @@ const BookingStatus = () => {
         {loading && (
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">Searching for your bookings...</p>
+              <p className="text-gray-600">{t('bookingStatus.searchingBookings')}</p>
           </div>
         )}
 
@@ -392,11 +450,11 @@ const BookingStatus = () => {
                   className="flex items-center text-gray-500 hover:text-gray-700 text-sm transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4 mr-1" />
-                  Back
+                  {t('bookingStatus.back')}
                 </button>
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                My Bookings
+                {t('bookingStatus.title')}
                 <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full font-normal">
                   {bookings.length}
                 </span>
@@ -409,23 +467,23 @@ const BookingStatus = () => {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-gray-200 flex-shrink-0">
                     <Mail className="h-5 w-5 text-gray-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-500 font-medium mb-1">Viewing bookings for</p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-500 font-medium mb-1">{t('bookingStatus.viewingBookingsFor')}</p>
                     <p className="text-sm font-semibold text-gray-900 truncate">{customerEmail}</p>
+                    </div>
                   </div>
-                </div>
                 <button
-                  onClick={() => {
-                    setHasSearched(false);
-                    setBookings([]);
-                  }}
+                    onClick={() => {
+                      setHasSearched(false);
+                      setBookings([]);
+                    }}
                   className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0 border border-blue-200 bg-white"
-                >
-                  Change Email
+                  >
+                  {t('bookingStatus.changeEmail')}
                 </button>
               </div>
-            </div>
+                </div>
 
             {bookings.length === 0 ? (
               <Card className="border-0 shadow-lg">
@@ -433,9 +491,9 @@ const BookingStatus = () => {
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Calendar className="h-10 w-10 text-gray-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No Bookings Found</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">{t('bookingStatus.noBookingsFound')}</h3>
                   <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-                    No bookings found for this email address. Please check your email or try a different one.
+                    {t('bookingStatus.noBookingsMessage')}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button 
@@ -445,14 +503,14 @@ const BookingStatus = () => {
                       }}
                       className="px-8 py-3 text-lg"
                     >
-                      Try Different Email
+                      {t('bookingStatus.tryDifferentEmail')}
                     </Button>
                     <Button 
                       variant="outline" 
                       onClick={handleBackNavigation}
                       className="px-8 py-3 text-lg border-gray-300"
                     >
-                      Back to Vendor
+                      {t('bookingStatus.backToVendor')}
                     </Button>
                   </div>
                 </CardContent>
@@ -468,7 +526,7 @@ const BookingStatus = () => {
                     <Card key={booking.id} className="hover:shadow-lg transition-all duration-300 border border-gray-200 shadow-sm overflow-hidden">
                       {/* Status Indicator Bar */}
                       <div className={`h-1 ${getStatusColor(booking.status).split(' ')[0]} bg-opacity-30`}></div>
-                      
+                    
                       <CardContent className="p-5">
                         {/* Row 1: Service Title (Left) + Price + Status (Right) */}
                         <div className="flex items-start justify-between mb-3">
@@ -477,15 +535,15 @@ const BookingStatus = () => {
                           </CardTitle>
                           <div className="text-right flex-shrink-0">
                             <div className="text-xl font-bold text-blue-600 mb-1">
-                              {formatPrice(booking)}
-                            </div>
+                            {formatPrice(booking)}
+                          </div>
                             <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
                               {getStatusIcon(booking.status)}
-                              <span className="ml-1 capitalize">{booking.status}</span>
-                            </div>
+                              <span className="ml-1">{t(`status.${booking.status}`, booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Pending')}</span>
+                        </div>
                           </div>
                         </div>
-
+                        
                         {/* Row 2: Details Grid (2 columns) + Customer Name (full width) */}
                         <div className="grid grid-cols-2 gap-4 my-3">
                           <div className="flex items-center gap-2 text-gray-700">
@@ -502,25 +560,25 @@ const BookingStatus = () => {
                         {showCustomerName && (
                           <div className="mb-3">
                             <p className="text-xs text-gray-500">
-                              Customer: <span className="text-gray-700">{booking.customerName}</span>
+                              {t('bookingStatus.customer')}: <span className="text-gray-700">{booking.customerName}</span>
                             </p>
                           </div>
                         )}
 
-                        {/* Special Notes */}
-                        {booking.notes && (
+                      {/* Special Notes */}
+                      {booking.notes && (
                           <div className="mb-3">
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r">
                               <div className="flex gap-2">
                                 <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
                                 <div>
-                                  <h4 className="text-xs font-medium text-yellow-800 mb-1">Special Notes</h4>
+                                  <h4 className="text-xs font-medium text-yellow-800 mb-1">{t('bookingStatus.specialNotes')}</h4>
                                   <p className="text-sm text-yellow-700">{booking.notes}</p>
-                                </div>
                               </div>
                             </div>
                           </div>
-                        )}
+                        </div>
+                      )}
 
                         {/* Row 3: Action Footer (Gray Background) */}
                         <div className="bg-gray-50 -mx-5 -mb-5 px-5 py-3 mt-4 flex gap-2">
@@ -532,7 +590,7 @@ const BookingStatus = () => {
                               className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-white text-xs"
                             >
                               <RotateCw className="h-3 w-3 mr-1.5" />
-                              Reorder
+                              {t('bookingStatus.reorder')}
                             </Button>
                           ) : booking.status === 'confirmed' || booking.status === 'pending' ? (
                             <>
@@ -543,17 +601,17 @@ const BookingStatus = () => {
                                 className="border-gray-300 text-gray-700 hover:bg-white bg-white text-xs flex-1"
                               >
                                 <Calendar className="h-3 w-3 mr-1.5" />
-                                Reschedule
+                                {t('bookingStatus.reschedule')}
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
+                          <Button 
+                            variant="outline" 
+                            size="sm"
                                 onClick={() => handleCancelBooking(booking)}
                                 className="border-red-300 text-red-600 hover:bg-red-50 bg-white text-xs flex-1"
-                              >
+                          >
                                 <XCircle className="h-3 w-3 mr-1.5" />
-                                Cancel
-                              </Button>
+                                {t('bookingStatus.cancel')}
+                          </Button>
                             </>
                           ) : booking.status === 'cancelled' ? (
                             // No action buttons for cancelled bookings
@@ -569,12 +627,12 @@ const BookingStatus = () => {
                               className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-white text-xs"
                             >
                               <Eye className="h-3 w-3 mr-1.5" />
-                              View
+                              {t('bookingStatus.view')}
                             </Button>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
                   );
                 })}
               </div>

@@ -1499,9 +1499,9 @@ const VendorDashboardFirebase = () => {
                     {/* Danger Zone - Delete Account */}
                     <div className="mt-8 pt-6 border-t border-gray-200">
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6">
-                        <h4 className="text-red-700 font-bold text-lg mb-2">Delete Business Profile</h4>
+                        <h4 className="text-red-700 font-bold text-lg mb-2">{t('deleteAccount.title')}</h4>
                         <p className="text-red-600 text-sm mb-4">
-                          Permanently remove your business, services, and booking history from ServEase. This action cannot be undone.
+                          {t('deleteAccount.description')}
                         </p>
                         <div className="flex justify-end">
                           <button
@@ -1509,7 +1509,7 @@ const VendorDashboardFirebase = () => {
                             className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
                           >
                             <Trash2 className="w-4 h-4" />
-                            Delete Account
+                            {t('deleteAccount.deleteButton')}
                           </button>
                         </div>
                       </div>
@@ -1900,23 +1900,23 @@ const VendorDashboardFirebase = () => {
                     <AlertCircle className="w-6 h-6 text-red-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">Delete Business Profile</h3>
-                    <p className="text-sm text-gray-500">This action cannot be undone</p>
+                    <h3 className="text-lg font-bold text-gray-900">{t('deleteAccount.modalTitle')}</h3>
+                    <p className="text-sm text-gray-500">{t('deleteAccount.modalSubtitle')}</p>
                   </div>
                 </div>
                 
                 <div className="mb-6">
                   <p className="text-gray-700 mb-2">
-                    Are you sure you want to permanently delete your business profile?
+                    {t('deleteAccount.confirmQuestion')}
                   </p>
                   <p className="text-sm text-gray-600">
-                    This will remove:
+                    {t('deleteAccount.willRemove')}
                   </p>
                   <ul className="text-sm text-gray-600 mt-2 ml-4 list-disc">
-                    <li>Your business profile and all information</li>
-                    <li>All your services</li>
-                    <li>All booking history</li>
-                    <li>Your QR code and booking links</li>
+                    <li>{t('deleteAccount.removeProfile')}</li>
+                    <li>{t('deleteAccount.removeServices')}</li>
+                    <li>{t('deleteAccount.removeBookings')}</li>
+                    <li>{t('deleteAccount.removeQR')}</li>
                   </ul>
                 </div>
 
@@ -1926,7 +1926,7 @@ const VendorDashboardFirebase = () => {
                     disabled={deleting}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
-                    Cancel
+                    {t('deleteAccount.cancel')}
                   </button>
                   <button
                     onClick={handleDeleteAccount}
@@ -1936,12 +1936,12 @@ const VendorDashboardFirebase = () => {
                     {deleting ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Deleting...
+                        {t('deleteAccount.deleting')}
                       </>
                     ) : (
                       <>
                         <Trash2 className="w-4 h-4" />
-                        Delete Account
+                        {t('deleteAccount.deletePermanently')}
                       </>
                     )}
                   </button>

@@ -426,7 +426,7 @@ const BookingPage = () => {
             </Button>
             <div className="flex-1 min-w-0 text-center">
               <h1 className="text-lg font-bold text-gray-900 truncate">
-                {isReschedule ? 'Reschedule Booking' : location.state?.isReorder ? 'Reorder Service' : t('bookingForm.title')}
+                {isReschedule ? t('bookingForm.rescheduleBooking') : location.state?.isReorder ? t('bookingForm.reorderService') : t('bookingForm.title')}
               </h1>
               <p className="text-xs text-gray-500 truncate">{service.name?.en || service.name}</p>
               {isReschedule && (
