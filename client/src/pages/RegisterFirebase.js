@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import i18next from '../config/i18n';
+import { changeLanguage } from '../config/i18n';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../config/firebase-config';
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
@@ -49,12 +51,31 @@ const RegisterFirebase = () => {
   const [suppressRedirect, setSuppressRedirect] = useState(false);
   const [coverPreview, setCoverPreview] = useState('');
   const [profilePreview, setProfilePreview] = useState('');
+  // Check localStorage synchronously on component initialization (before i18next caches path-based language)
+  const [showLanguageModal, setShowLanguageModal] = useState(() => {
+    // Check immediately if user_language_preference exists
+    // This runs synchronously before any effects or i18next caching
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    return !savedLanguage; // Show modal if no preference exists
+  });
 
   const { register, signInWithGoogle, user, isLoggingIn } = useAuth();
   const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+
+  // Sync language preference on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      // Use saved language preference
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    }
+    // If no savedLanguage, modal will show (handled by useState initializer above)
+  }, []);
 
   const businessTypes = [
     { value: 'salon', label: 'Hair Salon' },
@@ -389,6 +410,30 @@ useEffect(() => {
       console.error('Registration error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Unified language change handler (used by modal)
+  const handleLanguageChange = (langCode) => {
+    // Use global changeLanguage function to sync with localStorage
+    changeLanguage(langCode);
+    
+    // Close modal
+    setShowLanguageModal(false);
+    
+    // Show success toast
+    const languageNames = {
+      'en': 'English',
+      'bm': 'Bahasa Melayu',
+      'jtzw': '中文'
+    };
+    toast.success(t('languageModal.languageChanged', { language: languageNames[langCode] || langCode }));
+    
+    // Navigate to new language URL if needed
+    const currentPath = location.pathname.replace(/^\/(en|bm|jtzw)/, '');
+    const newPath = `/${langCode}${currentPath}`;
+    if (location.pathname !== newPath) {
+      navigate(newPath);
     }
   };
 
@@ -986,6 +1031,46 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* Language Selection Modal */}
+      {showLanguageModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="bg-white w-[90%] max-w-sm rounded-2xl p-6 shadow-2xl text-center">
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome / Selamat Datang / 欢迎
+              </h2>
+              <p className="text-gray-600 text-sm">
+                {t('languageModal.selectLanguage')}
+              </p>
+            </div>
+
+            {/* Language Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={() => handleLanguageChange('en')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                English
+              </button>
+              
+              <button
+                onClick={() => handleLanguageChange('bm')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                Bahasa Melayu
+              </button>
+              
+              <button
+                onClick={() => handleLanguageChange('jtzw')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                中文
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

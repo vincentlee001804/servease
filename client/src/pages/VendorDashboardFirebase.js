@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
+import { changeLanguage } from '../config/i18n';
 import { 
   Calendar, 
   Users, 
@@ -39,6 +40,17 @@ const VendorDashboardFirebase = () => {
   const { t, ready } = useTranslation('common');
   const navigate = useNavigate();
   
+  // Sync language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      // Use saved language preference
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    }
+  }, []);
+
   // Sync i18next language with URL language
   useEffect(() => {
     if (lang && i18next.language !== lang) {

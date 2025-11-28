@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18next from '../config/i18n';
+import { changeLanguage } from '../config/i18n';
 import { 
   QrCode, 
   Smartphone, 
@@ -17,6 +19,17 @@ const HomeModern = () => {
   const location = useLocation();
   const { t } = useTranslation('homepage');
   const lang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+
+  // Sync language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      // Use saved language preference
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    }
+  }, []);
 
   // Helper function to create language-aware links
   const createLink = (path) => {
