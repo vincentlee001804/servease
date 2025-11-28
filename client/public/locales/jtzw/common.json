@@ -414,7 +414,10 @@
     "completeRegistration": "完成注册",
     "creatingAccount": "创建账户中...",
     "signInHere": "已有账户？",
-    "signInLink": "在此登录"
+    "signInLink": "在此登录",
+    "invalidImageType": "请选择有效的图片文件",
+    "imageTooLarge": "图片大小必须小于 5MB",
+    "imageUploadFailed": "图片上传失败。请重试。"
   },
   "deleteAccount": {
     "title": "删除企业资料",

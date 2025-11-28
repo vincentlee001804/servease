@@ -5,8 +5,9 @@ import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
 import { changeLanguage } from '../config/i18n';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
-import { auth, db } from '../config/firebase-config';
+import { auth, db, storage } from '../config/firebase-config';
 import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Eye, EyeOff, Mail, Lock, Building, Phone, MapPin, Clock, ChevronRight, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -31,8 +32,8 @@ const RegisterFirebase = () => {
     phone: '',
     operatingNotes: '',
     businessDescription: '',
-    coverImage: '',
-    profileImage: '',
+    coverImage: null, // Store File object instead of base64
+    profileImage: null, // Store File object instead of base64
     address: {
       street: '',
       city: '',
@@ -159,12 +160,28 @@ useEffect(() => {
 
   const handleImageChange = (type, file) => {
     if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('registerWizard.invalidImageType'));
+      return;
+    }
+    
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('registerWizard.imageTooLarge'));
+      return;
+    }
+    
+    // Store File object in formData
+    setFormData(prev => ({
+      ...prev,
+      [type]: file
+    }));
+    
+    // Create preview using FileReader for display
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData(prev => ({
-        ...prev,
-        [type]: reader.result
-      }));
       if (type === 'coverImage') {
         setCoverPreview(reader.result?.toString() || '');
       } else {
@@ -177,7 +194,7 @@ useEffect(() => {
   const handleImageRemove = (type) => {
     setFormData(prev => ({
       ...prev,
-      [type]: ''
+      [type]: null
     }));
     if (type === 'coverImage') {
       setCoverPreview('');
@@ -314,6 +331,23 @@ useEffect(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  // Helper function to upload image to Firebase Storage and return URL
+  const uploadImageToStorage = async (file, userId, imageType) => {
+    if (!file) return '';
+    
+    try {
+      const fileExtension = file.name.split('.').pop();
+      const imageRef = ref(storage, `vendor-profiles/${userId}/${imageType}-${Date.now()}.${fileExtension}`);
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error(`Error uploading ${imageType}:`, error);
+      toast.error(t('registerWizard.imageUploadFailed'));
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -329,6 +363,17 @@ useEffect(() => {
 
       setLoading(true);
       try {
+        // Upload images to Firebase Storage
+        let coverImageUrl = '';
+        let profileImageUrl = '';
+        
+        if (formData.coverImage) {
+          coverImageUrl = await uploadImageToStorage(formData.coverImage, user.uid, 'cover');
+        }
+        if (formData.profileImage) {
+          profileImageUrl = await uploadImageToStorage(formData.profileImage, user.uid, 'profile');
+        }
+
         const addressParts = [
           formData.address.street,
           formData.address.city,
@@ -346,8 +391,8 @@ useEffect(() => {
           phone: formData.phone,
           operationsNotes: formData.operatingNotes || '',
           businessDescription: formData.businessDescription || '',
-          coverImage: formData.coverImage || '',
-          profileImage: formData.profileImage || '',
+          coverImage: coverImageUrl,
+          profileImage: profileImageUrl,
           operatingHours: formData.operatingHours,
           address: formData.address,
           role: 'vendor',
@@ -367,8 +412,8 @@ useEffect(() => {
             address: formattedAddress
           },
           operationsNotes: formData.operatingNotes || '',
-          coverImage: formData.coverImage || '',
-          profileImage: formData.profileImage || '',
+          coverImage: coverImageUrl,
+          profileImage: profileImageUrl,
           operatingHours: formData.operatingHours,
           updatedAt: new Date()
         }, { merge: true });
@@ -395,6 +440,7 @@ useEffect(() => {
     setLoading(true);
     
     try {
+      // Pass File objects to register - it will handle upload to Storage
       const result = await register(formData);
       
       if (result.success) {
@@ -450,8 +496,8 @@ useEffect(() => {
           email: result.user?.email || prev.email,
           password: '',
           confirmPassword: '',
-          coverImage: '',
-          profileImage: '',
+          coverImage: null,
+          profileImage: null,
           businessDescription: '',
           operatingNotes: '',
           operatingHours: getDefaultOperatingHours()

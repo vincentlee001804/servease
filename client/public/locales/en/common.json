@@ -414,7 +414,10 @@
     "completeRegistration": "Complete Registration",
     "creatingAccount": "Creating Account...",
     "signInHere": "Already have an account?",
-    "signInLink": "Sign in here"
+    "signInLink": "Sign in here",
+    "invalidImageType": "Please select a valid image file",
+    "imageTooLarge": "Image size must be less than 5MB",
+    "imageUploadFailed": "Failed to upload image. Please try again."
   },
   "deleteAccount": {
     "title": "Delete Business Profile",

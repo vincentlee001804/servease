@@ -10,7 +10,8 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase-config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
@@ -143,9 +144,25 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  // Helper function to upload image to Firebase Storage
+  const uploadImageToStorage = async (file, userId, imageType) => {
+    if (!file || !(file instanceof File)) return '';
+    
+    try {
+      const fileExtension = file.name.split('.').pop();
+      const imageRef = ref(storage, `vendor-profiles/${userId}/${imageType}-${Date.now()}.${fileExtension}`);
+      await uploadBytes(imageRef, file);
+      const downloadURL = await getDownloadURL(imageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error(`Error uploading ${imageType}:`, error);
+      throw error;
+    }
+  };
+
   const register = async (userData) => {
     try {
-      const { email, password, businessName, businessType, phone, address } = userData;
+      const { email, password, businessName, businessType, phone, address, operatingNotes, businessDescription, coverImage, profileImage, operatingHours } = userData;
       
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -156,6 +173,30 @@ export const AuthProvider = ({ children }) => {
         displayName: businessName
       });
 
+      // Upload images to Firebase Storage if they are File objects
+      let coverImageUrl = '';
+      let profileImageUrl = '';
+      
+      try {
+        if (coverImage instanceof File) {
+          coverImageUrl = await uploadImageToStorage(coverImage, user.uid, 'cover');
+        } else if (typeof coverImage === 'string' && coverImage) {
+          // If it's already a URL string, use it directly
+          coverImageUrl = coverImage;
+        }
+        
+        if (profileImage instanceof File) {
+          profileImageUrl = await uploadImageToStorage(profileImage, user.uid, 'profile');
+        } else if (typeof profileImage === 'string' && profileImage) {
+          // If it's already a URL string, use it directly
+          profileImageUrl = profileImage;
+        }
+      } catch (uploadError) {
+        console.error('Error uploading images:', uploadError);
+        // Continue with registration even if image upload fails
+        toast.error('Registration successful, but image upload failed. You can add images later.');
+      }
+
       // Create user document in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: email,
@@ -163,7 +204,12 @@ export const AuthProvider = ({ children }) => {
         businessType: businessType || '',
         phone: phone || '',
         address: address || {},
+        operationsNotes: operatingNotes || '',
+        businessDescription: businessDescription || '',
+        coverImage: coverImageUrl,
+        profileImage: profileImageUrl,
         role: 'vendor',
+        operatingHours: operatingHours || getDefaultOperatingHours(),
         createdAt: new Date()
       });
 
@@ -177,10 +223,13 @@ export const AuthProvider = ({ children }) => {
         },
         businessInfo: {
           type: businessType || '',
-          description: '',
+          description: businessDescription || '',
           address: address ? `${address.street || ''}, ${address.city || ''}, ${address.state || ''} ${address.postalCode || ''}`.trim() : ''
         },
-        operatingHours: getDefaultOperatingHours(),
+        operationsNotes: operatingNotes || '',
+        coverImage: coverImageUrl,
+        profileImage: profileImageUrl,
+        operatingHours: operatingHours || getDefaultOperatingHours(),
         services: [],
         qrCode: {
           code: '',

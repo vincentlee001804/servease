@@ -414,7 +414,10 @@
     "completeRegistration": "Lengkapkan Pendaftaran",
     "creatingAccount": "Mencipta Akaun...",
     "signInHere": "Sudah mempunyai akaun?",
-    "signInLink": "Daftar masuk di sini"
+    "signInLink": "Daftar masuk di sini",
+    "invalidImageType": "Sila pilih fail imej yang sah",
+    "imageTooLarge": "Saiz imej mestilah kurang daripada 5MB",
+    "imageUploadFailed": "Gagal memuat naik imej. Sila cuba lagi."
   },
   "deleteAccount": {
     "title": "Padam Profil Perniagaan",
