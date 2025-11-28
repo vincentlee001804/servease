@@ -1118,6 +1118,42 @@ const VendorDashboardFirebase = () => {
                                               </button>
                                             </div>
                                           )}
+                                          
+                                          {booking.status === 'confirmed' && (() => {
+                                            // Check if booking time has passed
+                                            let bookingDateTime;
+                                            if (booking.bookingDate) {
+                                              // Handle Firestore Timestamp
+                                              if (booking.bookingDate.toDate) {
+                                                bookingDateTime = booking.bookingDate.toDate();
+                                              } else if (booking.bookingDate instanceof Date) {
+                                                bookingDateTime = new Date(booking.bookingDate);
+                                              } else {
+                                                bookingDateTime = new Date(booking.bookingDate);
+                                              }
+                                            } else {
+                                              return null; // No booking date, can't determine if time passed
+                                            }
+                                            
+                                            const bookingTime = booking.bookingTime || booking.startTime;
+                                            if (bookingTime) {
+                                              const [hours, minutes] = bookingTime.split(':').map(Number);
+                                              bookingDateTime.setHours(hours, minutes || 0, 0, 0);
+                                            }
+                                            const now = new Date();
+                                            const hasTimePassed = bookingDateTime <= now;
+                                            
+                                            return hasTimePassed ? (
+                                              <div className="flex gap-1 mt-1">
+                                                <button
+                                                  onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                                  className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                                                >
+                                                  {t('dashboard.complete')}
+                                                </button>
+                                              </div>
+                                            ) : null;
+                                          })()}
                                         </div>
                                       ))}
                                     </div>
