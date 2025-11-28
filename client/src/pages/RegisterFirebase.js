@@ -211,44 +211,52 @@ useEffect(() => {
         return true;
       }
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('registerWizard.errors.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = t('registerWizard.errors.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('registerWizard.errors.passwordRequired');
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('registerWizard.errors.passwordMinLength');
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = t('registerWizard.errors.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('registerWizard.errors.passwordsDoNotMatch');
     }
     } else if (step === 2) {
     if (!formData.businessName) {
-      newErrors.businessName = 'Business name is required';
+      newErrors.businessName = t('registerWizard.errors.businessNameRequired');
     }
 
     if (!formData.businessType) {
-      newErrors.businessType = 'Business type is required';
+      newErrors.businessType = t('registerWizard.errors.businessTypeRequired');
     }
 
     if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = t('registerWizard.errors.phoneRequired');
       }
     } else if (step === 3) {
       const hasOpenDay = Object.values(formData.operatingHours || {}).some(day => day.isOpen);
       if (!hasOpenDay) {
-        newErrors.operatingHours = 'Please enable at least one day of operation';
+        newErrors.operatingHours = t('registerWizard.errors.operatingHoursRequired');
       }
     } else if (step === 4) {
       // Address fields are optional, but we can add validation if needed
     }
 
     setErrors(newErrors);
+    
+    // Show toast notification for the first error found
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const firstErrorMessage = newErrors[firstErrorKey];
+      toast.error(firstErrorMessage);
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
@@ -276,10 +284,12 @@ useEffect(() => {
 
         if (!snapshot.empty) {
           console.log('Email already exists in Firestore');
+          const errorMessage = t('registerWizard.errors.emailAlreadyRegistered');
           setErrors(prev => ({
             ...prev,
-            email: 'Email is already registered'
+            email: errorMessage
           }));
+          toast.error(errorMessage);
           setCheckingEmail(false);
           return; // Block moving to next step
         }
@@ -291,10 +301,12 @@ useEffect(() => {
 
         if (Array.isArray(methods) && methods.length > 0) {
           console.log('Email already exists in Firebase Auth');
+          const errorMessage = t('registerWizard.errors.emailAlreadyRegistered');
           setErrors(prev => ({
             ...prev,
-            email: 'Email is already registered'
+            email: errorMessage
           }));
+          toast.error(errorMessage);
           setCheckingEmail(false);
           return; // Block moving to next step
         }
@@ -307,10 +319,12 @@ useEffect(() => {
       } catch (error) {
         console.error('Error checking email uniqueness:', error);
         // On any error, be strict and do NOT allow progression
+        const errorMessage = t('registerWizard.errors.emailVerificationFailed');
         setErrors(prev => ({
           ...prev,
-          email: 'Unable to verify email right now. Please try again.'
+          email: errorMessage
         }));
+        toast.error(errorMessage);
         setCheckingEmail(false);
         return;
       } finally {
@@ -418,7 +432,7 @@ useEffect(() => {
           updatedAt: new Date()
         }, { merge: true });
 
-        toast.success('Profile information saved!');
+        toast.success(t('registerWizard.profileSaved'));
         const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
         setSuppressRedirect(false);
         setIsGoogleSignup(false);
@@ -430,7 +444,7 @@ useEffect(() => {
         }, 200);
       } catch (error) {
         console.error('Error saving Google signup details:', error);
-        toast.error('Unable to save your profile. Please try again.');
+        toast.error(t('registerWizard.errors.saveFailed'));
       } finally {
         setLoading(false);
       }

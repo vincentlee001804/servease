@@ -417,7 +417,23 @@
     "signInLink": "在此登录",
     "invalidImageType": "请选择有效的图片文件",
     "imageTooLarge": "图片大小必须小于 5MB",
-    "imageUploadFailed": "图片上传失败。请重试。"
+    "imageUploadFailed": "图片上传失败。请重试。",
+    "errors": {
+      "emailRequired": "需要电子邮件地址",
+      "emailInvalid": "请输入有效的电子邮件地址",
+      "emailAlreadyRegistered": "此电子邮件已注册。请使用其他电子邮件或登录。",
+      "emailVerificationFailed": "目前无法验证电子邮件。请重试。",
+      "passwordRequired": "需要密码",
+      "passwordMinLength": "密码必须至少 6 个字符",
+      "confirmPasswordRequired": "请确认您的密码",
+      "passwordsDoNotMatch": "密码不匹配",
+      "businessNameRequired": "需要企业名称",
+      "businessTypeRequired": "请选择企业类型",
+      "phoneRequired": "需要电话号码",
+      "operatingHoursRequired": "请至少启用一个营业日",
+      "saveFailed": "无法保存您的资料。请重试。"
+    },
+    "profileSaved": "资料已保存！"
   },
   "deleteAccount": {
     "title": "删除企业资料",

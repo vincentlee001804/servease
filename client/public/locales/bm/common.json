@@ -417,7 +417,23 @@
     "signInLink": "Daftar masuk di sini",
     "invalidImageType": "Sila pilih fail imej yang sah",
     "imageTooLarge": "Saiz imej mestilah kurang daripada 5MB",
-    "imageUploadFailed": "Gagal memuat naik imej. Sila cuba lagi."
+    "imageUploadFailed": "Gagal memuat naik imej. Sila cuba lagi.",
+    "errors": {
+      "emailRequired": "Alamat e-mel diperlukan",
+      "emailInvalid": "Sila masukkan alamat e-mel yang sah",
+      "emailAlreadyRegistered": "E-mel ini sudah didaftarkan. Sila gunakan e-mel lain atau daftar masuk.",
+      "emailVerificationFailed": "Tidak dapat mengesahkan e-mel sekarang. Sila cuba lagi.",
+      "passwordRequired": "Kata laluan diperlukan",
+      "passwordMinLength": "Kata laluan mestilah sekurang-kurangnya 6 aksara",
+      "confirmPasswordRequired": "Sila sahkan kata laluan anda",
+      "passwordsDoNotMatch": "Kata laluan tidak sepadan",
+      "businessNameRequired": "Nama perniagaan diperlukan",
+      "businessTypeRequired": "Sila pilih jenis perniagaan",
+      "phoneRequired": "Nombor telefon diperlukan",
+      "operatingHoursRequired": "Sila aktifkan sekurang-kurangnya satu hari operasi",
+      "saveFailed": "Tidak dapat menyimpan profil anda. Sila cuba lagi."
+    },
+    "profileSaved": "Maklumat profil disimpan!"
   },
   "deleteAccount": {
     "title": "Padam Profil Perniagaan",

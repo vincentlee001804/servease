@@ -417,7 +417,23 @@
     "signInLink": "Sign in here",
     "invalidImageType": "Please select a valid image file",
     "imageTooLarge": "Image size must be less than 5MB",
-    "imageUploadFailed": "Failed to upload image. Please try again."
+    "imageUploadFailed": "Failed to upload image. Please try again.",
+    "errors": {
+      "emailRequired": "Email address is required",
+      "emailInvalid": "Please enter a valid email address",
+      "emailAlreadyRegistered": "This email is already registered. Please use a different email or sign in.",
+      "emailVerificationFailed": "Unable to verify email right now. Please try again.",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "businessNameRequired": "Business name is required",
+      "businessTypeRequired": "Please select a business type",
+      "phoneRequired": "Phone number is required",
+      "operatingHoursRequired": "Please enable at least one day of operation",
+      "saveFailed": "Unable to save your profile. Please try again."
+    },
+    "profileSaved": "Profile information saved!"
   },
   "deleteAccount": {
     "title": "Delete Business Profile",
