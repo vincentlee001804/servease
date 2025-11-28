@@ -38,10 +38,12 @@ i18next
     
     // Language detection configuration
     detection: {
-      order: ['path', 'localStorage', 'navigator', 'htmlTag'],
-      lookupLocalStorage: 'i18nextLng',
+      order: ['localStorage', 'path', 'navigator', 'htmlTag'],
+      lookupLocalStorage: 'user_language_preference', // Use our custom key
       lookupFromPathIndex: 0,
-      caches: ['localStorage'],
+      // Only cache if explicitly set by user, not from path detection
+      // We'll handle caching manually via changeLanguage() function
+      caches: [], // Disable auto-caching - we'll cache manually
       
       // Custom path detection for your language codes
       checkWhitelist: true
@@ -75,6 +77,12 @@ const registerJtzwPluralRule = () => {
 
 i18next.on('initialized', registerJtzwPluralRule);
 registerJtzwPluralRule();
+
+// Global language change function that syncs with localStorage
+export const changeLanguage = (langCode) => {
+  i18next.changeLanguage(langCode);
+  localStorage.setItem('user_language_preference', langCode);
+};
 
 // Export language utilities
 export const getLanguageName = (code) => languageNames[code] || code;

@@ -111,6 +111,11 @@
     "cancelSuccess": "预订已成功取消",
     "cancelError": "取消预订失败。请重试。"
   },
+  "languageModal": {
+    "welcome": "Welcome / Selamat Datang / 欢迎",
+    "selectLanguage": "请选择您的首选语言",
+    "languageChanged": "语言已更改为 {{language}}"
+  },
   "services": {
     "price": "价格",
     "description": "描述",

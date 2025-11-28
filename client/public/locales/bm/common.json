@@ -111,6 +111,11 @@
     "cancelSuccess": "Tempahan dibatalkan dengan berjaya",
     "cancelError": "Gagal membatalkan tempahan. Sila cuba lagi."
   },
+  "languageModal": {
+    "welcome": "Welcome / Selamat Datang / 欢迎",
+    "selectLanguage": "Sila pilih bahasa pilihan anda",
+    "languageChanged": "Bahasa ditukar kepada {{language}}"
+  },
   "services": {
     "price": "Harga",
     "description": "Penerangan",

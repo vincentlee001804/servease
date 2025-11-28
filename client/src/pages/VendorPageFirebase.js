@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
-import { getLanguageName } from '../config/i18n';
+import { getLanguageName, changeLanguage } from '../config/i18n';
 import { 
   Clock, 
   MapPin, 
@@ -38,7 +38,26 @@ const VendorPageFirebase = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  // Check localStorage synchronously on component initialization (before i18next caches path-based language)
+  const [showLanguageModal, setShowLanguageModal] = useState(() => {
+    // Check immediately if user_language_preference exists
+    // This runs synchronously before any effects or i18next caching
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    return !savedLanguage; // Show modal if no preference exists
+  });
   
+  // Sync language preference on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      // Use saved language preference
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    }
+    // If no savedLanguage, modal will show (handled by useState initializer above)
+  }, []);
+
   // Sync i18next language with URL language changes
   useEffect(() => {
     if (lang && i18next.language !== lang) {
@@ -113,13 +132,29 @@ const VendorPageFirebase = () => {
     window.history.back();
   };
 
-  // Handle language change - navigate to new language URL
-  const handleLanguageChange = (newLang) => {
-    // Get current path without language prefix
+  // Unified language change handler (used by both modal and header switcher)
+  const handleLanguageChange = (langCode) => {
+    // Use global changeLanguage function to sync with localStorage
+    changeLanguage(langCode);
+    
+    // Close modal if open
+    setShowLanguageModal(false);
+    setShowLanguageMenu(false);
+    
+    // Show success toast
+    const languageNames = {
+      'en': 'English',
+      'bm': 'Bahasa Melayu',
+      'jtzw': '中文'
+    };
+    toast.success(t('languageModal.languageChanged', { language: languageNames[langCode] || langCode }));
+    
+    // Navigate to new language URL
     const currentPath = location.pathname.replace(/^\/(en|bm|jtzw)/, '');
-    // Construct new path with new language
-    const newPath = `/${newLang}${currentPath}`;
-    navigate(newPath);
+    const newPath = `/${langCode}${currentPath}`;
+    if (location.pathname !== newPath) {
+      navigate(newPath);
+    }
   };
 
   const handleShare = async () => {
@@ -308,23 +343,57 @@ const VendorPageFirebase = () => {
                 </button>
                 {showLanguageMenu && (
                   <>
-                          <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
-                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30">
-                            {['en', 'bm', 'jtzw'].map((code) => (
-                      <button
-                                key={code}
-                        onClick={() => {
-                                  handleLanguageChange(code);
-                          setShowLanguageMenu(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 ${
-                                  lang === code ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                        }`}
-                      >
-                        <Languages className="w-4 h-4" />
-                                {getLanguageName(code)}
-                      </button>
-                            ))}
+                    {/* Backdrop */}
+                    <div className="fixed inset-0 z-20" onClick={() => setShowLanguageMenu(false)}></div>
+                    
+                    {/* Mobile: Bottom Sheet */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 z-30 sm:hidden">
+                      <div className="p-4">
+                        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{t('languageModal.selectLanguage')}</h3>
+                        <div className="space-y-2">
+                          {[
+                            { code: 'en', name: 'English', flag: '🇬🇧' },
+                            { code: 'bm', name: 'Bahasa Melayu', flag: '🇲🇾' },
+                            { code: 'jtzw', name: '中文', flag: '🇨🇳' }
+                          ].map((langOption) => (
+                            <button
+                              key={langOption.code}
+                              onClick={() => handleLanguageChange(langOption.code)}
+                              className={`w-full py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-3 font-semibold ${
+                                lang === langOption.code || i18next.language === langOption.code
+                                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                  : 'border-gray-200 hover:bg-gray-50 text-gray-900'
+                              }`}
+                            >
+                              <span className="text-2xl">{langOption.flag}</span>
+                              <span>{langOption.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Desktop: Dropdown */}
+                    <div className="hidden sm:block absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-30">
+                      {[
+                        { code: 'en', name: 'English', flag: '🇬🇧' },
+                        { code: 'bm', name: 'Bahasa Melayu', flag: '🇲🇾' },
+                        { code: 'jtzw', name: '中文', flag: '🇨🇳' }
+                      ].map((langOption) => (
+                        <button
+                          key={langOption.code}
+                          onClick={() => handleLanguageChange(langOption.code)}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors flex items-center gap-3 ${
+                            lang === langOption.code || i18next.language === langOption.code
+                              ? 'bg-blue-50 text-blue-700 font-medium'
+                              : 'text-gray-700'
+                          }`}
+                        >
+                          <span className="text-lg">{langOption.flag}</span>
+                          <span>{langOption.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </>
                 )}
@@ -566,6 +635,47 @@ const VendorPageFirebase = () => {
           </div>
         </div>
       </div>
+
+      {/* Language Selection Modal */}
+      {showLanguageModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="bg-white w-[90%] max-w-sm rounded-2xl p-6 shadow-2xl text-center">
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome / Selamat Datang / 欢迎
+              </h2>
+              <p className="text-gray-600 text-sm">
+                {t('languageModal.selectLanguage')}
+              </p>
+            </div>
+
+            {/* Language Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={() => handleLanguageChange('en')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                English
+              </button>
+              
+              <button
+                onClick={() => handleLanguageChange('bm')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                Bahasa Melayu
+              </button>
+              
+              <button
+                onClick={() => handleLanguageChange('jtzw')}
+                className="w-full py-3 px-4 rounded-xl border border-gray-200 hover:bg-blue-50 hover:border-blue-500 font-semibold transition-all text-gray-900"
+              >
+                中文
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

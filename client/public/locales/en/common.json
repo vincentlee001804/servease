@@ -111,6 +111,11 @@
     "cancelSuccess": "Booking cancelled successfully",
     "cancelError": "Failed to cancel booking. Please try again."
   },
+  "languageModal": {
+    "welcome": "Welcome / Selamat Datang / 欢迎",
+    "selectLanguage": "Please select your preferred language",
+    "languageChanged": "Language changed to {{language}}"
+  },
   "services": {
     "price": "Price",
     "description": "Description",
