@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import i18next from '../config/i18n';
+import { changeLanguage } from '../config/i18n';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
@@ -16,6 +18,17 @@ const BookingStatus = () => {
   const [loading, setLoading] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Sync language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      // Use saved language preference
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Always start with empty email field
