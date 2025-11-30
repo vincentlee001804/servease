@@ -202,12 +202,8 @@ const BookingStatus = () => {
         setSearchType(type);
       }
       
-      // Smart sorting: Split into Upcoming and Past, then sort each group
-      const now = new Date();
-      const upcoming = [];
-      const past = [];
-      
-      bookingsData.forEach((booking) => {
+      // Helper function to get booking date/time for sorting
+      const getBookingDateTime = (booking) => {
         // Create a Date object from bookingDate and bookingTime
         const bookingDate = booking.bookingDate;
         const bookingTime = booking.bookingTime;
@@ -239,27 +235,47 @@ const BookingStatus = () => {
           bookingDateTime = booking.createdAt?.toDate?.() || new Date(booking.createdAt || 0);
         }
         
-        // Compare with current date/time
-        if (bookingDateTime >= now) {
-          upcoming.push({ ...booking, _sortDateTime: bookingDateTime });
-        } else {
-          past.push({ ...booking, _sortDateTime: bookingDateTime });
-        }
+        return bookingDateTime;
+      };
+
+      // Separate bookings by status (same as vendor dashboard)
+      const confirmedBookings = bookingsData.filter(b => b.status === 'confirmed');
+      const completedBookings = bookingsData.filter(b => b.status === 'completed');
+      const pendingBookings = bookingsData.filter(b => b.status === 'pending');
+      const cancelledBookings = bookingsData.filter(b => b.status === 'cancelled');
+
+      // Sort confirmed bookings by booking date (nearest first - ascending)
+      confirmedBookings.sort((a, b) => {
+        const dateA = getBookingDateTime(a);
+        const dateB = getBookingDateTime(b);
+        return dateA.getTime() - dateB.getTime();
       });
+
+      // Sort pending bookings by booking date (nearest first - ascending)
+      pendingBookings.sort((a, b) => {
+        const dateA = getBookingDateTime(a);
+        const dateB = getBookingDateTime(b);
+        return dateA.getTime() - dateB.getTime();
+      });
+
+      // Sort completed bookings by booking date (most recent first - descending)
+      completedBookings.sort((a, b) => {
+        const dateA = getBookingDateTime(a);
+        const dateB = getBookingDateTime(b);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      // Sort cancelled bookings by booking date (most recent first - descending)
+      cancelledBookings.sort((a, b) => {
+        const dateA = getBookingDateTime(a);
+        const dateB = getBookingDateTime(b);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      // Combine: Confirmed (nearest first) -> Pending (nearest first) -> Completed (most recent first) -> Cancelled (most recent first)
+      const sortedBookings = [...confirmedBookings, ...pendingBookings, ...completedBookings, ...cancelledBookings];
       
-      // Sort Upcoming: Date Ascending (nearest first)
-      upcoming.sort((a, b) => a._sortDateTime - b._sortDateTime);
-      
-      // Sort Past: Date Descending (most recent first)
-      past.sort((a, b) => b._sortDateTime - a._sortDateTime);
-      
-      // Merge: Upcoming first, then Past
-      const sortedBookings = [...upcoming, ...past];
-      
-      // Remove the temporary _sortDateTime property
-      sortedBookings.forEach(booking => delete booking._sortDateTime);
-      
-      console.log('Found bookings:', sortedBookings.length, `(${upcoming.length} upcoming, ${past.length} past)`);
+      console.log('Found bookings:', sortedBookings.length, `(Confirmed: ${confirmedBookings.length}, Pending: ${pendingBookings.length}, Completed: ${completedBookings.length}, Cancelled: ${cancelledBookings.length})`);
       setBookings(sortedBookings);
       setHasSearched(true); // Set hasSearched to true after search completes
       
