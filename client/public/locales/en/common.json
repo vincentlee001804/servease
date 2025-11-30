@@ -130,7 +130,8 @@
     "time": "Time",
     "addToCalendar": "Add to Calendar",
     "close": "Close",
-    "calendarError": "Unable to add to calendar. Please try again."
+    "calendarError": "Unable to add to calendar. Please try again.",
+    "statusTimeline": "Status Timeline"
   },
   "languageModal": {
     "welcome": "Welcome / Selamat Datang / 欢迎",

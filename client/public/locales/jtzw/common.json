@@ -130,7 +130,8 @@
     "time": "时间",
     "addToCalendar": "添加到日历",
     "close": "关闭",
-    "calendarError": "无法添加到日历。请重试。"
+    "calendarError": "无法添加到日历。请重试。",
+    "statusTimeline": "状态时间线"
   },
   "languageModal": {
     "welcome": "Welcome / Selamat Datang / 欢迎",

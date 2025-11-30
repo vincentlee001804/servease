@@ -130,7 +130,8 @@
     "time": "Masa",
     "addToCalendar": "Tambah ke Kalendar",
     "close": "Tutup",
-    "calendarError": "Tidak dapat menambah ke kalendar. Sila cuba lagi."
+    "calendarError": "Tidak dapat menambah ke kalendar. Sila cuba lagi.",
+    "statusTimeline": "Garis Masa Status"
   },
   "languageModal": {
     "welcome": "Welcome / Selamat Datang / 欢迎",

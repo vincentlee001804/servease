@@ -6,13 +6,13 @@ import { changeLanguage } from '../config/i18n';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
+import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw, Building2, CalendarPlus, X } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api'
   : 'http://localhost:8000';
-import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw, Building2, CalendarPlus, X } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 const BookingStatus = () => {
   const { t, i18n } = useTranslation('common');
@@ -23,8 +23,6 @@ const BookingStatus = () => {
   const [customerIdentifier, setCustomerIdentifier] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [searchType, setSearchType] = useState(null); // 'email' or 'phone'
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
@@ -475,14 +473,103 @@ const BookingStatus = () => {
 
   // Handle add to calendar
   const handleAddToCalendar = (booking) => {
-    if (!booking || !booking.confirmationCode || !booking.id) {
+    if (!booking || !booking.id) {
       toast.error(t('bookingStatus.calendarError'));
       return;
     }
-    const calendarUrl = `${API_BASE_URL}/bookings/${booking.id}/ics?code=${encodeURIComponent(
-      booking.confirmationCode
-    )}`;
-    window.open(calendarUrl, '_blank', 'noopener,noreferrer');
+
+    // If confirmationCode exists, use the API endpoint
+    if (booking.confirmationCode) {
+      const calendarUrl = `${API_BASE_URL}/bookings/${booking.id}/ics?code=${encodeURIComponent(
+        booking.confirmationCode
+      )}`;
+      window.open(calendarUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // Otherwise, create calendar event client-side
+    try {
+      // Get booking date and time
+      let startDate;
+      if (booking.bookingDate) {
+        let date;
+        if (booking.bookingDate.toDate) {
+          date = booking.bookingDate.toDate();
+        } else if (booking.bookingDate instanceof Date) {
+          date = booking.bookingDate;
+        } else {
+          date = new Date(booking.bookingDate);
+        }
+
+        // Set time if bookingTime exists
+        if (booking.bookingTime) {
+          const [hours, minutes] = booking.bookingTime.split(':');
+          date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        } else {
+          date.setHours(9, 0, 0, 0); // Default to 9 AM
+        }
+        startDate = date;
+      } else {
+        startDate = new Date();
+      }
+
+      // Calculate end date (default 1 hour duration)
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+      // Format dates for ICS
+      const formatICSDate = (date) => {
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      };
+
+      const escapeICSText = (text = '') => {
+        return String(text)
+          .replace(/\\/g, '\\\\')
+          .replace(/;/g, '\\;')
+          .replace(/,/g, '\\,')
+          .replace(/\n/g, '\\n');
+      };
+
+      const summary = `ServEase Booking - ${booking.serviceName || 'Service'}`;
+      const location = booking.vendorName || '';
+      const description = [
+        `Vendor: ${booking.vendorName || ''}`,
+        `Customer: ${booking.customerName || ''}`,
+        booking.notes ? `Notes: ${booking.notes}` : '',
+        `Price: ${formatPrice(booking)}`
+      ].filter(Boolean).join('\\n');
+
+      const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//ServEase//Calendar//EN',
+        'BEGIN:VEVENT',
+        `UID:${booking.id}@servease`,
+        `DTSTAMP:${formatICSDate(new Date())}`,
+        `DTSTART:${formatICSDate(startDate)}`,
+        `DTEND:${formatICSDate(endDate)}`,
+        `SUMMARY:${escapeICSText(summary)}`,
+        location ? `LOCATION:${escapeICSText(location)}` : '',
+        `DESCRIPTION:${escapeICSText(description)}`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ]
+        .filter(Boolean)
+        .join('\r\n');
+
+      // Create blob and download
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `servease-booking-${booking.id}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      toast.error(t('bookingStatus.calendarError'));
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -940,161 +1027,209 @@ const BookingStatus = () => {
         {showBookingModal && selectedBooking && (
           <>
             <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity"
               onClick={() => setShowBookingModal(false)}
             ></div>
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{t('bookingStatus.bookingDetails')}</h2>
-                  <button
-                    onClick={() => setShowBookingModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-
-                {/* Service Info */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedBooking.serviceName}</h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="font-medium text-blue-600">{formatPrice(selectedBooking)}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedBooking.status)}`}>
-                      {getStatusIcon(selectedBooking.status)}
-                      <span className="ml-1">{t(`status.${selectedBooking.status}`, selectedBooking.status?.charAt(0).toUpperCase() + selectedBooking.status?.slice(1) || 'Pending')}</span>
-                    </span>
+              <div 
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header with gradient */}
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1">{t('bookingStatus.bookingDetails')}</h2>
+                      <p className="text-blue-100 text-sm">{selectedBooking.serviceName}</p>
+                    </div>
+                    <button
+                      onClick={() => setShowBookingModal(false)}
+                      className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Status Timeline */}
-                <div className="mb-6 space-y-4">
-                  {/* Booking Submitted */}
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="h-5 w-5 text-blue-600" />
+                {/* Scrollable Content */}
+                <div className="overflow-y-auto flex-1 px-6 py-6">
+                  {/* Service Info Card */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 mb-6 border border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">{selectedBooking.serviceName}</h3>
+                        <p className="text-2xl font-bold text-blue-600 mt-2">{formatPrice(selectedBooking)}</p>
+                      </div>
+                      <div className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(selectedBooking.status)}`}>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(selectedBooking.status)}
+                          <span>{t(`status.${selectedBooking.status}`, selectedBooking.status?.charAt(0).toUpperCase() + selectedBooking.status?.slice(1) || 'Pending')}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{t('bookingStatus.bookingSubmitted')}</p>
-                      <p className="text-sm text-gray-600">{t('bookingStatus.waitingForApproval')}</p>
-                      {selectedBooking.createdAt && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {t('bookingStatus.submittedOn')}: {formatTimestamp(selectedBooking.createdAt)}
-                        </p>
+                  </div>
+
+                  {/* Status Timeline */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">{t('bookingStatus.statusTimeline')}</h4>
+                    <div className="relative pl-8 space-y-6">
+                      {/* Connecting Line */}
+                      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                      
+                      {/* Booking Submitted */}
+                      <div className="relative flex items-start gap-4">
+                        <div className="absolute -left-8 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-4 ring-blue-100 z-10">
+                          <CheckCircle className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                          <p className="font-semibold text-gray-900 mb-1">{t('bookingStatus.bookingSubmitted')}</p>
+                          <p className="text-sm text-gray-600 mb-2">{t('bookingStatus.waitingForApproval')}</p>
+                          {selectedBooking.createdAt && (
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTimestamp(selectedBooking.createdAt)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Booking Confirmed */}
+                      {selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' ? (
+                        <div className="relative flex items-start gap-4">
+                          <div className="absolute -left-8 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-4 ring-green-100 z-10">
+                            <CheckCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1 bg-white rounded-lg p-4 border border-green-200 shadow-sm bg-gradient-to-br from-green-50 to-white">
+                            <p className="font-semibold text-gray-900 mb-1">{t('bookingStatus.bookingConfirmed')}</p>
+                            <p className="text-sm text-gray-600 mb-2">{t('bookingStatus.confirmedByVendor')}</p>
+                            {selectedBooking.updatedAt && (
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTimestamp(selectedBooking.updatedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : selectedBooking.status === 'pending' ? (
+                        <div className="relative flex items-start gap-4">
+                          <div className="absolute -left-8 w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-4 ring-gray-100 z-10">
+                            <AlertCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200 shadow-sm opacity-60">
+                            <p className="font-semibold text-gray-500 mb-1">{t('bookingStatus.bookingConfirmed')}</p>
+                            <p className="text-sm text-gray-500">{t('bookingStatus.pendingConfirmation')}</p>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Booking Cancelled */}
+                      {selectedBooking.status === 'cancelled' && (
+                        <div className="relative flex items-start gap-4">
+                          <div className="absolute -left-8 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ring-4 ring-red-100 z-10">
+                            <XCircle className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1 bg-white rounded-lg p-4 border border-red-200 shadow-sm bg-gradient-to-br from-red-50 to-white">
+                            <p className="font-semibold text-gray-900 mb-1">{t('bookingStatus.bookingCancelled')}</p>
+                            <p className="text-sm text-gray-600 mb-2">{t('bookingStatus.cancelledBy')}</p>
+                            {selectedBooking.updatedAt && (
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatTimestamp(selectedBooking.updatedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Booking Confirmed */}
-                  {selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' ? (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{t('bookingStatus.bookingConfirmed')}</p>
-                        <p className="text-sm text-gray-600">{t('bookingStatus.confirmedByVendor')}</p>
-                        {selectedBooking.updatedAt && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {t('bookingStatus.confirmedOn')}: {formatTimestamp(selectedBooking.updatedAt)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : selectedBooking.status === 'pending' ? (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <AlertCircle className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-500">{t('bookingStatus.bookingConfirmed')}</p>
-                        <p className="text-sm text-gray-500">{t('bookingStatus.pendingConfirmation')}</p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Booking Cancelled */}
-                  {selectedBooking.status === 'cancelled' && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <XCircle className="h-5 w-5 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{t('bookingStatus.bookingCancelled')}</p>
-                        <p className="text-sm text-gray-600">{t('bookingStatus.cancelledBy')}</p>
-                        {selectedBooking.updatedAt && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {t('bookingStatus.cancelledOn')}: {formatTimestamp(selectedBooking.updatedAt)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Booking Details */}
-                <div className="border-t border-gray-200 pt-6 mb-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">{t('bookingStatus.bookingInformation')}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">{t('bookingStatus.date')}</p>
-                        <p className="font-medium">{formatDate(selectedBooking.bookingDate)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">{t('bookingStatus.time')}</p>
-                        <p className="font-medium">{formatTime(selectedBooking.bookingTime)}</p>
-                      </div>
-                    </div>
-                    {selectedBooking.vendorName && (
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-gray-400" />
-                        <div>
-                          <p className="text-sm text-gray-600">{t('bookingStatus.vendor')}</p>
-                          <p className="font-medium">{selectedBooking.vendorName}</p>
+                  {/* Booking Details */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">{t('bookingStatus.bookingInformation')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Calendar className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('bookingStatus.date')}</p>
+                            <p className="font-semibold text-gray-900">{formatDate(selectedBooking.bookingDate)}</p>
+                          </div>
                         </div>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm text-gray-600">{t('bookingStatus.customer')}</p>
-                        <p className="font-medium">{selectedBooking.customerName}</p>
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('bookingStatus.time')}</p>
+                            <p className="font-semibold text-gray-900">{formatTime(selectedBooking.bookingTime)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {selectedBooking.vendorName && (
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Building2 className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">{t('bookingStatus.vendor')}</p>
+                              <p className="font-semibold text-gray-900">{selectedBooking.vendorName}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <User className="h-5 w-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('bookingStatus.customer')}</p>
+                            <p className="font-semibold text-gray-900">{selectedBooking.customerName}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Special Notes */}
+                  {selectedBooking.notes && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('bookingStatus.specialNotes')}</h4>
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-gray-700 leading-relaxed">{selectedBooking.notes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Special Notes */}
-                {selectedBooking.notes && (
-                  <div className="border-t border-gray-200 pt-6 mb-6">
-                    <h4 className="font-semibold text-gray-900 mb-2">{t('bookingStatus.specialNotes')}</h4>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedBooking.notes}</p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
-                  {selectedBooking.status === 'confirmed' && selectedBooking.confirmationCode && (
+                {/* Footer with Action Buttons */}
+                <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    {(selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed') && (
+                      <Button
+                        onClick={() => handleAddToCalendar(selectedBooking)}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                      >
+                        <CalendarPlus className="h-4 w-4 mr-2" />
+                        {t('bookingStatus.addToCalendar')}
+                      </Button>
+                    )}
                     <Button
-                      onClick={() => handleAddToCalendar(selectedBooking)}
-                      className="flex-1"
+                      onClick={() => setShowBookingModal(false)}
+                      variant="outline"
+                      className="flex-1 border-gray-300 hover:bg-gray-100"
                     >
-                      <CalendarPlus className="h-4 w-4 mr-2" />
-                      {t('bookingStatus.addToCalendar')}
+                      {t('bookingStatus.close')}
                     </Button>
-                  )}
-                  <Button
-                    onClick={() => setShowBookingModal(false)}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    {t('bookingStatus.close')}
-                  </Button>
+                  </div>
                 </div>
               </div>
             </div>
