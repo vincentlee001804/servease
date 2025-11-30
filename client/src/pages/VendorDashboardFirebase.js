@@ -1253,16 +1253,27 @@ const VendorDashboardFirebase = () => {
                                             const now = new Date();
                                             const hasTimePassed = bookingDateTime <= now;
                                             
-                                            return hasTimePassed ? (
+                                            return (
                                               <div className="flex gap-1 mt-1">
-                                                <button
-                                                  onClick={() => updateBookingStatus(booking.id, 'completed')}
-                                                  className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
-                                                >
-                                                  {t('dashboard.complete')}
-                                                </button>
+                                                {hasTimePassed && (
+                                                  <button
+                                                    onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                                    className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                                                  >
+                                                    {t('dashboard.complete')}
+                                                  </button>
+                                                )}
+                                                {/* Show cancel button for vendor-created bookings */}
+                                                {booking.createdBy === 'vendor' && (
+                                                  <button
+                                                    onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                                    className="px-2 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                                                  >
+                                                    {t('dashboard.cancel')}
+                                                  </button>
+                                                )}
                                               </div>
-                                            ) : null;
+                                            );
                                           })()}
                                         </div>
                                       ))}
@@ -1898,11 +1909,31 @@ const VendorDashboardFirebase = () => {
                               </>
                             )}
                             {booking.status === 'confirmed' && (
+                              <>
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                  className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                                >
+                                  {t('dashboard.markComplete')}
+                                </button>
+                                {/* Show cancel button for vendor-created bookings */}
+                                {booking.createdBy === 'vendor' && (
+                                  <button
+                                    onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                    className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                                  >
+                                    {t('dashboard.cancel')}
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            {/* Show cancel button for vendor-created bookings in other statuses (except already cancelled) */}
+                            {booking.createdBy === 'vendor' && booking.status !== 'pending' && booking.status !== 'confirmed' && booking.status !== 'cancelled' && (
                               <button
-                                onClick={() => updateBookingStatus(booking.id, 'completed')}
-                                className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                                onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
                               >
-                                {t('dashboard.markComplete')}
+                                {t('dashboard.cancel')}
                               </button>
                             )}
                           </div>
