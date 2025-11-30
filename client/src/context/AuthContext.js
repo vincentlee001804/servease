@@ -7,7 +7,9 @@ import {
   updateProfile,
   sendPasswordResetEmail,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  fetchSignInMethodsForEmail,
+  linkWithCredential
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -264,8 +266,55 @@ export const AuthProvider = ({ children }) => {
   const signInWithGoogle = async () => {
     try {
       setIsLoggingIn(true);
+      
+      // Check if user is already signed in with email/password
+      const currentUser = auth.currentUser;
+      
+      // If user is already signed in with email/password, link Google provider to existing account
+      if (currentUser && currentUser.providerData.some(provider => provider.providerId === 'password')) {
+        try {
+          const result = await signInWithPopup(auth, googleProvider);
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          
+          if (!credential) {
+            throw new Error('Failed to get Google credential');
+          }
+          
+          // Link Google credential to existing account
+          await linkWithCredential(currentUser, credential);
+          toast.success('Google account linked successfully!');
+          return { success: true, user: currentUser };
+        } catch (linkError) {
+          console.error('Error linking Google account:', linkError);
+          if (linkError.code === 'auth/credential-already-in-use') {
+            toast.error('This Google account is already linked to another account');
+          } else if (linkError.code === 'auth/popup-closed-by-user') {
+            toast.error('Sign-in cancelled');
+          } else {
+            toast.error('Failed to link Google account');
+          }
+          setIsLoggingIn(false);
+          return { success: false, message: 'Failed to link Google account' };
+        }
+      }
+      
+      // If user is not signed in, proceed with normal Google sign-in
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseUser = result.user;
+      const email = firebaseUser.email;
+
+      // After successful Google sign-in, check if this email has other sign-in methods
+      // This helps us understand if accounts need to be linked
+      try {
+        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+        console.log('Sign-in methods for email:', signInMethods);
+        
+        // If the user only has Google provider, that's fine (new account or Google-only account)
+        // If they have both password and Google, that's also fine (accounts are linked)
+        // The key is that Firebase handles this automatically when linking is done correctly
+      } catch (checkError) {
+        console.log('Could not check sign-in methods:', checkError);
+      }
 
       await ensureUserRecord(firebaseUser);
       await ensureVendorProfile(firebaseUser);
@@ -274,6 +323,40 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: firebaseUser };
     } catch (error) {
       console.error('Google sign-in error:', error);
+      
+      // Handle specific Firebase errors
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // This error occurs when an account with this email already exists but with a different provider
+        const email = error.customData?.email;
+        const errorMessage = email 
+          ? `An account with ${email} already exists. Please sign in with email/password first, then you can link your Google account from your profile settings.`
+          : 'An account with this email already exists with a different sign-in method. Please use email/password to sign in.';
+        
+        toast.error(errorMessage);
+        setIsLoggingIn(false);
+        return {
+          success: false,
+          message: errorMessage,
+          code: error.code
+        };
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        toast.error('Sign-in cancelled');
+        setIsLoggingIn(false);
+        return {
+          success: false,
+          message: 'Sign-in cancelled',
+          code: error.code
+        };
+      } else if (error.code === 'auth/credential-already-in-use') {
+        toast.error('This Google account is already linked to another account');
+        setIsLoggingIn(false);
+        return {
+          success: false,
+          message: 'This Google account is already in use',
+          code: error.code
+        };
+      }
+      
       toast.error('Google sign-in failed');
       setIsLoggingIn(false);
       return {
