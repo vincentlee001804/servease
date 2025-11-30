@@ -3,10 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
 import { changeLanguage } from '../config/i18n';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
-import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw, Building2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -84,6 +84,37 @@ const BookingStatus = () => {
         bookingsData.push({ id: doc.id, ...doc.data() });
       });
       
+      // Fetch vendor information for each booking to display vendor name
+      const bookingsWithVendorInfo = await Promise.all(
+        bookingsData.map(async (booking) => {
+          if (booking.vendorId) {
+            try {
+              const vendorRef = doc(db, 'vendors', booking.vendorId);
+              const vendorDoc = await getDoc(vendorRef);
+              if (vendorDoc.exists()) {
+                const vendorData = vendorDoc.data();
+                return {
+                  ...booking,
+                  vendorName: vendorData.businessName || 'Vendor',
+                  vendorBusinessType: vendorData.businessType || ''
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching vendor info:', error);
+            }
+          }
+          return {
+            ...booking,
+            vendorName: 'Vendor',
+            vendorBusinessType: ''
+          };
+        })
+      );
+      
+      // Replace bookingsData with enriched data
+      bookingsData.length = 0;
+      bookingsData.push(...bookingsWithVendorInfo);
+      
       // If no results found with one method, try the other method
       if (bookingsData.length === 0 && type === 'email') {
         console.log('No bookings found with email, trying phone number...');
@@ -97,6 +128,34 @@ const BookingStatus = () => {
         });
         if (bookingsData.length > 0) {
           setSearchType('phone');
+          // Fetch vendor information for fallback results
+          const bookingsWithVendorInfo = await Promise.all(
+            bookingsData.map(async (booking) => {
+              if (booking.vendorId) {
+                try {
+                  const vendorRef = doc(db, 'vendors', booking.vendorId);
+                  const vendorDoc = await getDoc(vendorRef);
+                  if (vendorDoc.exists()) {
+                    const vendorData = vendorDoc.data();
+                    return {
+                      ...booking,
+                      vendorName: vendorData.businessName || 'Vendor',
+                      vendorBusinessType: vendorData.businessType || ''
+                    };
+                  }
+                } catch (error) {
+                  console.error('Error fetching vendor info:', error);
+                }
+              }
+              return {
+                ...booking,
+                vendorName: 'Vendor',
+                vendorBusinessType: ''
+              };
+            })
+          );
+          bookingsData.length = 0;
+          bookingsData.push(...bookingsWithVendorInfo);
         }
       } else if (bookingsData.length === 0 && type === 'phone') {
         console.log('No bookings found with phone, trying email...');
@@ -110,6 +169,34 @@ const BookingStatus = () => {
         });
         if (bookingsData.length > 0) {
           setSearchType('email');
+          // Fetch vendor information for fallback results
+          const bookingsWithVendorInfo = await Promise.all(
+            bookingsData.map(async (booking) => {
+              if (booking.vendorId) {
+                try {
+                  const vendorRef = doc(db, 'vendors', booking.vendorId);
+                  const vendorDoc = await getDoc(vendorRef);
+                  if (vendorDoc.exists()) {
+                    const vendorData = vendorDoc.data();
+                    return {
+                      ...booking,
+                      vendorName: vendorData.businessName || 'Vendor',
+                      vendorBusinessType: vendorData.businessType || ''
+                    };
+                  }
+                } catch (error) {
+                  console.error('Error fetching vendor info:', error);
+                }
+              }
+              return {
+                ...booking,
+                vendorName: 'Vendor',
+                vendorBusinessType: ''
+              };
+            })
+          );
+          bookingsData.length = 0;
+          bookingsData.push(...bookingsWithVendorInfo);
         }
       } else {
         setSearchType(type);
@@ -634,6 +721,21 @@ const BookingStatus = () => {
                         </div>
                           </div>
                         </div>
+                        
+                        {/* Vendor Name - Full Width */}
+                        {booking.vendorName && (
+                          <div className="mb-2">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                              <p className="text-xs text-gray-500">
+                                {t('bookingStatus.vendor')}: <span className="text-gray-700 font-medium">{booking.vendorName}</span>
+                                {booking.vendorBusinessType && (
+                                  <span className="text-gray-500 ml-1">({booking.vendorBusinessType})</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Row 2: Details Grid (2 columns) + Customer Name (full width) */}
                         <div className="grid grid-cols-2 gap-4 my-3">
