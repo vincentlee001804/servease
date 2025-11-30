@@ -16,8 +16,9 @@ const BookingStatus = () => {
   const location = useLocation();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerIdentifier, setCustomerIdentifier] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchType, setSearchType] = useState(null); // 'email' or 'phone'
 
   // Sync language preference from localStorage on mount
   useEffect(() => {
@@ -31,22 +32,50 @@ const BookingStatus = () => {
   }, []);
 
   useEffect(() => {
-    // Always start with empty email field
-    // Do NOT pre-fill from localStorage to ensure users enter their own email
-    // User must explicitly enter their email and click "View My Bookings"
-    setCustomerEmail('');
+    // Always start with empty identifier field
+    // Do NOT pre-fill from localStorage to ensure users enter their own email/phone
+    // User must explicitly enter their email or phone and click "View My Bookings"
+    setCustomerIdentifier('');
+    setSearchType(null);
   }, []);
 
-  const fetchBookings = async (email) => {
+  // Helper function to detect if input is email or phone
+  const detectInputType = (input) => {
+    if (!input) return null;
+    const trimmed = input.trim();
+    // Check if it looks like an email (contains @)
+    if (trimmed.includes('@')) {
+      return 'email';
+    }
+    // Check if it's mostly digits (phone number)
+    const digitsOnly = trimmed.replace(/\D/g, '');
+    if (digitsOnly.length >= 8) {
+      return 'phone';
+    }
+    // Default to email if ambiguous
+    return 'email';
+  };
+
+  const fetchBookings = async (identifier, type) => {
     try {
-      console.log('Fetching bookings for email:', email);
+      console.log('Fetching bookings for:', type, identifier);
       setLoading(true);
       
-      // Remove orderBy to avoid composite index requirement
-      const bookingsQuery = query(
-        collection(db, 'bookings'),
-        where('customerEmail', '==', email)
-      );
+      let bookingsQuery;
+      
+      if (type === 'phone') {
+        // Search by phone number
+        bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('customerPhone', '==', identifier)
+        );
+      } else {
+        // Search by email (default)
+        bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('customerEmail', '==', identifier)
+        );
+      }
       
       const querySnapshot = await getDocs(bookingsQuery);
       const bookingsData = [];
@@ -54,6 +83,37 @@ const BookingStatus = () => {
       querySnapshot.forEach((doc) => {
         bookingsData.push({ id: doc.id, ...doc.data() });
       });
+      
+      // If no results found with one method, try the other method
+      if (bookingsData.length === 0 && type === 'email') {
+        console.log('No bookings found with email, trying phone number...');
+        const phoneQuery = query(
+          collection(db, 'bookings'),
+          where('customerPhone', '==', identifier)
+        );
+        const phoneSnapshot = await getDocs(phoneQuery);
+        phoneSnapshot.forEach((doc) => {
+          bookingsData.push({ id: doc.id, ...doc.data() });
+        });
+        if (bookingsData.length > 0) {
+          setSearchType('phone');
+        }
+      } else if (bookingsData.length === 0 && type === 'phone') {
+        console.log('No bookings found with phone, trying email...');
+        const emailQuery = query(
+          collection(db, 'bookings'),
+          where('customerEmail', '==', identifier)
+        );
+        const emailSnapshot = await getDocs(emailQuery);
+        emailSnapshot.forEach((doc) => {
+          bookingsData.push({ id: doc.id, ...doc.data() });
+        });
+        if (bookingsData.length > 0) {
+          setSearchType('email');
+        }
+      } else {
+        setSearchType(type);
+      }
       
       // Smart sorting: Split into Upcoming and Past, then sort each group
       const now = new Date();
@@ -117,7 +177,7 @@ const BookingStatus = () => {
       setHasSearched(true); // Set hasSearched to true after search completes
       
       if (bookingsData.length === 0) {
-        console.log('No bookings found for email:', email);
+        console.log('No bookings found for:', type, identifier);
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -132,12 +192,22 @@ const BookingStatus = () => {
     }
   };
 
-  const handleEmailSubmit = (e) => {
+  const handleIdentifierSubmit = (e) => {
     e.preventDefault();
-    if (customerEmail) {
-      localStorage.setItem('customerEmail', customerEmail);
+    if (customerIdentifier) {
+      const trimmed = customerIdentifier.trim();
+      const detectedType = detectInputType(trimmed);
+      
+      // Store in localStorage for convenience
+      if (detectedType === 'email') {
+        localStorage.setItem('customerEmail', trimmed);
+      } else {
+        localStorage.setItem('customerPhone', trimmed);
+      }
+      
       setHasSearched(true);
-      fetchBookings(customerEmail);
+      setSearchType(detectedType);
+      fetchBookings(trimmed, detectedType);
     }
   };
 
@@ -400,27 +470,27 @@ const BookingStatus = () => {
         </div>
 
             {/* Form */}
-              <form onSubmit={handleEmailSubmit} className="space-y-6">
+              <form onSubmit={handleIdentifierSubmit} className="space-y-6">
               {/* Floating Label Input */}
               <div className="relative">
                   <input
-                    type="email"
-                  id="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    type="text"
+                  id="customerIdentifier"
+                    value={customerIdentifier}
+                    onChange={(e) => setCustomerIdentifier(e.target.value)}
                   className="peer w-full px-4 pt-6 pb-2 text-lg border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
                   placeholder=" "
                     required
                   />
                 <label
-                  htmlFor="email"
+                  htmlFor="customerIdentifier"
                   className={`absolute left-4 transition-all duration-200 ${
-                    customerEmail 
+                    customerIdentifier 
                       ? 'top-2 text-sm text-blue-600 font-medium' 
                       : 'top-4 text-base text-gray-500 peer-focus:top-2 peer-focus:text-sm peer-focus:text-blue-600 peer-focus:font-medium'
                   }`}
                 >
-                  {t('bookingStatus.emailAddress')}
+                  {t('bookingStatus.emailOrPhone')}
                 </label>
                 </div>
 
@@ -479,21 +549,27 @@ const BookingStatus = () => {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-gray-200 flex-shrink-0">
-                    <Mail className="h-5 w-5 text-gray-600" />
+                    {searchType === 'phone' ? (
+                      <Phone className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <Mail className="h-5 w-5 text-gray-600" />
+                    )}
                     </div>
                     <div className="min-w-0 flex-1">
                     <p className="text-xs text-gray-500 font-medium mb-1">{t('bookingStatus.viewingBookingsFor')}</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{customerEmail}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{customerIdentifier}</p>
                     </div>
                   </div>
                 <button
                     onClick={() => {
                       setHasSearched(false);
                       setBookings([]);
+                      setCustomerIdentifier('');
+                      setSearchType(null);
                     }}
                   className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0 border border-blue-200 bg-white"
                   >
-                  {t('bookingStatus.changeEmail')}
+                  {t('bookingStatus.changeIdentifier')}
                 </button>
               </div>
                 </div>
@@ -513,10 +589,12 @@ const BookingStatus = () => {
                       onClick={() => {
                         setHasSearched(false);
                         setBookings([]);
+                        setCustomerIdentifier('');
+                        setSearchType(null);
                       }}
                       className="px-8 py-3 text-lg"
                     >
-                      {t('bookingStatus.tryDifferentEmail')}
+                      {t('bookingStatus.tryDifferentIdentifier')}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -531,9 +609,12 @@ const BookingStatus = () => {
             ) : (
               <div className="space-y-4">
                 {bookings.map((booking, index) => {
-                  // Check if customer name differs from email (simplified check)
+                  // Check if customer name differs from identifier (simplified check)
+                  const identifierPart = searchType === 'email' 
+                    ? customerIdentifier.toLowerCase().split('@')[0]
+                    : customerIdentifier;
                   const showCustomerName = booking.customerName && 
-                    booking.customerName.toLowerCase() !== customerEmail.toLowerCase().split('@')[0];
+                    booking.customerName.toLowerCase() !== identifierPart.toLowerCase();
                   
                   return (
                     <Card key={booking.id} className="hover:shadow-lg transition-all duration-300 border border-gray-200 shadow-sm overflow-hidden">
