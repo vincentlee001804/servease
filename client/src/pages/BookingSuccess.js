@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18next from '../config/i18n';
+import { changeLanguage } from '../config/i18n';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { CheckCircle, Calendar, CalendarPlus, Clock, User, Phone, Mail, MapPin, ArrowLeft, Eye } from 'lucide-react';
@@ -13,8 +16,25 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
 const BookingSuccess = () => {
   const { vendorId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const bookingId = searchParams.get('bookingId');
+  const { t, i18n } = useTranslation('common');
+  
+  // Extract language from URL path
+  const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
+  
+  // Sync language preference from localStorage on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('user_language_preference');
+    if (savedLanguage) {
+      if (i18next.language !== savedLanguage) {
+        changeLanguage(savedLanguage);
+      }
+    } else if (pathLang && i18next.language !== pathLang) {
+      i18next.changeLanguage(pathLang);
+    }
+  }, [pathLang]);
   
   const [vendor, setVendor] = useState(null);
   const [booking, setBooking] = useState(null);
@@ -80,9 +100,44 @@ const BookingSuccess = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+  const formatDate = (dateInput) => {
+    if (!dateInput) return '';
+    
+    // Handle Firestore Timestamp
+    let date;
+    if (dateInput.toDate) {
+      date = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+      date = dateInput;
+    } else if (typeof dateInput === 'string') {
+      date = new Date(dateInput);
+    } else {
+      date = new Date(dateInput);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    const currentLang = i18n.language || 'en';
+    
+    // For Chinese (jtzw), use DD/MM/YYYY format
+    if (currentLang === 'jtzw') {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+    
+    // For other languages, use locale-specific format
+    const localeMap = {
+      'en': 'en-US',
+      'bm': 'ms-MY',
+      'jtzw': 'zh-CN'
+    };
+    
+    const locale = localeMap[currentLang] || 'en-US';
+    return date.toLocaleDateString(locale, { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -91,10 +146,21 @@ const BookingSuccess = () => {
   };
 
   const formatTime = (timeString) => {
+    if (!timeString) return '';
+    
     const [hours, minutes] = timeString.split(':');
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
-    return date.toLocaleTimeString('en-US', { 
+    
+    const currentLang = i18n.language || 'en';
+    const localeMap = {
+      'en': 'en-US',
+      'bm': 'ms-MY',
+      'jtzw': 'zh-CN'
+    };
+    
+    const locale = localeMap[currentLang] || 'en-US';
+    return date.toLocaleTimeString(locale, { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
@@ -117,9 +183,9 @@ const BookingSuccess = () => {
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('bookingSuccess.title')}</h1>
           <p className="text-gray-600">
-            Your booking request has been submitted successfully. The vendor will contact you soon.
+            {t('bookingSuccess.subtitle')}
           </p>
         </div>
 
@@ -129,18 +195,18 @@ const BookingSuccess = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                Booking Details
+                {t('bookingSuccess.bookingDetails')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-medium text-gray-900">{booking.serviceName}</h3>
-                  <p className="text-sm text-gray-600">Service</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.service')}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">{formatPriceFromBooking(booking)}</h3>
-                  <p className="text-sm text-gray-600">Estimated Price</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.estimatedPrice')}</p>
                 </div>
               </div>
               
@@ -149,21 +215,21 @@ const BookingSuccess = () => {
                   <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                   <div>
                     <p className="font-medium">{formatDate(booking.bookingDate)}</p>
-                    <p className="text-sm text-gray-600">Date</p>
+                    <p className="text-sm text-gray-600">{t('bookingSuccess.date')}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-2 text-gray-500" />
                   <div>
                     <p className="font-medium">{formatTime(booking.bookingTime)}</p>
-                    <p className="text-sm text-gray-600">Time</p>
+                    <p className="text-sm text-gray-600">{t('bookingSuccess.time')}</p>
                   </div>
                 </div>
               </div>
 
               {booking.notes && (
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Special Notes</h4>
+                  <h4 className="font-medium text-gray-900 mb-1">{t('bookingSuccess.specialNotes')}</h4>
                   <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{booking.notes}</p>
                 </div>
               )}
@@ -177,7 +243,7 @@ const BookingSuccess = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <User className="h-5 w-5 mr-2 text-blue-600" />
-                Your Details
+                {t('bookingSuccess.yourDetails')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -185,21 +251,21 @@ const BookingSuccess = () => {
                 <User className="h-4 w-4 mr-3 text-gray-500" />
                 <div>
                   <p className="font-medium">{booking.customerName}</p>
-                  <p className="text-sm text-gray-600">Full Name</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.fullName')}</p>
                 </div>
               </div>
               <div className="flex items-center">
                 <Mail className="h-4 w-4 mr-3 text-gray-500" />
                 <div>
                   <p className="font-medium">{booking.customerEmail}</p>
-                  <p className="text-sm text-gray-600">Email Address</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.emailAddress')}</p>
                 </div>
               </div>
               <div className="flex items-center">
                 <Phone className="h-4 w-4 mr-3 text-gray-500" />
                 <div>
                   <p className="font-medium">{booking.customerPhone}</p>
-                  <p className="text-sm text-gray-600">Phone Number</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.phoneNumber')}</p>
                 </div>
               </div>
             </CardContent>
@@ -212,20 +278,20 @@ const BookingSuccess = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <MapPin className="h-5 w-5 mr-2 text-blue-600" />
-                Vendor Information
+                {t('bookingSuccess.vendorInformation')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <h3 className="font-medium text-gray-900">{vendor.businessName}</h3>
-                <p className="text-sm text-gray-600">Business Name</p>
+                <p className="text-sm text-gray-600">{t('bookingSuccess.businessName')}</p>
               </div>
               {vendor.businessInfo?.address && (
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 mr-3 text-gray-500 mt-0.5" />
                   <div>
                     <p className="font-medium">{vendor.businessInfo.address}</p>
-                    <p className="text-sm text-gray-600">Address</p>
+                    <p className="text-sm text-gray-600">{t('bookingSuccess.address')}</p>
                   </div>
                 </div>
               )}
@@ -234,7 +300,7 @@ const BookingSuccess = () => {
                   <Phone className="h-4 w-4 mr-3 text-gray-500" />
                   <div>
                     <p className="font-medium">{vendor.contactInfo.phone}</p>
-                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="text-sm text-gray-600">{t('bookingSuccess.phone')}</p>
                   </div>
                 </div>
               )}
@@ -245,7 +311,7 @@ const BookingSuccess = () => {
         {/* Status Information */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>What's Next?</CardTitle>
+            <CardTitle>{t('bookingSuccess.whatsNext')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -254,8 +320,8 @@ const BookingSuccess = () => {
                   <span className="text-xs font-medium text-blue-600">1</span>
                 </div>
                 <div>
-                  <p className="font-medium">Booking Submitted</p>
-                  <p className="text-sm text-gray-600">Your booking request has been sent to the vendor.</p>
+                  <p className="font-medium">{t('bookingSuccess.bookingSubmitted')}</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.bookingSubmittedDesc')}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -263,8 +329,8 @@ const BookingSuccess = () => {
                   <span className="text-xs font-medium text-gray-600">2</span>
                 </div>
                 <div>
-                  <p className="font-medium">Vendor Confirmation</p>
-                  <p className="text-sm text-gray-600">The vendor will review and confirm your booking.</p>
+                  <p className="font-medium">{t('bookingSuccess.vendorConfirmation')}</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.vendorConfirmationDesc')}</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -272,8 +338,8 @@ const BookingSuccess = () => {
                   <span className="text-xs font-medium text-gray-600">3</span>
                 </div>
                 <div>
-                  <p className="font-medium">Service Delivery</p>
-                  <p className="text-sm text-gray-600">Attend your appointment at the scheduled time.</p>
+                  <p className="font-medium">{t('bookingSuccess.serviceDelivery')}</p>
+                  <p className="text-sm text-gray-600">{t('bookingSuccess.serviceDeliveryDesc')}</p>
                 </div>
               </div>
             </div>
@@ -283,19 +349,19 @@ const BookingSuccess = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button 
-            onClick={() => navigate(`/vendor/${vendorId}`)}
+            onClick={() => navigate(`/${pathLang}/vendor/${vendorId}`)}
             variant="outline"
             className="flex-1"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Services
+            {t('bookingSuccess.backToServices')}
           </Button>
           <Button 
-            onClick={() => navigate('/bookings')}
+            onClick={() => navigate(`/${pathLang}/bookings`)}
             className="flex-1"
           >
             <Eye className="h-4 w-4 mr-2" />
-            View All Bookings
+            {t('bookingSuccess.viewAllBookings')}
           </Button>
           {booking && booking.confirmationCode && (
             <Button 
@@ -304,7 +370,7 @@ const BookingSuccess = () => {
               className="flex-1"
             >
               <CalendarPlus className="h-4 w-4 mr-2" />
-              Add to Calendar
+              {t('bookingSuccess.addToCalendar')}
             </Button>
           )}
         </div>
