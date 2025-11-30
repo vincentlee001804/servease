@@ -112,6 +112,19 @@ const VendorDashboardFirebase = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isFetchingRef = useRef(false);
+  
+  // Booking creation modal state
+  const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
+  const [creatingBooking, setCreatingBooking] = useState(false);
+  const [bookingFormData, setBookingFormData] = useState({
+    serviceId: '',
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    bookingDate: '',
+    bookingTime: '',
+    notes: ''
+  });
 
   // Format booking price using booking's stored pricing when available,
   // otherwise fall back to the corresponding service's pricing definition
@@ -760,6 +773,91 @@ const VendorDashboardFirebase = () => {
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
+    }
+  };
+
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!bookingFormData.serviceId) {
+      toast.error(t('dashboard.selectServiceError'));
+      return;
+    }
+    if (!bookingFormData.customerName || !bookingFormData.customerPhone) {
+      toast.error(t('dashboard.requiredFieldsError'));
+      return;
+    }
+    if (!bookingFormData.bookingDate || !bookingFormData.bookingTime) {
+      toast.error(t('dashboard.selectDateTimeError'));
+      return;
+    }
+
+    try {
+      setCreatingBooking(true);
+      
+      // Get selected service details
+      const selectedService = dashboardData?.services?.find(s => s.id === bookingFormData.serviceId);
+      if (!selectedService) {
+        toast.error(t('dashboard.serviceNotFound'));
+        return;
+      }
+
+      // Calculate price
+      let price = 0;
+      if (selectedService.priceType === 'fixed') {
+        price = selectedService.price || 0;
+      } else if (selectedService.priceType === 'range') {
+        price = selectedService.priceRange?.min || 0;
+      } else if (selectedService.priceType === 'from') {
+        price = selectedService.price || 0;
+      }
+
+      // Create booking data
+      const bookingData = {
+        vendorId: user.uid,
+        serviceId: bookingFormData.serviceId,
+        serviceName: getTranslatedText(selectedService.name, 'Service'),
+        customerName: bookingFormData.customerName,
+        customerEmail: bookingFormData.customerEmail || '',
+        customerPhone: bookingFormData.customerPhone,
+        bookingDate: bookingFormData.bookingDate,
+        bookingTime: bookingFormData.bookingTime,
+        notes: bookingFormData.notes || '',
+        price: price,
+        servicePriceType: selectedService.priceType,
+        servicePrice: selectedService.price,
+        servicePriceRange: selectedService.priceRange,
+        status: 'confirmed', // Vendor-created bookings are auto-confirmed
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'vendor' // Mark as vendor-created
+      };
+
+      // Save to Firestore
+      await addDoc(collection(db, 'bookings'), bookingData);
+      
+      toast.success(t('dashboard.bookingCreatedSuccess'));
+      
+      // Reset form and close modal
+      setBookingFormData({
+        serviceId: '',
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        bookingDate: '',
+        bookingTime: '',
+        notes: ''
+      });
+      setShowCreateBookingModal(false);
+      
+      // Refresh dashboard data
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast.error(t('dashboard.bookingCreatedError'));
+    } finally {
+      setCreatingBooking(false);
     }
   };
 
@@ -1692,9 +1790,18 @@ const VendorDashboardFirebase = () => {
             {/* Bookings Tab - Mobile Optimized */}
             {activeTab === 'bookings' && (
               <div className="space-y-4 sm:space-y-6">
-                <div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                  <div>
                     <h3 className="text-lg font-medium text-gray-900">{t('dashboard.customerBookings')}</h3>
-                  <p className="text-sm text-gray-600">{t('dashboard.manageTrackBookings')}</p>
+                    <p className="text-sm text-gray-600">{t('dashboard.manageTrackBookings')}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateBookingModal(true)}
+                    className="touch-target inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t('dashboard.createBooking')}
+                  </button>
                 </div>
 
                 {dashboardData?.recentBookings?.length > 0 ? (
@@ -1932,6 +2039,165 @@ const VendorDashboardFirebase = () => {
               setEditingService(null);
             }}
           />
+        )}
+
+        {/* Create Booking Modal */}
+        {showCreateBookingModal && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              onClick={() => !creatingBooking && setShowCreateBookingModal(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.createBooking')}</h2>
+                  <button
+                    onClick={() => !creatingBooking && setShowCreateBookingModal(false)}
+                    disabled={creatingBooking}
+                    className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateBooking} className="space-y-4">
+                  {/* Service Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('dashboard.service')} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={bookingFormData.serviceId}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, serviceId: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">{t('dashboard.selectService')}</option>
+                      {dashboardData?.services?.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {getTranslatedText(service.name, 'Service')} - {formatBookingPrice({ serviceId: service.id, servicePriceType: service.priceType, servicePrice: service.price, servicePriceRange: service.priceRange })}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Customer Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('dashboard.customerName')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={bookingFormData.customerName}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, customerName: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t('dashboard.enterCustomerName')}
+                    />
+                  </div>
+
+                  {/* Customer Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('dashboard.phone')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={bookingFormData.customerPhone}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, customerPhone: e.target.value })}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t('dashboard.enterPhone')}
+                    />
+                  </div>
+
+                  {/* Customer Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('dashboard.email')}
+                    </label>
+                    <input
+                      type="email"
+                      value={bookingFormData.customerEmail}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, customerEmail: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t('dashboard.enterEmail')}
+                    />
+                  </div>
+
+                  {/* Date and Time */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('dashboard.date')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={bookingFormData.bookingDate}
+                        onChange={(e) => setBookingFormData({ ...bookingFormData, bookingDate: e.target.value })}
+                        required
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t('dashboard.time')} <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        value={bookingFormData.bookingTime}
+                        onChange={(e) => setBookingFormData({ ...bookingFormData, bookingTime: e.target.value })}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('dashboard.notes')}
+                    </label>
+                    <textarea
+                      value={bookingFormData.notes}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, notes: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t('dashboard.enterNotes')}
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateBookingModal(false)}
+                      disabled={creatingBooking}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {t('dashboard.cancel')}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingBooking}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {creatingBooking ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          {t('dashboard.creating')}
+                        </>
+                      ) : (
+                        t('dashboard.createBooking')
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Delete Account Confirmation Modal */}
