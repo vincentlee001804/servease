@@ -6,7 +6,11 @@ import { changeLanguage } from '../config/i18n';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
-import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw, Building2 } from 'lucide-react';
+
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api'
+  : 'http://localhost:8000';
+import { Calendar, Clock, User, Phone, Mail, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle, Eye, RotateCw, Building2, CalendarPlus, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -19,6 +23,10 @@ const BookingStatus = () => {
   const [customerIdentifier, setCustomerIdentifier] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [searchType, setSearchType] = useState(null); // 'email' or 'phone'
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Sync language preference from localStorage on mount
   useEffect(() => {
@@ -415,6 +423,68 @@ const BookingStatus = () => {
     });
   };
 
+  // Format timestamp for display
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    
+    let date;
+    if (timestamp.toDate) {
+      // Firestore Timestamp
+      date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === 'string') {
+      date = new Date(timestamp);
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    const currentLang = i18n.language || 'en';
+    
+    // For Chinese (jtzw), use DD/MM/YYYY format
+    if (currentLang === 'jtzw') {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    }
+    
+    // For other languages, use locale-specific format
+    const localeMap = {
+      'en': 'en-US',
+      'bm': 'ms-MY',
+      'jtzw': 'zh-CN'
+    };
+    
+    const locale = localeMap[currentLang] || 'en-US';
+    return date.toLocaleString(locale, { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Handle add to calendar
+  const handleAddToCalendar = (booking) => {
+    if (!booking || !booking.confirmationCode || !booking.id) {
+      toast.error(t('bookingStatus.calendarError'));
+      return;
+    }
+    const calendarUrl = `${API_BASE_URL}/bookings/${booking.id}/ics?code=${encodeURIComponent(
+      booking.confirmationCode
+    )}`;
+    window.open(calendarUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'confirmed':
@@ -717,7 +787,14 @@ const BookingStatus = () => {
                     booking.customerName.toLowerCase() !== identifierPart.toLowerCase();
                   
                   return (
-                    <Card key={booking.id} className="hover:shadow-lg transition-all duration-300 border border-gray-200 shadow-sm overflow-hidden">
+                    <Card 
+                      key={booking.id} 
+                      className="hover:shadow-lg transition-all duration-300 border border-gray-200 shadow-sm overflow-hidden cursor-pointer"
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        setShowBookingModal(true);
+                      }}
+                    >
                       {/* Status Indicator Bar */}
                       <div className={`h-1 ${getStatusColor(booking.status).split(' ')[0]} bg-opacity-30`}></div>
                     
@@ -795,7 +872,10 @@ const BookingStatus = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleReorderBooking(booking)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleReorderBooking(booking);
+                              }}
                               className="border-blue-300 text-blue-700 hover:bg-blue-50 bg-white text-xs"
                             >
                               <RotateCw className="h-3 w-3 mr-1.5" />
@@ -806,7 +886,10 @@ const BookingStatus = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => handleRescheduleBooking(booking)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRescheduleBooking(booking);
+                                }}
                                 className="border-gray-300 text-gray-700 hover:bg-white bg-white text-xs flex-1"
                               >
                                 <Calendar className="h-3 w-3 mr-1.5" />
@@ -815,7 +898,10 @@ const BookingStatus = () => {
                           <Button 
                             variant="outline" 
                             size="sm"
-                                onClick={() => handleCancelBooking(booking)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelBooking(booking);
+                                }}
                                 className="border-red-300 text-red-600 hover:bg-red-50 bg-white text-xs flex-1"
                           >
                                 <XCircle className="h-3 w-3 mr-1.5" />
@@ -829,7 +915,8 @@ const BookingStatus = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
                                 navigate(`/${pathLang}/vendor/${booking.vendorId}`);
                               }}
@@ -846,6 +933,171 @@ const BookingStatus = () => {
                 })}
               </div>
             )}
+          </>
+        )}
+
+        {/* Booking Details Modal */}
+        {showBookingModal && selectedBooking && (
+          <>
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              onClick={() => setShowBookingModal(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">{t('bookingStatus.bookingDetails')}</h2>
+                  <button
+                    onClick={() => setShowBookingModal(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                {/* Service Info */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedBooking.serviceName}</h3>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span className="font-medium text-blue-600">{formatPrice(selectedBooking)}</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedBooking.status)}`}>
+                      {getStatusIcon(selectedBooking.status)}
+                      <span className="ml-1">{t(`status.${selectedBooking.status}`, selectedBooking.status?.charAt(0).toUpperCase() + selectedBooking.status?.slice(1) || 'Pending')}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Timeline */}
+                <div className="mb-6 space-y-4">
+                  {/* Booking Submitted */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">{t('bookingStatus.bookingSubmitted')}</p>
+                      <p className="text-sm text-gray-600">{t('bookingStatus.waitingForApproval')}</p>
+                      {selectedBooking.createdAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('bookingStatus.submittedOn')}: {formatTimestamp(selectedBooking.createdAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Booking Confirmed */}
+                  {selectedBooking.status === 'confirmed' || selectedBooking.status === 'completed' ? (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{t('bookingStatus.bookingConfirmed')}</p>
+                        <p className="text-sm text-gray-600">{t('bookingStatus.confirmedByVendor')}</p>
+                        {selectedBooking.updatedAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {t('bookingStatus.confirmedOn')}: {formatTimestamp(selectedBooking.updatedAt)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : selectedBooking.status === 'pending' ? (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-500">{t('bookingStatus.bookingConfirmed')}</p>
+                        <p className="text-sm text-gray-500">{t('bookingStatus.pendingConfirmation')}</p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Booking Cancelled */}
+                  {selectedBooking.status === 'cancelled' && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{t('bookingStatus.bookingCancelled')}</p>
+                        <p className="text-sm text-gray-600">{t('bookingStatus.cancelledBy')}</p>
+                        {selectedBooking.updatedAt && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {t('bookingStatus.cancelledOn')}: {formatTimestamp(selectedBooking.updatedAt)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Booking Details */}
+                <div className="border-t border-gray-200 pt-6 mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-4">{t('bookingStatus.bookingInformation')}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">{t('bookingStatus.date')}</p>
+                        <p className="font-medium">{formatDate(selectedBooking.bookingDate)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">{t('bookingStatus.time')}</p>
+                        <p className="font-medium">{formatTime(selectedBooking.bookingTime)}</p>
+                      </div>
+                    </div>
+                    {selectedBooking.vendorName && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-600">{t('bookingStatus.vendor')}</p>
+                          <p className="font-medium">{selectedBooking.vendorName}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">{t('bookingStatus.customer')}</p>
+                        <p className="font-medium">{selectedBooking.customerName}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Special Notes */}
+                {selectedBooking.notes && (
+                  <div className="border-t border-gray-200 pt-6 mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">{t('bookingStatus.specialNotes')}</h4>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedBooking.notes}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                  {selectedBooking.status === 'confirmed' && selectedBooking.confirmationCode && (
+                    <Button
+                      onClick={() => handleAddToCalendar(selectedBooking)}
+                      className="flex-1"
+                    >
+                      <CalendarPlus className="h-4 w-4 mr-2" />
+                      {t('bookingStatus.addToCalendar')}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setShowBookingModal(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    {t('bookingStatus.close')}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
