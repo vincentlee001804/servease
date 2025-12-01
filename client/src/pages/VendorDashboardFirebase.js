@@ -33,6 +33,7 @@ import QRCodeLib from 'qrcode';
 import ServiceForm from '../components/ServiceForm';
 import AIMarketingTool from '../components/AIMarketingTool';
 import { deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, GoogleAuthProvider, EmailAuthProvider } from 'firebase/auth';
+import html2canvas from 'html2canvas';
 
 const VendorDashboardFirebase = () => {
   const { user, isAuthenticated } = useAuth();
@@ -116,6 +117,7 @@ const VendorDashboardFirebase = () => {
   // Booking creation modal state
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
   const [creatingBooking, setCreatingBooking] = useState(false);
+  const [showPosterPreview, setShowPosterPreview] = useState(false);
   const [bookingFormData, setBookingFormData] = useState({
     serviceId: '',
     customerName: '',
@@ -683,6 +685,60 @@ const VendorDashboardFirebase = () => {
     } catch (error) {
       console.error('Error clearing QR code:', error);
       toast.error('Failed to clear QR code');
+    }
+  };
+
+  // Download printable poster using hidden #poster-canvas
+  const downloadPoster = async () => {
+    try {
+      if (!qrCode?.image) {
+        toast.error('Please generate your QR code first.');
+        return;
+      }
+
+      const posterElement = document.getElementById('poster-canvas');
+      if (!posterElement) {
+        toast.error('Poster template not found.');
+        return;
+      }
+
+      // Temporarily show the hidden canvas off-screen so html2canvas can capture it
+      const previousClasses = posterElement.className;
+      posterElement.className = previousClasses.replace('hidden', '') + ' block';
+      posterElement.style.position = 'absolute';
+      posterElement.style.top = '-9999px';
+      posterElement.style.left = '-9999px';
+
+      // Wait a tick to ensure images/fonts are rendered
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const canvas = await html2canvas(posterElement, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: null
+      });
+
+      // Restore original classes/styles
+      posterElement.className = previousClasses;
+      posterElement.style.position = '';
+      posterElement.style.top = '';
+      posterElement.style.left = '';
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      const safeName = (dashboardData?.vendor?.businessName || 'servease-poster')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .toLowerCase();
+      link.href = dataUrl;
+      link.download = `${safeName}-qr-poster.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Printable poster downloaded.');
+    } catch (error) {
+      console.error('Error downloading poster:', error);
+      toast.error('Failed to generate poster. Please try again.');
     }
   };
 
@@ -2000,6 +2056,20 @@ const VendorDashboardFirebase = () => {
                           {t('dashboard.downloadQR')}
                         </button>
                         <button
+                          onClick={() => setShowPosterPreview(true)}
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-blue-600 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 transition-colors"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {t('dashboard.previewPoster', 'Preview Poster')}
+                        </button>
+                        <button
+                          onClick={downloadPoster}
+                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-blue-600 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 transition-colors"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {t('dashboard.downloadPoster', 'Download Poster')}
+                        </button>
+                        <button
                           onClick={shareQRCodeLink}
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                         >
@@ -2048,6 +2118,105 @@ const VendorDashboardFirebase = () => {
             )}
           </div>
         </div>
+
+        {/* Hidden Poster Canvas for printable QR poster */}
+        {/* You can tweak the top/left percentages and sizes below to perfectly fit your Canva design */}
+        <div
+          id="poster-canvas"
+          className="relative w-[1410px] h-[2000px] bg-white hidden"
+        >
+          {/* Background template image */}
+          <img
+            src="/qr_code_template2.png"
+            alt="Poster Template"
+            className="absolute top-0 left-0 w-full h-full object-cover z-0"
+          />
+
+          {/* Vendor name (fixed position / style) */}
+          <div className="absolute z-10 top-[10%] w-full text-center px-4">
+            <h2 className="text-8xl font-extrabold text-white uppercase tracking-widest drop-shadow-lg">
+              {dashboardData?.vendor?.businessName || 'UTS SALON'}
+            </h2>
+          </div>
+
+          {/* QR code (fixed position / style) */}
+          {qrCode?.image && (
+            <div className="absolute z-10 top-[55.5%] left-[30%] -translate-x-1/2 -translate-y-1/2">
+              <img
+                src={qrCode.image}
+                alt="QR"
+                className="w-[400px] h-[400px] mix-blend-multiply object-contain"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Poster Preview Modal */}
+        {showPosterPreview && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              onClick={() => setShowPosterPreview(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <div
+                className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 my-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {t('dashboard.previewPoster', 'Preview Poster')}
+                  </h2>
+                  <button
+                    onClick={() => setShowPosterPreview(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 mb-3">
+                  {t(
+                    'dashboard.previewPosterHint',
+                    'Use this preview to fine-tune the QR and text positions. Adjust the Tailwind classes in the code, then refresh to see updates.'
+                  )}
+                </p>
+
+                <div className="flex justify-center">
+                  {/* Scale down poster so the full height is visible in the preview modal */}
+                  <div className="relative origin-top scale-[0.22]">
+                    <div className="relative w-[1410px] h-[2000px] bg-white">
+                      {/* Background template image */}
+                      <img
+                        src="/qr_code_template2.png"
+                        alt="Poster Template"
+                        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+                      />
+
+                      {/* Vendor name - same positioning as hidden canvas */}
+                      <div className="absolute z-10 top-[13%] w-full text-center px-4">
+                        <h2 className="text-6xl font-extrabold text-white uppercase tracking-widest drop-shadow-lg">
+                          {dashboardData?.vendor?.businessName || 'UTS SALON'}
+                        </h2>
+                      </div>
+
+                      {/* QR code - same positioning as hidden canvas */}
+                      {qrCode?.image && (
+                        <div className="absolute z-10 top-[53%] left-[29%] -translate-x-1/2 -translate-y-1/2">
+                          <img
+                            src={qrCode.image}
+                            alt="QR"
+                            className="w-[220px] h-[220px] mix-blend-multiply object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Service Form Modal */}
         {showServiceForm && (
