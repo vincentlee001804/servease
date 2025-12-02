@@ -117,7 +117,6 @@ const VendorDashboardFirebase = () => {
   // Booking creation modal state
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false);
   const [creatingBooking, setCreatingBooking] = useState(false);
-  const [showPosterPreview, setShowPosterPreview] = useState(false);
   const [bookingFormData, setBookingFormData] = useState({
     serviceId: '',
     customerName: '',
@@ -2056,13 +2055,6 @@ const VendorDashboardFirebase = () => {
                           {t('dashboard.downloadQR')}
                         </button>
                         <button
-                          onClick={() => setShowPosterPreview(true)}
-                          className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-blue-600 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 transition-colors"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          {t('dashboard.previewPoster', 'Preview Poster')}
-                        </button>
-                        <button
                           onClick={downloadPoster}
                           className="touch-target inline-flex items-center justify-center px-4 sm:px-6 py-3 border border-blue-600 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 transition-colors"
                         >
@@ -2150,73 +2142,6 @@ const VendorDashboardFirebase = () => {
             </div>
           )}
         </div>
-
-        {/* Poster Preview Modal */}
-        {showPosterPreview && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
-              onClick={() => setShowPosterPreview(false)}
-            ></div>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-              <div
-                className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 my-8"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">
-                    {t('dashboard.previewPoster', 'Preview Poster')}
-                  </h2>
-                  <button
-                    onClick={() => setShowPosterPreview(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <p className="text-xs text-gray-500 mb-3">
-                  {t(
-                    'dashboard.previewPosterHint',
-                    'Use this preview to fine-tune the QR and text positions. Adjust the Tailwind classes in the code, then refresh to see updates.'
-                  )}
-                </p>
-
-                <div className="flex justify-center">
-                  {/* Scale down poster so the full height is visible in the preview modal */}
-                  <div className="relative origin-top scale-[0.22]">
-                    <div className="relative w-[1410px] h-[2000px] bg-white">
-                      {/* Background template image */}
-                      <img
-                        src="/qr_code_template2.png"
-                        alt="Poster Template"
-                        className="absolute top-0 left-0 w-full h-full object-cover z-0"
-                      />
-
-                      {/* Vendor name - same positioning as hidden canvas */}
-                      <div className="absolute z-10 top-[13%] w-full text-center px-4">
-                        <h2 className="text-6xl font-extrabold text-white uppercase tracking-widest drop-shadow-lg">
-                          {dashboardData?.vendor?.businessName || 'UTS SALON'}
-                        </h2>
-                      </div>
-
-                      {/* QR code - same positioning as hidden canvas */}
-                      {qrCode?.image && (
-                        <div className="absolute z-10 top-[53%] left-[29%] -translate-x-1/2 -translate-y-1/2">
-                          <img
-                            src={qrCode.image}
-                            alt="QR"
-                            className="w-[220px] h-[220px] mix-blend-multiply object-contain"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Service Form Modal */}
         {showServiceForm && (
