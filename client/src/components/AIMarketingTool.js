@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, Sparkles, Download, Loader2, Wand2, X, CheckCircle2, AlertCircle, Lightbulb, Zap } from 'lucide-react';
+import { Upload, Image as ImageIcon, Sparkles, Download, Loader2, X, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../config/firebase-config';
@@ -14,7 +14,6 @@ const AIMarketingTool = ({ vendorId }) => {
   const [imagePreview, setImagePreview] = useState('');
   const [prompt, setPrompt] = useState(t('aiMarketing.defaultPrompt'));
   const [isDefaultPrompt, setIsDefaultPrompt] = useState(true);
-  const [enhancePrompt, setEnhancePrompt] = useState(false); // Default to disabled (needs improvement)
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState('');
   const [error, setError] = useState('');
@@ -75,105 +74,6 @@ const AIMarketingTool = ({ vendorId }) => {
     setIsDefaultPrompt(false);
   };
 
-  // AI Prompt Enhancement function
-  const enhancePromptText = (userPrompt) => {
-    // Extract key information from user prompt
-    const lowerPrompt = userPrompt.toLowerCase();
-    
-    // Detect pricing information
-    const priceMatch = userPrompt.match(/RM\s*[\d,]+|[\d,]+/g);
-    const price = priceMatch ? priceMatch[0] : null;
-    
-    // Detect product/service mentions
-    const productKeywords = ['product', 'service', 'item', 'promo', 'offer', 'deal', 'sale'];
-    const hasProduct = productKeywords.some(keyword => lowerPrompt.includes(keyword));
-    
-    // Detect tone/mood
-    const isBold = lowerPrompt.includes('bold') || lowerPrompt.includes('strong') || lowerPrompt.includes('vibrant');
-    const isElegant = lowerPrompt.includes('elegant') || lowerPrompt.includes('sophisticated') || lowerPrompt.includes('premium');
-    const isPlayful = lowerPrompt.includes('playful') || lowerPrompt.includes('fun') || lowerPrompt.includes('cheerful');
-    
-    // Build enhanced prompt
-    let enhanced = `Portrait of the same image from the reference photo, preserving the main identity and key features. Use the suggested specs below and generate the image:\n\n`;
-    
-    // Core Subject
-    enhanced += `1. **Core Subject:** `;
-    if (hasProduct) {
-      enhanced += `The main product or service from the reference photo, clearly visible and prominent. `;
-    } else {
-      enhanced += `The primary subject from the reference photo, maintaining its distinctive features and characteristics. `;
-    }
-    if (price) {
-      enhanced += `Pricing information (${price}) should be clearly displayed and easily readable. `;
-    }
-    enhanced += `The expression and presentation should be confident and engaging, drawing attention to the key elements.\n\n`;
-    
-    // Setting
-    enhanced += `2. **Setting:** `;
-    if (lowerPrompt.includes('outdoor') || lowerPrompt.includes('festival') || lowerPrompt.includes('market')) {
-      enhanced += `A dynamic and bustling outdoor environment with a lively atmosphere. `;
-    } else if (lowerPrompt.includes('indoor') || lowerPrompt.includes('studio') || lowerPrompt.includes('minimal')) {
-      enhanced += `A clean, professional setting that emphasizes the subject without distraction. `;
-    } else {
-      enhanced += `A vibrant, engaging background that complements the main subject without overwhelming it. `;
-    }
-    enhanced += `The environment should feel authentic and inviting, creating depth and visual interest.\n\n`;
-    
-    // Composition
-    enhanced += `3. **Composition:** `;
-    enhanced += `A medium close-up to full-frame shot, capturing the subject in a visually appealing manner. `;
-    enhanced += `The main focal point should be positioned to draw immediate attention, with the background providing context without competing for focus. `;
-    enhanced += `The layout should be optimized for social media, ensuring key information is easily readable at various sizes.\n\n`;
-    
-    // Lighting
-    enhanced += `4. **Lighting:** `;
-    if (isBold) {
-      enhanced += `Bright, vibrant natural or studio lighting that creates strong highlights and clear definition. `;
-    } else if (isElegant) {
-      enhanced += `Soft, professional lighting with subtle highlights and gentle shadows that add sophistication. `;
-    } else {
-      enhanced += `Bright, inviting natural daylight that creates appealing highlights and soft shadows. `;
-    }
-    enhanced += `The lighting should make the subject pop while maintaining a warm, appealing glow throughout the image.\n\n`;
-    
-    // Style
-    enhanced += `5. **Style:** `;
-    enhanced += `High-resolution, realistic photographic style with rich textures and sharp details. `;
-    if (isElegant) {
-      enhanced += `The aesthetic should be professional and polished, emphasizing quality and sophistication. `;
-    } else if (isPlayful) {
-      enhanced += `The aesthetic should be energetic and engaging, with authentic expressions and a candid feel. `;
-    } else {
-      enhanced += `The overall aesthetic should be professional yet approachable, emphasizing authenticity and engagement. `;
-    }
-    enhanced += `The style should be optimized for social media marketing, ensuring visual appeal and clarity.\n\n`;
-    
-    // Atmosphere
-    enhanced += `6. **Atmosphere:** `;
-    if (isPlayful || isBold) {
-      enhanced += `Energetic, cheerful, and inviting. The scene should evoke a sense of excitement and engagement. `;
-    } else if (isElegant) {
-      enhanced += `Sophisticated, premium, and refined. The scene should convey quality and exclusivity. `;
-    } else {
-      enhanced += `Inviting, engaging, and professional. The scene should create a positive emotional connection. `;
-    }
-    enhanced += `The overall mood should align with the marketing message and target audience.\n\n`;
-    
-    // Color Palette
-    enhanced += `7. **Color Palette:** `;
-    enhanced += `A rich and vibrant palette that enhances the main subject. `;
-    if (isBold) {
-      enhanced += `Use strong, contrasting colors that create visual impact and draw attention. `;
-    } else if (isElegant) {
-      enhanced += `Use sophisticated, refined colors that convey quality and premium positioning. `;
-    } else {
-      enhanced += `Use warm, inviting colors that create an appealing and approachable aesthetic. `;
-    }
-    enhanced += `Ensure the color scheme is optimized for social media visibility and brand consistency.`;
-    
-    return enhanced;
-  };
-
   const generate = async () => {
     setError('');
     setResultUrl('');
@@ -197,14 +97,6 @@ const AIMarketingTool = ({ vendorId }) => {
         throw new Error('Authentication required');
       }
 
-      // Apply prompt enhancement if enabled
-      const finalPrompt = enhancePrompt ? enhancePromptText(prompt) : prompt;
-      
-      // Log enhanced prompt for debugging (only in development)
-      if (process.env.NODE_ENV === 'development' && enhancePrompt) {
-        console.log('🔮 Enhanced Prompt:', finalPrompt);
-      }
-
       const resp = await fetch(`${API_BASE}/ai/generate-poster`, {
         method: 'POST',
         headers: {
@@ -214,7 +106,7 @@ const AIMarketingTool = ({ vendorId }) => {
         body: JSON.stringify({
           vendorId: vendorId || user.uid,
           imageBase64: imagePreview,
-          prompt: finalPrompt
+          prompt
         })
       });
       const json = await resp.json();
@@ -313,28 +205,6 @@ const AIMarketingTool = ({ vendorId }) => {
               {t('aiMarketing.creativeDirection')}
             </label>
             
-            {/* AI Prompt Enhancement Toggle */}
-            <div className="mb-4 flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-purple-100 rounded-md">
-                  <Wand2 className="w-4 h-4 text-purple-600" />
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-gray-900 block">{t('aiMarketing.promptEnhancement')}</span>
-                  <span className="text-xs text-gray-500">{t('aiMarketing.promptEnhancementDesc')}</span>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={enhancePrompt}
-                  onChange={(e) => setEnhancePrompt(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:left-auto peer-checked:after:right-[2px] peer-checked:after:border-white peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500"></div>
-              </label>
-            </div>
-            
             <textarea
               value={prompt}
               onChange={handlePromptChange}
@@ -344,15 +214,7 @@ const AIMarketingTool = ({ vendorId }) => {
               placeholder={t('aiMarketing.promptPlaceholder')}
             />
             
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-2">
-                {enhancePrompt && (
-                  <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
-                    <Lightbulb className="w-3 h-3" />
-                    <span>{t('aiMarketing.enhancementActive')}</span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center justify-end mt-2">
               <span className={`text-xs ${promptLength > maxPromptLength * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
                 {promptLength} / {maxPromptLength}
               </span>
