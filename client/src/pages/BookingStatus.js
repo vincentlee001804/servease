@@ -14,10 +14,12 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api'
   : 'http://localhost:8000';
 
-const BookingStatus = () => {
+  const BookingStatus = () => {
   const { t, i18n } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
+  // Preserve the vendor context (if coming from a vendor page)
+  const sourceVendorId = location.state?.fromVendorId || null;
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [customerIdentifier, setCustomerIdentifier] = useState('');
@@ -324,24 +326,20 @@ const BookingStatus = () => {
     // Extract language from current URL path
     const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
     
-    // Check if we came from a vendor page
-    const referrer = document.referrer;
-    if (referrer && referrer.includes('/vendor/')) {
-      // Extract vendor ID from referrer URL
-      const vendorIdMatch = referrer.match(/\/vendor\/([^\/\?]+)/);
-      if (vendorIdMatch) {
-        navigate(`/${pathLang}/vendor/${vendorIdMatch[1]}`);
-        return;
-      }
+    // 1) Highest priority: if we were navigated here from a specific vendor page,
+    // always go back to THAT vendor, regardless of which vendors appear in results.
+    if (sourceVendorId) {
+      navigate(`/${pathLang}/vendor/${sourceVendorId}`);
+      return;
     }
     
-    // Check if there's a vendor ID in the bookings
+    // 2) Fallback: Check if there's a vendor ID in the bookings
     if (bookings.length > 0 && bookings[0].vendorId) {
       navigate(`/${pathLang}/vendor/${bookings[0].vendorId}`);
       return;
     }
     
-    // Fallback to browser back
+    // 3) Last resort: use browser history
     navigate(-1);
   };
 

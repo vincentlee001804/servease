@@ -400,7 +400,12 @@ const VendorPageFirebase = () => {
               </div>
               <button 
                       className="w-10 h-10 rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                onClick={() => navigate(`/${lang}/bookings`)}
+                onClick={() => 
+                  navigate(`/${lang}/bookings`, {
+                    // Pass current vendor context so bookings page knows where to go back
+                    state: { fromVendorId: vendorId || shortUrl }
+                  })
+                }
                       aria-label="Booking status"
               >
                       <Calendar className="w-4 h-4" />
