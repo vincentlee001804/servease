@@ -15,6 +15,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const logger = require('./utils/logger');
 
 // Initialize Firebase Admin (with error handling for re-initialization)
 try {
@@ -51,7 +52,7 @@ const corsOptions = {
     if (allowedOrigins.includes(origin) || previewRegex.test(origin) || localhostRegex.test(origin)) {
       callback(null, true);
     } else {
-      console.warn('Blocked CORS origin:', origin);
+      logger.warn('Blocked CORS origin', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -68,7 +69,7 @@ app.use((req, res, next) => {
   
   // Log for debugging
   if (req.method === 'OPTIONS' || origin) {
-    console.log('CORS check:', { method: req.method, origin, path: req.path });
+    logger.debug('CORS check', { method: req.method, origin, path: req.path });
   }
   
   // Check if origin is allowed (including any localhost port for development)
@@ -88,11 +89,11 @@ app.use((req, res, next) => {
     
     // Handle preflight OPTIONS request immediately
     if (req.method === 'OPTIONS') {
-      console.log('OPTIONS preflight handled for origin:', origin);
+      logger.debug('OPTIONS preflight handled', { origin });
       return res.status(200).end();
     }
   } else {
-    console.warn('CORS blocked:', { origin, path: req.path, method: req.method });
+    logger.warn('CORS blocked', { origin, path: req.path, method: req.method });
     // Still handle OPTIONS even if origin doesn't match (for debugging)
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
@@ -112,9 +113,27 @@ app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  req.requestId = requestId;
+  
+  // Log request
+  logger.request(req, { requestId });
+  
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    logger.response(req, res.statusCode, duration, { requestId });
+  });
+  
+  next();
+});
+
 // JWT Secret - Load from environment variable
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  console.error('JWT_SECRET environment variable is not set!');
+  logger.critical('JWT_SECRET environment variable is not set!');
   throw new Error('JWT_SECRET must be set in environment variables');
 })();
 
@@ -134,13 +153,13 @@ const getTransporter = () => {
         smtpPass = smtpPass || config.smtp?.pass || process.env.SMTP_PASS;
       } catch (configError) {
         // functions.config() might not work in v2, use environment variables
-        console.warn('Could not access functions.config(), using environment variables');
+        logger.warn('Could not access functions.config(), using environment variables');
         smtpUser = smtpUser || process.env.SMTP_USER;
         smtpPass = smtpPass || process.env.SMTP_PASS;
       }
       
       if (!smtpUser || !smtpPass) {
-        console.warn('SMTP credentials not configured. Email functionality will be disabled.');
+        logger.warn('SMTP credentials not configured. Email functionality will be disabled.');
       }
       
       transporter = nodemailer.createTransport({
@@ -151,11 +170,11 @@ const getTransporter = () => {
         }
       });
     } catch (error) {
-      console.error('Failed to initialize email transporter:', error);
+      logger.error('Failed to initialize email transporter', error);
       // Create a dummy transporter that won't crash but will log errors
       transporter = {
         sendMail: async () => {
-          console.error('Email transporter not properly configured');
+          logger.error('Email transporter not properly configured');
         }
       };
   }
@@ -167,8 +186,9 @@ async function sendEmail(to, subject, html) {
   try {
     const emailTransporter = getTransporter();
     await emailTransporter.sendMail({ from: 'ServEase <no-reply@servease.app>', to, subject, html });
+    logger.info('Email sent successfully', { to, subject });
   } catch (e) {
-    console.error('Email send error:', e);
+    logger.error('Email send error', e, { to, subject });
   }
 }
 
@@ -188,19 +208,19 @@ const escapeICSText = (text = '') => {
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
-    console.warn('Auth middleware: missing Authorization header', {
+    logger.warn('Auth middleware: missing Authorization header', {
       path: req.path,
       method: req.method,
-      headers: req.headers
+      requestId: req.requestId
     });
   }
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    console.warn('Auth middleware: no token extracted', {
+    logger.warn('Auth middleware: no token extracted', {
       path: req.path,
       method: req.method,
-      authHeader
+      requestId: req.requestId
     });
     return res.status(401).json({ message: 'Access token required' });
   }
@@ -209,10 +229,11 @@ const authenticateToken = async (req, res, next) => {
     // Try Firebase Auth token first
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
-      console.log('Auth middleware: Firebase token verified', {
+      logger.debug('Auth middleware: Firebase token verified', {
         uid: decodedToken.uid,
         email: decodedToken.email,
-        path: req.path
+        path: req.path,
+        requestId: req.requestId
       });
       req.user = {
         uid: decodedToken.uid,
@@ -221,16 +242,18 @@ const authenticateToken = async (req, res, next) => {
       };
       return next();
     } catch (firebaseError) {
-      console.warn('Auth middleware: Firebase verify failed, falling back to JWT', {
+      logger.debug('Auth middleware: Firebase verify failed, falling back to JWT', {
         error: firebaseError.message,
-        path: req.path
+        path: req.path,
+        requestId: req.requestId
       });
       // If Firebase token verification fails, try JWT as fallback
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-          console.warn('Auth middleware: JWT verify failed', {
+          logger.warn('Auth middleware: JWT verify failed', {
             error: err.message,
-            path: req.path
+            path: req.path,
+            requestId: req.requestId
           });
       return res.status(403).json({ message: 'Invalid token' });
     }
@@ -239,7 +262,10 @@ const authenticateToken = async (req, res, next) => {
   });
     }
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logger.error('Auth middleware error', error, {
+      path: req.path,
+      requestId: req.requestId
+    });
     return res.status(403).json({ message: 'Invalid token' });
   }
 };
@@ -247,7 +273,55 @@ const authenticateToken = async (req, res, next) => {
 // Routes
 // Health check
 app.get('/health', (req, res) => {
+  logger.info('Health check requested');
   res.json({ status: 'OK', message: 'ServEase API is running with Firestore' });
+});
+
+// Client-side error logging endpoint
+app.post('/logs/error', async (req, res) => {
+  try {
+    const errorData = req.body;
+    
+    // Determine user type from client error data
+    let userType = 'customer'; // Default to customer for client errors
+    if (errorData.userId || errorData.email) {
+      // If user is authenticated, check if it's a vendor
+      // Vendors typically access dashboard/admin pages
+      if (errorData.url?.includes('/dashboard') || errorData.url?.includes('/ai')) {
+        userType = 'vendor';
+      } else {
+        userType = 'customer';
+      }
+    } else if (errorData.url?.includes('/vendor/') && !errorData.url?.includes('/dashboard')) {
+      userType = 'customer'; // Viewing vendor page
+    }
+    
+    logger.error('Client-side error', new Error(errorData.message || 'Client error'), {
+      source: 'client',
+      userType,
+      url: errorData.url,
+      userAgent: errorData.userAgent,
+      stack: errorData.stack,
+      userId: errorData.userId,
+      context: errorData
+    });
+    
+    // Optionally save to Firestore for analysis
+    try {
+      await db.collection('errorLogs').add({
+        ...errorData,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'client'
+      });
+    } catch (firestoreError) {
+      logger.warn('Failed to save error log to Firestore', firestoreError);
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Failed to log client error', error);
+    res.status(500).json({ success: false });
+  }
 });
 
 // AI: Generate marketing poster using Gemini API (gemini-2.5-flash-image)
@@ -265,7 +339,10 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
 
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
-      console.error('GOOGLE_AI_API_KEY is not set');
+      logger.error('GOOGLE_AI_API_KEY is not set', null, {
+        userId: req.user?.uid,
+        requestId: req.requestId
+      });
       return res.status(500).json({ message: 'AI service not configured' });
     }
 
@@ -309,7 +386,11 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
 
     if (!genResp.ok) {
       const text = await genResp.text();
-      console.error('Gemini API error:', genResp.status, text);
+      logger.error('Gemini API error', new Error(text), {
+        status: genResp.status,
+        userId: req.user?.uid,
+        requestId: req.requestId
+      });
       return res.status(502).json({ message: 'AI image generation failed', detail: text });
     }
 
@@ -328,7 +409,11 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
     }
 
     if (!imageData || !imageData.data) {
-      console.error('No image data in response:', JSON.stringify(genJson));
+      logger.error('No image data in response from Gemini API', null, {
+        response: genJson,
+        userId: req.user?.uid,
+        requestId: req.requestId
+      });
       return res.status(502).json({ message: 'No image returned from AI', detail: JSON.stringify(genJson) });
     }
 
@@ -362,7 +447,11 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
       });
     } catch (storageError) {
       // If storage fails (bucket doesn't exist, permissions issue, etc.), return base64 directly
-      console.warn('Storage save failed, returning base64 image directly:', storageError.message);
+      logger.warn('Storage save failed, returning base64 image directly', {
+        error: storageError.message,
+        userId: req.user?.uid,
+        requestId: req.requestId
+      });
       const base64Image = `data:image/png;base64,${imageData.data}`;
       return res.json({
         success: true,
@@ -371,8 +460,17 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
         note: 'Image returned as base64 (storage unavailable)'
       });
     }
+    
+    logger.info('AI poster generated successfully', {
+      userId: req.user?.uid,
+      storagePath: filePath,
+      requestId: req.requestId
+    });
   } catch (error) {
-    console.error('AI generate poster error:', error);
+    logger.error('AI generate poster error', error, {
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to generate marketing poster', error: error.message });
   }
 });
@@ -380,12 +478,17 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
 // Register
 app.post('/auth/register', async (req, res) => {
   try {
-    console.log('Registration request body:', req.body);
+    logger.info('Registration request', { email: req.body.email, requestId: req.requestId });
     const { email, password, businessName, businessType, phone, address } = req.body;
 
     // Validate required fields
     if (!email || !password || !businessName) {
-      console.log('Missing fields:', { email: !!email, password: !!password, businessName: !!businessName });
+      logger.warn('Registration missing required fields', {
+        email: !!email,
+        password: !!password,
+        businessName: !!businessName,
+        requestId: req.requestId
+      });
       return res.status(400).json({ message: 'Email, password, and business name are required' });
     }
 
@@ -441,17 +544,9 @@ app.post('/auth/register', async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    console.log('Saving vendor data to Firestore:', vendorData);
+    logger.debug('Saving vendor data to Firestore', { email, requestId: req.requestId });
     await db.collection('vendors').doc(email).set(vendorData);
-    console.log('Vendor data saved successfully');
-    
-    // Verify the vendor was created
-    const verifyRef = db.collection('vendors').doc(email);
-    const verifyDoc = await verifyRef.get();
-    console.log('Vendor verification - exists:', verifyDoc.exists);
-    if (verifyDoc.exists) {
-      console.log('Vendor data verified:', verifyDoc.data());
-    }
+    logger.info('Vendor registered successfully', { email, requestId: req.requestId });
 
     // Generate JWT token for immediate login
     const token = jwt.sign(
@@ -471,7 +566,7 @@ app.post('/auth/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error', error, { email: req.body.email, requestId: req.requestId });
     res.status(500).json({ message: 'Registration failed' });
   }
 });
@@ -479,7 +574,7 @@ app.post('/auth/register', async (req, res) => {
 // Login
 app.post('/auth/login', async (req, res) => {
   try {
-    console.log('Login request body:', req.body);
+    logger.info('Login request', { email: req.body.email, requestId: req.requestId });
     const { email, password } = req.body;
 
     // Get user
@@ -515,7 +610,7 @@ app.post('/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error', error, { email: req.body.email, requestId: req.requestId });
     res.status(500).json({ message: 'Login failed' });
   }
 });
@@ -535,7 +630,11 @@ app.get('/vendors/profile', authenticateToken, async (req, res) => {
     
     res.json(vendor);
   } catch (error) {
-    console.error('Get vendor error:', error);
+    logger.error('Get vendor error', error, {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to get vendor profile' });
   }
 });
@@ -549,9 +648,18 @@ app.put('/vendors/profile', authenticateToken, async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    logger.info('Vendor profile updated', {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.json({ message: 'Profile updated successfully' });
   } catch (error) {
-    console.error('Update vendor error:', error);
+    logger.error('Update vendor error', error, {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to update profile' });
   }
 });
@@ -578,8 +686,17 @@ app.post('/qr/generate', authenticateToken, async (req, res) => {
       shortUrl: shortUrl,
       qrImage: `data:image/png;base64,${qrData}`
     });
+    logger.info('QR code generated', {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
   } catch (error) {
-    console.error('QR generation error:', error);
+    logger.error('QR generation error', error, {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to generate QR code' });
   }
 });
@@ -591,15 +708,31 @@ app.get('/vendors/:vendorId', async (req, res) => {
     const vendorDoc = await vendorRef.get();
     
     if (!vendorDoc.exists) {
+      logger.warn('Vendor not found', {
+        vendorId: req.params.vendorId,
+        userType: 'customer',
+        requestId: req.requestId
+      });
       return res.status(404).json({ message: 'Vendor not found' });
     }
 
     const vendor = vendorDoc.data();
     delete vendor.password; // Remove sensitive data
     
+    logger.info('Customer viewed vendor page', {
+      vendorId: req.params.vendorId,
+      vendorEmail: vendor.email,
+      userType: 'customer',
+      requestId: req.requestId
+    });
+    
     res.json(vendor);
   } catch (error) {
-    console.error('Get vendor by ID error:', error);
+    logger.error('Get vendor by ID error', error, {
+      vendorId: req.params.vendorId,
+      userType: 'customer',
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to get vendor' });
   }
 });
@@ -619,7 +752,11 @@ app.get('/auth/me', authenticateToken, async (req, res) => {
     
     res.json(user);
   } catch (error) {
-    console.error('Get user error:', error);
+    logger.error('Get user error', error, {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to get user info' });
   }
 });
@@ -627,12 +764,19 @@ app.get('/auth/me', authenticateToken, async (req, res) => {
 // Get vendor dashboard data
 app.get('/vendors/dashboard', authenticateToken, async (req, res) => {
   try {
-    console.log('Dashboard request for user:', req.user.email);
+    logger.info('Dashboard request', {
+      userId: req.user.uid,
+      email: req.user.email,
+      requestId: req.requestId
+    });
     const vendorRef = db.collection('vendors').doc(req.user.email);
     const vendorDoc = await vendorRef.get();
     
     if (!vendorDoc.exists) {
-      console.log('Vendor profile not found for:', req.user.email);
+      logger.warn('Vendor profile not found', {
+        email: req.user.email,
+        requestId: req.requestId
+      });
       return res.status(404).json({ message: 'Vendor profile not found' });
     }
 
@@ -684,7 +828,11 @@ app.get('/vendors/dashboard', authenticateToken, async (req, res) => {
 
     res.json(dashboardData);
   } catch (error) {
-    console.error('Dashboard error:', error);
+    logger.error('Dashboard error', error, {
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to load dashboard data' });
   }
 });
@@ -693,6 +841,18 @@ app.get('/vendors/dashboard', authenticateToken, async (req, res) => {
 app.post('/bookings', async (req, res) => {
   try {
     const { vendorEmail, services, customer, bookingDate, startTime, totalPrice, totalDuration } = req.body;
+    
+    // Validate required fields
+    if (!vendorEmail || !customer || !customer.name) {
+      logger.warn('Booking creation missing required fields', {
+        vendorEmail: !!vendorEmail,
+        hasCustomer: !!customer,
+        customerName: customer?.name,
+        userType: 'customer',
+        requestId: req.requestId
+      });
+      return res.status(400).json({ message: 'Vendor email and customer name are required' });
+    }
     
     // Create booking
     const bookingData = {
@@ -710,12 +870,29 @@ app.post('/bookings', async (req, res) => {
     
     const bookingRef = await db.collection('bookings').add(bookingData);
     
+    logger.info('Customer booking created', {
+      bookingId: bookingRef.id,
+      vendorEmail,
+      customerName: customer.name,
+      customerEmail: customer.email || 'not provided',
+      customerPhone: customer.phone || 'not provided',
+      bookingDate,
+      startTime,
+      totalPrice,
+      userType: 'customer',
+      requestId: req.requestId
+    });
+    
     res.json({
       success: true,
       booking: { id: bookingRef.id, ...bookingData }
     });
   } catch (error) {
-    console.error('Booking creation error:', error);
+    logger.error('Customer booking creation error', error, {
+      userType: 'customer',
+      vendorEmail: req.body?.vendorEmail,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to create booking' });
   }
 });
@@ -726,11 +903,21 @@ app.get('/bookings/:bookingId/ics', async (req, res) => {
     const { code } = req.query;
 
     if (!code) {
+      logger.warn('ICS download missing confirmation code', {
+        bookingId,
+        userType: 'customer',
+        requestId: req.requestId
+      });
       return res.status(400).json({ message: 'Confirmation code is required' });
     }
 
     const bookingDoc = await db.collection('bookings').doc(bookingId).get();
     if (!bookingDoc.exists) {
+      logger.warn('ICS download - booking not found', {
+        bookingId,
+        userType: 'customer',
+        requestId: req.requestId
+      });
       return res.status(404).json({ message: 'Booking not found' });
     }
 
@@ -739,6 +926,11 @@ app.get('/bookings/:bookingId/ics', async (req, res) => {
       !booking.confirmationCode ||
       booking.confirmationCode.toUpperCase() !== String(code).toUpperCase()
     ) {
+      logger.warn('ICS download - invalid confirmation code', {
+        bookingId,
+        userType: 'customer',
+        requestId: req.requestId
+      });
       return res.status(403).json({ message: 'Invalid confirmation code' });
     }
 
@@ -798,9 +990,19 @@ app.get('/bookings/:bookingId/ics', async (req, res) => {
       'Content-Disposition',
       `attachment; filename="servease-booking-${bookingId}.ics"`
     );
+    logger.info('Customer downloaded ICS file', {
+      bookingId: req.params.bookingId,
+      customerName: booking.customer?.name || booking.customerName,
+      userType: 'customer',
+      requestId: req.requestId
+    });
     return res.status(200).send(icsContent);
   } catch (error) {
-    console.error('Generate ICS error:', error);
+    logger.error('Generate ICS error', error, {
+      bookingId: req.params.bookingId,
+      userType: 'customer',
+      requestId: req.requestId
+    });
     return res.status(500).json({ message: 'Failed to generate calendar invite' });
   }
 });
@@ -819,8 +1021,16 @@ app.post('/services', authenticateToken, async (req, res) => {
       success: true,
       service: { id: serviceRef.id, ...serviceData }
     });
+    logger.info('Service created', {
+      serviceId: serviceRef.id,
+      vendorEmail: req.user.email,
+      requestId: req.requestId
+    });
   } catch (error) {
-    console.error('Service creation error:', error);
+    logger.error('Service creation error', error, {
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to create service' });
   }
 });
@@ -833,9 +1043,18 @@ app.put('/services/:serviceId', authenticateToken, async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
+    logger.info('Service updated', {
+      serviceId: req.params.serviceId,
+      vendorEmail: req.user.email,
+      requestId: req.requestId
+    });
     res.json({ success: true, message: 'Service updated successfully' });
   } catch (error) {
-    console.error('Service update error:', error);
+    logger.error('Service update error', error, {
+      serviceId: req.params.serviceId,
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to update service' });
   }
 });
@@ -846,7 +1065,10 @@ app.get('/qr/download', authenticateToken, async (req, res) => {
     const qrData = `https://servease-07762363-b4f31.web.app/vendor/${req.user.email}`;
     res.json({ qrCode: qrData });
   } catch (error) {
-    console.error('QR download error:', error);
+    logger.error('QR download error', error, {
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to download QR code' });
   }
 });
@@ -881,16 +1103,30 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
       });
     }
     
+    logger.info('Booking status updated', {
+      bookingId: req.params.bookingId,
+      status,
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.json({ success: true, message: 'Booking status updated' });
   } catch (error) {
-    console.error('Booking status update error:', error);
+    logger.error('Booking status update error', error, {
+      bookingId: req.params.bookingId,
+      userId: req.user?.uid,
+      requestId: req.requestId
+    });
     res.status(500).json({ message: 'Failed to update booking status' });
   }
 });
 
 // Global error handler - ensures all errors return JSON
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  logger.error('Unhandled error', err, {
+    path: req.path,
+    method: req.method,
+    requestId: req.requestId
+  });
   if (!res.headersSent) {
     res.status(err.status || 500).json({
       message: err.message || 'Internal server error',

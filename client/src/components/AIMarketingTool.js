@@ -3,6 +3,7 @@ import { Upload, Image as ImageIcon, Sparkles, Download, Loader2, X, CheckCircle
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../config/firebase-config';
+import { logError } from '../utils/errorLogger';
 
 const API_BASE =
   process.env.REACT_APP_API_URL ||
@@ -118,7 +119,12 @@ const AIMarketingTool = ({ vendorId }) => {
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (e) {
       setError(e.message || t('aiMarketing.failedToGenerate'));
-      console.error('AI Marketing Tool Error:', e);
+      logError('AI Marketing Tool: Failed to generate poster', e, {
+        action: 'generatePoster',
+        vendorId: vendorId || user?.uid,
+        hasImage: !!imagePreview,
+        promptLength: prompt.length
+      });
     } finally {
       setLoading(false);
     }
