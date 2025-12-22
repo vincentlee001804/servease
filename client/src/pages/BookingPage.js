@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { doc, getDoc, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase-config';
 import { toast } from 'react-toastify';
 import { format, isSameDay, isToday } from 'date-fns';
@@ -154,13 +154,15 @@ const BookingPage = () => {
       const fullService = { id: serviceSnap.id, ...serviceData };
       setService(fullService);
       
-      // Generate available time slots for the next 14 days
-      // Slot length is based on the service duration (in minutes)
-      // and respects the service's unavailable time slots
-      generateAvailableSlots(
+      // Fetch existing bookings for capacity checking
+      await generateAvailableSlotsWithCapacity(
         vendorData.operatingHours,
         fullService.duration,
-        fullService.unavailableTimeSlots || []
+        fullService.unavailableTimeSlots || [],
+        vendorData.email,
+        vendorSnap.id, // vendorId
+        fullService.id,
+        fullService.slotCapacity || 1
       );
       
     } catch (error) {
@@ -171,7 +173,15 @@ const BookingPage = () => {
     }
   };
 
-  const generateAvailableSlots = (operatingHours, durationMinutes, unavailableSlots = []) => {
+  const generateAvailableSlotsWithCapacity = async (
+    operatingHours,
+    durationMinutes,
+    unavailableSlots = [],
+    vendorEmail,
+    vendorId,
+    serviceId,
+    slotCapacity
+  ) => {
     const slotsMap = {};
     const datesList = [];
     const today = new Date();
@@ -179,6 +189,91 @@ const BookingPage = () => {
     const now = new Date();
 
     const slotSize = Math.max(5, Number.isFinite(durationMinutes) ? durationMinutes : 30);
+    const capacity = Math.max(1, parseInt(slotCapacity || 1, 10));
+
+    // Fetch all bookings for this vendor (we'll filter by date range in JavaScript)
+    // Query both vendorEmail and vendorId to handle different booking structures
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 14);
+    const startDateStr = formatDateKey(today);
+    const endDateStr = formatDateKey(endDate);
+    
+    // Query bookings by vendorEmail OR vendorId (Firestore doesn't support OR, so we'll fetch both and merge)
+    const queries = [];
+    if (vendorEmail) {
+      queries.push(getDocs(query(collection(db, 'bookings'), where('vendorEmail', '==', vendorEmail))));
+    }
+    if (vendorId) {
+      queries.push(getDocs(query(collection(db, 'bookings'), where('vendorId', '==', vendorId))));
+    }
+    
+    const results = await Promise.all(queries);
+    
+    // Combine results and remove duplicates
+    const bookingsMap = new Map();
+    results.forEach(snapshot => {
+      snapshot.forEach(doc => bookingsMap.set(doc.id, doc));
+    });
+    const bookingsSnapshot = Array.from(bookingsMap.values());
+    
+    // Create a map of bookings by date and time: { "2025-12-23": { "10:00": 2, "11:00": 1 } }
+    // Only count bookings with status 'pending' or 'confirmed' (exclude 'cancelled' and 'completed')
+    const bookingsByDateTime = {};
+    bookingsSnapshot.forEach(doc => {
+      const booking = doc.data();
+      const date = booking.bookingDate;
+      // Handle both bookingTime (from BookingPage.js) and startTime (from API)
+      const time = booking.startTime || booking.bookingTime;
+      const status = booking.status || 'pending';
+      
+      // Only count pending or confirmed bookings (cancelled/completed don't block slots)
+      if (status !== 'pending' && status !== 'confirmed') {
+        return;
+      }
+      
+      // Filter by date range (bookingDate is stored as string "YYYY-MM-DD")
+      if (!date || date < startDateStr || date > endDateStr) {
+        return;
+      }
+      
+      if (!time) {
+        return; // Skip if no time field
+      }
+      
+      if (!bookingsByDateTime[date]) {
+        bookingsByDateTime[date] = {};
+      }
+      
+      if (!bookingsByDateTime[date][time]) {
+        bookingsByDateTime[date][time] = 0;
+      }
+      
+      // Count bookings for this specific service
+      // Handle both booking structures:
+      // 1. New structure: booking.services array (from API)
+      // 2. Old structure: booking.serviceId (direct Firestore)
+      let counted = false;
+      if (booking.services && Array.isArray(booking.services)) {
+        booking.services.forEach(svc => {
+          if (svc.service === serviceId) {
+            bookingsByDateTime[date][time] += svc.quantity || 1;
+            counted = true;
+          }
+        });
+      } else if (booking.serviceId === serviceId) {
+        // Direct serviceId field (from BookingPage.js direct Firestore writes)
+        bookingsByDateTime[date][time] += 1;
+        counted = true;
+      }
+      
+      // Debug logging
+      if (counted) {
+        console.log(`[Capacity Check] Found booking: ${date} ${time}, status: ${status}, count: ${bookingsByDateTime[date][time]}`);
+      }
+    });
+    
+    console.log(`[Capacity Check] Bookings by date/time:`, bookingsByDateTime);
+    console.log(`[Capacity Check] Service capacity: ${capacity}`);
 
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
@@ -214,7 +309,11 @@ const BookingPage = () => {
                    (slotTotalMinutes + slotSize > unavailableStartMinutes && slotTotalMinutes < unavailableEndMinutes);
           });
           
-          if (slotDate > now && !isUnavailable) {
+          // Check if slot is at capacity
+          const existingBookings = bookingsByDateTime[dayKey]?.[slotTime] || 0;
+          const isAtCapacity = existingBookings >= capacity;
+          
+          if (slotDate > now && !isUnavailable && !isAtCapacity) {
             slots.push({
               date: dayKey,
               time: slotTime,
@@ -366,6 +465,7 @@ const BookingPage = () => {
       
       const bookingData = {
         vendorId,
+        vendorEmail: vendor?.email || vendorId, // Add vendorEmail for capacity checking
         serviceId,
         serviceName: service.name?.en || service.name || 'Service',
         customerName: formData.customerName,
@@ -373,6 +473,7 @@ const BookingPage = () => {
         customerPhone: formData.customerPhone,
         bookingDate: formData.selectedDate,
         bookingTime: formData.selectedTime,
+        startTime: formData.selectedTime, // Also add startTime for consistency
         notes: formData.notes,
         price: calculatePrice(),
         // Store service pricing information for proper display

@@ -883,6 +883,7 @@ app.get('/bookings/availability', async (req, res) => {
     }
 
     // Count existing bookings for this vendor + date + time + service
+    // Only count pending or confirmed bookings (cancelled/completed don't block slots)
     const existingSnap = await db.collection('bookings')
       .where('vendorEmail', '==', vendorEmail)
       .where('bookingDate', '==', bookingDate)
@@ -892,11 +893,26 @@ app.get('/bookings/availability', async (req, res) => {
     let existingBookingsCount = 0;
     existingSnap.forEach(doc => {
       const data = doc.data();
-      (data.services || []).forEach(svc => {
-        if (svc.service === serviceId) {
-          existingBookingsCount += svc.quantity || 1;
-        }
-      });
+      const status = data.status || 'pending';
+      
+      // Only count pending or confirmed bookings
+      if (status !== 'pending' && status !== 'confirmed') {
+        return;
+      }
+      
+      // Handle both booking structures:
+      // 1. New structure: booking.services array (from API)
+      // 2. Old structure: booking.serviceId (direct Firestore)
+      if (data.services && Array.isArray(data.services)) {
+        data.services.forEach(svc => {
+          if (svc.service === serviceId) {
+            existingBookingsCount += svc.quantity || 1;
+          }
+        });
+      } else if (data.serviceId === serviceId) {
+        // Direct serviceId field (from BookingPage.js direct Firestore writes)
+        existingBookingsCount += 1;
+      }
     });
 
     const availableSpots = Math.max(capacity - existingBookingsCount, 0);
@@ -982,20 +998,49 @@ app.post('/bookings', async (req, res) => {
     }
 
     // Count existing bookings for this vendor + date + time
-    const existingSnap = await db.collection('bookings')
-      .where('vendorEmail', '==', vendorEmail)
-      .where('bookingDate', '==', bookingDate)
-      .where('startTime', '==', startTime)
-      .get();
+    // Only count pending or confirmed bookings (cancelled/completed don't block slots)
+    // Note: Need to query both startTime and bookingTime fields since different booking flows use different field names
+    const [existingSnap1, existingSnap2] = await Promise.all([
+      db.collection('bookings')
+        .where('vendorEmail', '==', vendorEmail)
+        .where('bookingDate', '==', bookingDate)
+        .where('startTime', '==', startTime)
+        .get(),
+      db.collection('bookings')
+        .where('vendorEmail', '==', vendorEmail)
+        .where('bookingDate', '==', bookingDate)
+        .where('bookingTime', '==', startTime)
+        .get()
+    ]);
+    
+    // Combine results (avoid duplicates by using a Map)
+    const existingDocs = new Map();
+    existingSnap1.forEach(doc => existingDocs.set(doc.id, doc));
+    existingSnap2.forEach(doc => existingDocs.set(doc.id, doc));
 
     const existingCounts = {};
-    existingSnap.forEach(doc => {
+    existingDocs.forEach(doc => {
       const data = doc.data();
-      (data.services || []).forEach(svc => {
-        const serviceId = svc.service;
-        const qty = svc.quantity || 1;
-        existingCounts[serviceId] = (existingCounts[serviceId] || 0) + qty;
-      });
+      const status = data.status || 'pending';
+      
+      // Only count pending or confirmed bookings
+      if (status !== 'pending' && status !== 'confirmed') {
+        return;
+      }
+      
+      // Handle both booking structures:
+      // 1. New structure: booking.services array (from API)
+      // 2. Old structure: booking.serviceId (direct Firestore)
+      if (data.services && Array.isArray(data.services)) {
+        data.services.forEach(svc => {
+          const serviceId = svc.service;
+          const qty = svc.quantity || 1;
+          existingCounts[serviceId] = (existingCounts[serviceId] || 0) + qty;
+        });
+      } else if (data.serviceId) {
+        // Direct serviceId field (from BookingPage.js direct Firestore writes)
+        existingCounts[data.serviceId] = (existingCounts[data.serviceId] || 0) + 1;
+      }
     });
 
     // Validate capacity for each requested service
