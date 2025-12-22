@@ -35,6 +35,7 @@ const BookingPageModern = () => {
   });
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(null);
+  const [slotInfo, setSlotInfo] = useState(null);
 
   const fetchVendorData = useCallback(async () => {
     try {
@@ -94,6 +95,45 @@ const BookingPageModern = () => {
     setCustomerInfo(prev => ({ ...prev, [name]: value }));
   };
 
+  // Check slot availability whenever date/time or selected services change
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!vendor || !selectedDate || !selectedTime || selectedServices.length === 0) {
+        setSlotInfo(null);
+        return;
+      }
+
+      try {
+        const primaryService = selectedServices[0];
+        const response = await axios.get('/bookings/availability', {
+          params: {
+            vendorEmail: vendor.email,
+            serviceId: primaryService.id,
+            bookingDate: selectedDate,
+            startTime: selectedTime
+          }
+        });
+
+        setSlotInfo(response.data);
+      } catch (error) {
+        console.error('Error checking slot availability:', error);
+        // If slot is full, backend may return 400
+        if (error.response?.status === 400 && error.response.data) {
+          setSlotInfo({
+            status: 'full',
+            capacity: error.response.data.capacity,
+            existingBookingsCount: error.response.data.existingBookingsCount,
+            availableSpots: 0
+          });
+        } else {
+          setSlotInfo(null);
+        }
+      }
+    };
+
+    checkAvailability();
+  }, [vendor, selectedDate, selectedTime, selectedServices]);
+
   const handleBookingSubmit = async () => {
     if (!selectedDate || !selectedTime) {
       toast.error('Please select date and time');
@@ -101,6 +141,11 @@ const BookingPageModern = () => {
     }
     if (!customerInfo.name || !customerInfo.phone) {
       toast.error('Please enter your name and phone number');
+      return;
+    }
+
+    if (slotInfo && slotInfo.status === 'full') {
+      toast.error('This time slot is fully booked. Please choose another time.');
       return;
     }
 
@@ -256,6 +301,24 @@ const BookingPageModern = () => {
             onChange={(e) => setSelectedTime(e.target.value)}
             required
           />
+          {slotInfo && (
+            <div className="mt-2 text-sm">
+              {slotInfo.status === 'full' ? (
+                <span className="text-red-600 font-medium">
+                  This time slot is fully booked.
+                </span>
+              ) : (
+                <span className="text-green-700">
+                  Slot available — {slotInfo.availableSpots} of {slotInfo.capacity} spots left.
+                  {slotInfo.capacity > 1 && slotInfo.availableSpots > 0 && slotInfo.availableSpots <= 2 && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                      Only {slotInfo.availableSpots} spots left!
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex justify-between mt-6">

@@ -169,7 +169,9 @@
   "services": {
     "price": "价格",
     "description": "描述",
-    "requirements": "要求"
+    "requirements": "要求",
+    "addRequirementPlaceholder": "添加要求（例如，携带身份证）",
+    "addTagPlaceholder": "添加标签（例如，热门、新）"
   },
   "vendor": {
     "myServices": "我的服务",
@@ -225,6 +227,21 @@
       "saturday": "星期六",
       "sunday": "星期日"
     }
+  },
+  "serviceForm": {
+    "unavailableTimeSlots": "不可用时间段",
+    "unavailableTimeSlotsHelper": "设置此服务不可用的时间段（例如，午休时间、休息时间）。客户将无法在这些时间段进行预订。",
+    "startTime": "开始",
+    "endTime": "结束",
+    "to": "至",
+    "add": "添加",
+    "remove": "移除",
+    "startTimeBeforeEnd": "开始时间必须早于结束时间",
+    "enterBothTimes": "请输入开始和结束时间",
+    "slotCapacity": "时段容量",
+    "slotCapacityHelper": "有多少客户可以同时预订此服务？（例如，3个座位 = 3）。",
+    "slotCapacityDisplay": "时段容量",
+    "perSlot": "每个时段"
   },
   "dashboard": {
     "title": "仪表板",

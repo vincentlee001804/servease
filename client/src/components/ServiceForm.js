@@ -29,6 +29,8 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
       max: ''
     },
     duration: '',
+    slotCapacity: 1,
+    unavailableTimeSlots: [],
     requirements: [],
     tags: []
   });
@@ -36,6 +38,8 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
   const [translating, setTranslating] = useState(false);
   const [newRequirement, setNewRequirement] = useState('');
   const [newTag, setNewTag] = useState('');
+  const [newUnavailableStart, setNewUnavailableStart] = useState('');
+  const [newUnavailableEnd, setNewUnavailableEnd] = useState('');
 
   // Auto-set category based on vendor's business type
   const getCategoryFromBusinessType = (businessType) => {
@@ -64,6 +68,8 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
         priceType: service.priceType || 'fixed',
         priceRange: service.priceRange || { min: '', max: '' },
         duration: service.duration || '',
+        slotCapacity: service.slotCapacity || 1,
+        unavailableTimeSlots: service.unavailableTimeSlots || [],
         requirements: service.requirements || [],
         tags: service.tags || []
       });
@@ -76,6 +82,8 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
         priceType: 'fixed',
         priceRange: { min: '', max: '' },
         duration: '',
+        slotCapacity: 1,
+        unavailableTimeSlots: [],
         requirements: [],
         tags: []
       });
@@ -120,6 +128,7 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
     }
   };
 
+
   const removeRequirement = (index) => {
     setFormData(prev => ({
       ...prev,
@@ -137,10 +146,39 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
     }
   };
 
+
   const removeTag = (index) => {
     setFormData(prev => ({
       ...prev,
       tags: prev.tags.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addUnavailableTimeSlot = () => {
+    if (newUnavailableStart && newUnavailableEnd) {
+      // Validate that start < end
+      if (newUnavailableStart >= newUnavailableEnd) {
+        toast.warning(t('serviceForm.startTimeBeforeEnd'));
+        return;
+      }
+      setFormData(prev => ({
+        ...prev,
+        unavailableTimeSlots: [...prev.unavailableTimeSlots, {
+          start: newUnavailableStart,
+          end: newUnavailableEnd
+        }]
+      }));
+      setNewUnavailableStart('');
+      setNewUnavailableEnd('');
+    } else {
+      toast.warning(t('serviceForm.enterBothTimes'));
+    }
+  };
+
+  const removeUnavailableTimeSlot = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      unavailableTimeSlots: prev.unavailableTimeSlots.filter((_, i) => i !== index)
     }));
   };
 
@@ -227,11 +265,26 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
     setLoading(true);
 
     try {
+      // Add any remaining text in requirement and tag inputs before submitting
+      let finalRequirements = [...formData.requirements];
+      let finalTags = [...formData.tags];
+      
+      if (newRequirement.trim()) {
+        finalRequirements.push(newRequirement.trim());
+      }
+      
+      if (newTag.trim()) {
+        finalTags.push(newTag.trim());
+      }
+
       // Handle different pricing types properly
       const submitData = {
         ...formData,
+        requirements: finalRequirements,
+        tags: finalTags,
         price: parseFloat(formData.price),
-        duration: parseInt(formData.duration)
+        duration: parseInt(formData.duration, 10),
+        slotCapacity: Math.max(1, parseInt(formData.slotCapacity, 10) || 1)
       };
 
       // Only add priceRange for range pricing
@@ -266,6 +319,10 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
         console.log('Service created with ID:', docRef.id);
         toast.success('Service created successfully!');
       }
+
+      // Clear input fields after successful submission
+      setNewRequirement('');
+      setNewTag('');
 
       onSuccess();
       onClose();
@@ -457,8 +514,8 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
               </div>
             </div>
 
-            {/* Duration */}
-            <div className="grid grid-cols-1 gap-6">
+            {/* Duration & Slot Capacity */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Duration (minutes) *
@@ -472,6 +529,77 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
                   required
                   placeholder="e.g., 60"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('serviceForm.slotCapacity')}
+                </label>
+                <input
+                  type="number"
+                  value={formData.slotCapacity}
+                  onChange={(e) => handleChange('slotCapacity', e.target.value)}
+                  className="form-input"
+                  min="1"
+                  required
+                  placeholder="e.g., 3"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {t('serviceForm.slotCapacityHelper')}
+                </p>
+              </div>
+            </div>
+
+            {/* Unavailable Time Slots */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('serviceForm.unavailableTimeSlots')}
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                {t('serviceForm.unavailableTimeSlotsHelper')}
+              </p>
+              <div className="space-y-2">
+                {formData.unavailableTimeSlots.map((slot, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <span className="flex-1 text-sm text-gray-700">
+                      {slot.start} - {slot.end}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeUnavailableTimeSlot(index)}
+                      className="p-1 text-red-600 hover:bg-red-100 rounded flex-shrink-0"
+                      title={t('serviceForm.remove')}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_auto_1fr]">
+                    <input
+                      type="time"
+                      value={newUnavailableStart}
+                      onChange={(e) => setNewUnavailableStart(e.target.value)}
+                      className="form-input text-sm"
+                      placeholder={t('serviceForm.startTime')}
+                    />
+                    <span className="hidden sm:flex items-center justify-center text-xs text-gray-500">{t('serviceForm.to')}</span>
+                    <input
+                      type="time"
+                      value={newUnavailableEnd}
+                      onChange={(e) => setNewUnavailableEnd(e.target.value)}
+                      className="form-input text-sm"
+                      placeholder={t('serviceForm.endTime')}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addUnavailableTimeSlot}
+                    className="btn btn-outline text-sm px-4 py-2 whitespace-nowrap sm:w-auto w-full"
+                  >
+                    {t('serviceForm.add')}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -577,22 +705,13 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
                     </button>
                   </div>
                 ))}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newRequirement}
-                    onChange={(e) => setNewRequirement(e.target.value)}
-                    className="form-input flex-1"
-                    placeholder="Add requirement (e.g., Bring ID)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addRequirement}
-                    className="btn btn-outline"
-                  >
-                    Add
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={newRequirement}
+                  onChange={(e) => setNewRequirement(e.target.value)}
+                  className="form-input w-full"
+                  placeholder={t('services.addRequirementPlaceholder')}
+                />
               </div>
             </div>
 
@@ -619,22 +738,13 @@ const ServiceForm = ({ isOpen, onClose, service, onSuccess, vendorBusinessType }
                     </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    className="form-input flex-1"
-                    placeholder="Add tag (e.g., popular, new)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addTag}
-                    className="btn btn-outline"
-                  >
-                    Add
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  className="form-input w-full"
+                  placeholder={t('services.addTagPlaceholder')}
+                />
               </div>
             </div>
 

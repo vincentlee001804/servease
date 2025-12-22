@@ -40,6 +40,15 @@ const serviceSchema = new mongoose.Schema({
     required: true,
     min: 5 // minimum 5 minutes
   },
+  slotCapacity: {
+    type: Number,
+    default: 1,
+    min: 1
+  },
+  unavailableTimeSlots: [{
+    start: { type: String, required: true }, // Format: "HH:MM" (e.g., "12:00")
+    end: { type: String, required: true }   // Format: "HH:MM" (e.g., "13:00")
+  }],
   isActive: {
     type: Boolean,
     default: true

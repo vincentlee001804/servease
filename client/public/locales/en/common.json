@@ -169,7 +169,9 @@
   "services": {
     "price": "Price",
     "description": "Description",
-    "requirements": "Requirements"
+    "requirements": "Requirements",
+    "addRequirementPlaceholder": "Add requirement (e.g., Bring ID)",
+    "addTagPlaceholder": "Add tag (e.g., popular, new)"
   },
   "vendor": {
     "myServices": "My Services",
@@ -225,6 +227,21 @@
       "saturday": "Saturday",
       "sunday": "Sunday"
     }
+  },
+  "serviceForm": {
+    "unavailableTimeSlots": "Unavailable Time Slots",
+    "unavailableTimeSlotsHelper": "Set time slots when this service is not available (e.g., lunch break, rest time). Customers won't be able to book during these times.",
+    "startTime": "Start",
+    "endTime": "End",
+    "to": "to",
+    "add": "Add",
+    "remove": "Remove",
+    "startTimeBeforeEnd": "Start time must be before end time",
+    "enterBothTimes": "Please enter both start and end times",
+    "slotCapacity": "Slot Capacity",
+    "slotCapacityHelper": "How many customers can book this service at the same time? (e.g., 3 chairs = 3).",
+    "slotCapacityDisplay": "Slot Capacity",
+    "perSlot": "per slot"
   },
   "dashboard": {
     "title": "Dashboard",

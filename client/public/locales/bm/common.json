@@ -169,7 +169,9 @@
   "services": {
     "price": "Harga",
     "description": "Penerangan",
-    "requirements": "Keperluan"
+    "requirements": "Keperluan",
+    "addRequirementPlaceholder": "Tambah keperluan (contohnya, Bawa ID)",
+    "addTagPlaceholder": "Tambah tag (contohnya, popular, baru)"
   },
   "vendor": {
     "myServices": "Perkhidmatan Saya",
@@ -225,6 +227,21 @@
       "saturday": "Sabtu",
       "sunday": "Ahad"
     }
+  },
+  "serviceForm": {
+    "unavailableTimeSlots": "Slot Masa Tidak Tersedia",
+    "unavailableTimeSlotsHelper": "Tetapkan slot masa apabila perkhidmatan ini tidak tersedia (contohnya, waktu rehat tengah hari, waktu rehat). Pelanggan tidak akan dapat membuat tempahan pada waktu ini.",
+    "startTime": "Mula",
+    "endTime": "Akhir",
+    "to": "hingga",
+    "add": "Tambah",
+    "remove": "Buang",
+    "startTimeBeforeEnd": "Masa mula mestilah sebelum masa akhir",
+    "enterBothTimes": "Sila masukkan kedua-dua masa mula dan akhir",
+    "slotCapacity": "Kapasiti Slot",
+    "slotCapacityHelper": "Berapa ramai pelanggan boleh membuat tempahan perkhidmatan ini pada masa yang sama? (contohnya, 3 kerusi = 3).",
+    "slotCapacityDisplay": "Kapasiti Slot",
+    "perSlot": "setiap slot"
   },
   "dashboard": {
     "title": "Dashboard",

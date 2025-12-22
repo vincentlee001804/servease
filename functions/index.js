@@ -837,7 +837,87 @@ app.get('/vendors/dashboard', authenticateToken, async (req, res) => {
   }
 });
 
-// Add missing routes
+// Booking routes (Firestore)
+app.get('/bookings/availability', async (req, res) => {
+  try {
+    const { vendorEmail, serviceId, bookingDate, startTime } = req.query;
+
+    if (!vendorEmail || !serviceId || !bookingDate || !startTime) {
+      return res.status(400).json({ message: 'vendorEmail, serviceId, bookingDate and startTime are required' });
+    }
+
+    // Get service capacity
+    const serviceDoc = await db.collection('services').doc(serviceId).get();
+    if (!serviceDoc.exists) {
+      return res.status(404).json({ message: 'Service not found' });
+    }
+
+    const serviceData = serviceDoc.data();
+    const capacity = Math.max(1, parseInt(serviceData.slotCapacity || 1, 10));
+
+    // Check if the requested time falls within any unavailable time slot
+    const unavailableSlots = serviceData.unavailableTimeSlots || [];
+    const requestedTime = startTime; // Format: "HH:MM"
+    const isUnavailable = unavailableSlots.some(slot => {
+      const requestedHour = parseInt(requestedTime.split(':')[0]);
+      const requestedMinute = parseInt(requestedTime.split(':')[1]);
+      const requestedTotalMinutes = requestedHour * 60 + requestedMinute;
+      
+      const slotStart = slot.start.split(':');
+      const slotEnd = slot.end.split(':');
+      const slotStartMinutes = parseInt(slotStart[0]) * 60 + parseInt(slotStart[1]);
+      const slotEndMinutes = parseInt(slotEnd[0]) * 60 + parseInt(slotEnd[1]);
+      
+      // Check if requested time falls within unavailable range
+      return requestedTotalMinutes >= slotStartMinutes && requestedTotalMinutes < slotEndMinutes;
+    });
+
+    if (isUnavailable) {
+      return res.json({
+        status: 'unavailable',
+        capacity,
+        existingBookingsCount: 0,
+        availableSpots: 0,
+        reason: 'This time slot is marked as unavailable by the vendor'
+      });
+    }
+
+    // Count existing bookings for this vendor + date + time + service
+    const existingSnap = await db.collection('bookings')
+      .where('vendorEmail', '==', vendorEmail)
+      .where('bookingDate', '==', bookingDate)
+      .where('startTime', '==', startTime)
+      .get();
+
+    let existingBookingsCount = 0;
+    existingSnap.forEach(doc => {
+      const data = doc.data();
+      (data.services || []).forEach(svc => {
+        if (svc.service === serviceId) {
+          existingBookingsCount += svc.quantity || 1;
+        }
+      });
+    });
+
+    const availableSpots = Math.max(capacity - existingBookingsCount, 0);
+
+    res.json({
+      status: availableSpots > 0 ? 'available' : 'full',
+      capacity,
+      existingBookingsCount,
+      availableSpots
+    });
+  } catch (error) {
+    logger.error('Check booking availability error', error, {
+      vendorEmail: req.query?.vendorEmail,
+      serviceId: req.query?.serviceId,
+      requestId: req.requestId
+    });
+    res.status(500).json({ message: 'Failed to check availability' });
+  }
+});
+
+// Create booking with slot capacity check
 app.post('/bookings', async (req, res) => {
   try {
     const { vendorEmail, services, customer, bookingDate, startTime, totalPrice, totalDuration } = req.body;
@@ -854,6 +934,90 @@ app.post('/bookings', async (req, res) => {
       return res.status(400).json({ message: 'Vendor email and customer name are required' });
     }
     
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({ message: 'At least one service is required' });
+    }
+
+    // Load service capacities
+    const serviceIds = services.map(s => s.service);
+    const serviceDocs = await db.collection('services')
+      .where(admin.firestore.FieldPath.documentId(), 'in', serviceIds)
+      .get();
+
+    const capacityByService = {};
+    const unavailableSlotsByService = {};
+    serviceDocs.forEach(doc => {
+      const data = doc.data();
+      capacityByService[doc.id] = Math.max(1, parseInt(data.slotCapacity || 1, 10));
+      unavailableSlotsByService[doc.id] = data.unavailableTimeSlots || [];
+    });
+
+    // Check if requested time falls within any unavailable time slot for any service
+    const requestedTime = startTime; // Format: "HH:MM"
+    for (const svc of services) {
+      const serviceId = svc.service;
+      const unavailableSlots = unavailableSlotsByService[serviceId] || [];
+      
+      const isUnavailable = unavailableSlots.some(slot => {
+        const requestedHour = parseInt(requestedTime.split(':')[0]);
+        const requestedMinute = parseInt(requestedTime.split(':')[1]);
+        const requestedTotalMinutes = requestedHour * 60 + requestedMinute;
+        
+        const slotStart = slot.start.split(':');
+        const slotEnd = slot.end.split(':');
+        const slotStartMinutes = parseInt(slotStart[0]) * 60 + parseInt(slotStart[1]);
+        const slotEndMinutes = parseInt(slotEnd[0]) * 60 + parseInt(slotEnd[1]);
+        
+        // Check if requested time falls within unavailable range
+        return requestedTotalMinutes >= slotStartMinutes && requestedTotalMinutes < slotEndMinutes;
+      });
+
+      if (isUnavailable) {
+        return res.status(400).json({
+          message: 'This time slot is marked as unavailable by the vendor',
+          serviceId: serviceId,
+          startTime: requestedTime
+        });
+      }
+    }
+
+    // Count existing bookings for this vendor + date + time
+    const existingSnap = await db.collection('bookings')
+      .where('vendorEmail', '==', vendorEmail)
+      .where('bookingDate', '==', bookingDate)
+      .where('startTime', '==', startTime)
+      .get();
+
+    const existingCounts = {};
+    existingSnap.forEach(doc => {
+      const data = doc.data();
+      (data.services || []).forEach(svc => {
+        const serviceId = svc.service;
+        const qty = svc.quantity || 1;
+        existingCounts[serviceId] = (existingCounts[serviceId] || 0) + qty;
+      });
+    });
+
+    // Validate capacity for each requested service
+    for (const svc of services) {
+      const id = svc.service;
+      const requestedQty = svc.quantity || 1;
+      const capacity = capacityByService[id] || 1;
+      const existing = existingCounts[id] || 0;
+      const newTotal = existing + requestedQty;
+
+      if (newTotal > capacity) {
+        const availableSpots = Math.max(capacity - existing, 0);
+        return res.status(400).json({
+          message: 'Selected time slot is full for this service',
+          serviceId: id,
+          capacity,
+          existingBookingsCount: existing,
+          availableSpots
+        });
+      }
+    }
+
     // Create booking
     const bookingData = {
       vendorEmail,

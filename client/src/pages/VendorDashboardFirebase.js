@@ -1803,6 +1803,15 @@ const VendorDashboardFirebase = () => {
                               {service.duration || 0} {t('vendorPage.minutes', 'min')}
                             </span>
                           </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-500">
+                              {t('serviceForm.slotCapacityDisplay', 'Slot Capacity')}
+                            </span>
+                            <span className="text-xs font-medium text-gray-700">
+                              {service.slotCapacity || 1} {t('serviceForm.perSlot', 'per slot')}
+                            </span>
+                          </div>
                           
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-500">{t('dashboard.price')}</span>

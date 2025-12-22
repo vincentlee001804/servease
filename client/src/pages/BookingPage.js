@@ -151,10 +151,17 @@ const BookingPage = () => {
       }
       
       const serviceData = serviceSnap.data();
-      setService({ id: serviceSnap.id, ...serviceData });
+      const fullService = { id: serviceSnap.id, ...serviceData };
+      setService(fullService);
       
-      // Generate available time slots for the next 7 days
-      generateAvailableSlots(vendorData.operatingHours);
+      // Generate available time slots for the next 14 days
+      // Slot length is based on the service duration (in minutes)
+      // and respects the service's unavailable time slots
+      generateAvailableSlots(
+        vendorData.operatingHours,
+        fullService.duration,
+        fullService.unavailableTimeSlots || []
+      );
       
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -164,12 +171,14 @@ const BookingPage = () => {
     }
   };
 
-  const generateAvailableSlots = (operatingHours) => {
+  const generateAvailableSlots = (operatingHours, durationMinutes, unavailableSlots = []) => {
     const slotsMap = {};
     const datesList = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const now = new Date();
+
+    const slotSize = Math.max(5, Number.isFinite(durationMinutes) ? durationMinutes : 30);
 
     for (let i = 0; i < 14; i++) {
       const date = new Date(today);
@@ -186,14 +195,33 @@ const BookingPage = () => {
 
         while (current < end) {
           const slotDate = new Date(current);
-          if (slotDate > now) {
+          const slotTime = slotDate.toTimeString().slice(0, 5);
+          
+          // Check if this slot falls within any unavailable time range
+          const isUnavailable = unavailableSlots.some(unavailableSlot => {
+            const slotHour = parseInt(slotTime.split(':')[0]);
+            const slotMinute = parseInt(slotTime.split(':')[1]);
+            const slotTotalMinutes = slotHour * 60 + slotMinute;
+            
+            const unavailableStart = unavailableSlot.start.split(':');
+            const unavailableEnd = unavailableSlot.end.split(':');
+            const unavailableStartMinutes = parseInt(unavailableStart[0]) * 60 + parseInt(unavailableStart[1]);
+            const unavailableEndMinutes = parseInt(unavailableEnd[0]) * 60 + parseInt(unavailableEnd[1]);
+            
+            // Check if slot overlaps with unavailable time range
+            // Slot starts at slotTotalMinutes and ends at slotTotalMinutes + slotSize
+            return (slotTotalMinutes >= unavailableStartMinutes && slotTotalMinutes < unavailableEndMinutes) ||
+                   (slotTotalMinutes + slotSize > unavailableStartMinutes && slotTotalMinutes < unavailableEndMinutes);
+          });
+          
+          if (slotDate > now && !isUnavailable) {
             slots.push({
               date: dayKey,
-              time: slotDate.toTimeString().slice(0, 5),
+              time: slotTime,
               dateTime: slotDate
             });
           }
-          current.setMinutes(current.getMinutes() + 30);
+          current.setMinutes(current.getMinutes() + slotSize);
         }
 
         if (slots.length) {
