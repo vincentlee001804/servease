@@ -324,7 +324,7 @@ app.post('/logs/error', async (req, res) => {
   }
 });
 
-// AI: Generate marketing poster using Gemini API (gemini-2.5-flash-image)
+// AI: Generate marketing poster using Gemini API (gemini-3-pro-image-preview)
 // Docs: https://ai.google.dev/gemini-api/docs/image-generation
 
 // Handle OPTIONS preflight for AI endpoint
@@ -356,9 +356,9 @@ app.post('/ai/generate-poster', authenticateToken, async (req, res) => {
     }
 
     // Use the prompt as-is (frontend handles enhancement if enabled)
-    // Call Gemini API with gemini-2.5-flash-image model
+    // Call Gemini API with gemini-3-pro-image-preview model
     const genResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
