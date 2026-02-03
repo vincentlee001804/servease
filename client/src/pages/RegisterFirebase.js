@@ -207,26 +207,11 @@ useEffect(() => {
     const newErrors = {};
 
     if (step === 1) {
-      if (isGoogleSignup) {
-        return true;
+      if (!isGoogleSignup) {
+        toast.error('Please sign in with Google to start your registration.');
+        return false;
       }
-    if (!formData.email) {
-      newErrors.email = t('registerWizard.errors.emailRequired');
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = t('registerWizard.errors.emailInvalid');
-    }
-
-    if (!formData.password) {
-      newErrors.password = t('registerWizard.errors.passwordRequired');
-    } else if (formData.password.length < 6) {
-      newErrors.password = t('registerWizard.errors.passwordMinLength');
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t('registerWizard.errors.confirmPasswordRequired');
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('registerWizard.errors.passwordsDoNotMatch');
-    }
+      return true;
     } else if (step === 2) {
     if (!formData.businessName) {
       newErrors.businessName = t('registerWizard.errors.businessNameRequired');
@@ -589,11 +574,6 @@ useEffect(() => {
                     </span>
                     {googleLoading ? t('registerWizard.connecting') : t('registerWizard.signUpWithGoogle')}
                   </button>
-                  <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
-                    <span className="h-px flex-1 bg-gray-200" />
-                    <span>{t('registerWizard.orCreateWithEmail')}</span>
-                    <span className="h-px flex-1 bg-gray-200" />
-                  </div>
                 </div>
 
                 {isGoogleSignup && (
@@ -602,99 +582,9 @@ useEffect(() => {
                   </div>
                 )}
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('registerWizard.emailAddress')}
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      disabled={checkingEmail || isGoogleSignup}
-                      className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                        errors.email ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder={t('registerWizard.emailPlaceholder')}
-                    />
-                    {checkingEmail && (
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                      </div>
-                    )}
-                  </div>
-                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-                </div>
-
                 {!isGoogleSignup && (
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('registerWizard.password')}
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.password ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="Create a password"
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
-                      </button>
-                    </div>
-                    {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-                  </div>
-                )}
-
-                {!isGoogleSignup && (
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('registerWizard.confirmPassword')}
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        autoComplete="new-password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className={`block w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder={t('registerWizard.confirmPasswordPlaceholder')}
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+                  <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm text-yellow-900">
+                    Please sign up with Google to continue.
                   </div>
                 )}
               </div>

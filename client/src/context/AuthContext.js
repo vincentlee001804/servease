@@ -1,11 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile,
-  sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
   fetchSignInMethodsForEmail,
@@ -163,104 +159,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    try {
-      const { email, password, businessName, businessType, phone, address, operatingNotes, businessDescription, coverImage, profileImage, operatingHours } = userData;
-      
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Update user profile
-      await updateProfile(user, {
-        displayName: businessName
-      });
-
-      // Upload images to Firebase Storage if they are File objects
-      let coverImageUrl = '';
-      let profileImageUrl = '';
-      
-      try {
-        if (coverImage instanceof File) {
-          coverImageUrl = await uploadImageToStorage(coverImage, user.uid, 'cover');
-        } else if (typeof coverImage === 'string' && coverImage) {
-          // If it's already a URL string, use it directly
-          coverImageUrl = coverImage;
-        }
-        
-        if (profileImage instanceof File) {
-          profileImageUrl = await uploadImageToStorage(profileImage, user.uid, 'profile');
-        } else if (typeof profileImage === 'string' && profileImage) {
-          // If it's already a URL string, use it directly
-          profileImageUrl = profileImage;
-        }
-      } catch (uploadError) {
-        console.error('Error uploading images:', uploadError);
-        // Continue with registration even if image upload fails
-        toast.error('Registration successful, but image upload failed. You can add images later.');
-      }
-
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        email: email,
-        businessName: businessName,
-        businessType: businessType || '',
-        phone: phone || '',
-        address: address || {},
-        operationsNotes: operatingNotes || '',
-        businessDescription: businessDescription || '',
-        coverImage: coverImageUrl,
-        profileImage: profileImageUrl,
-        role: 'vendor',
-        operatingHours: operatingHours || getDefaultOperatingHours(),
-        createdAt: new Date()
-      });
-
-      // Create vendor profile in Firestore
-      await setDoc(doc(db, 'vendors', user.uid), {
-        email: email,
-        businessName: businessName,
-        contactInfo: {
-          phone: phone || '',
-          email: email
-        },
-        businessInfo: {
-          type: businessType || '',
-          description: businessDescription || '',
-          address: address ? `${address.street || ''}, ${address.city || ''}, ${address.state || ''} ${address.postalCode || ''}`.trim() : ''
-        },
-        operationsNotes: operatingNotes || '',
-        coverImage: coverImageUrl,
-        profileImage: profileImageUrl,
-        operatingHours: operatingHours || getDefaultOperatingHours(),
-        services: [],
-        qrCode: {
-          code: '',
-          shortUrl: '',
-          qrImage: ''
-        },
-        createdAt: new Date()
-      });
-
-      toast.success('Registration successful!');
-      return { success: true };
-    } catch (error) {
-      console.error('Registration error:', error);
-      let errorMessage = 'Registration failed';
-      
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email is already registered';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      }
-      
-      toast.error(errorMessage);
-      return {
-        success: false,
-        message: errorMessage
-      };
-    }
+    // Google-only auth: block email/password registration
+    toast.error('Email/password registration is disabled. Please sign up with Google.');
+    return { success: false, message: 'Email/password registration is disabled' };
   };
 
   const signInWithGoogle = async () => {
@@ -367,51 +268,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    try {
-      console.log('AuthContext: Starting login process', { email });
-      setIsLoggingIn(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      console.log('AuthContext: Firebase auth successful');
-      toast.success('Login successful!');
-      return { success: true };
-    } catch (error) {
-      console.error('Login error:', error);
-      let errorMessage = 'Login failed';
-      
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later';
-      }
-      
-      toast.error(errorMessage);
-      return {
-        success: false,
-        message: errorMessage,
-        code: error.code
-      };
-    }
+    // Google-only auth: block email/password login
+    toast.error('Email/password login is disabled. Please continue with Google.');
+    return { success: false, message: 'Email/password login is disabled' };
   };
 
   const resetPassword = async (email) => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success('Password reset email sent. Please check your inbox.');
-      return { success: true };
-    } catch (error) {
-      let errorMessage = 'Failed to send reset email';
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      }
-      toast.error(errorMessage);
-      return { success: false, message: errorMessage, code: error.code };
-    }
+    // Google-only auth: no passwords to reset
+    toast.error('Password reset is disabled. Please sign in with Google.');
+    return { success: false, message: 'Password reset is disabled' };
   };
 
   const logout = async () => {

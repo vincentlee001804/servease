@@ -3,19 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18next from '../config/i18n';
-import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 
 const LoginFirebase = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const { login, user, isLoggingIn, resetPassword, signInWithGoogle } = useAuth();
+  const { user, isLoggingIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathLang = location.pathname.split('/').filter(Boolean)[0] || 'en';
@@ -41,94 +34,6 @@ const LoginFirebase = () => {
       }, 100);
     }
   }, [user, isLoggingIn, navigate, pathLang]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = t('login.emailRequired');
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = t('login.emailInvalid');
-    }
-
-    if (!formData.password) {
-      newErrors.password = t('login.passwordRequired');
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    console.log('LoginFirebase: Starting login process');
-    setLoading(true);
-    
-    try {
-      const result = await login(formData.email, formData.password);
-      console.log('LoginFirebase: Login result', result);
-      
-      // Fallback navigation - if useEffect doesn't trigger, navigate after a short delay
-      if (result.success) {
-        setTimeout(() => {
-          console.log('LoginFirebase: Fallback navigation to dashboard');
-          // Ensure language is preserved from current URL path
-          const lang = pathLang || localStorage.getItem('i18nextLng') || 'en';
-          try {
-            navigate(`/${lang}/dashboard`, { replace: true });
-          } catch (e) {}
-          // Hard redirect as final safety to avoid any router state issues
-          setTimeout(() => {
-            if (!window.location.pathname.endsWith('/dashboard')) {
-              window.location.replace(`/${lang}/dashboard`);
-            }
-          }, 200);
-        }, 500);
-      } else if (result && result.code) {
-        // Map auth errors to field-level messages as well
-        if (result.code === 'auth/invalid-email' || result.code === 'auth/user-not-found') {
-          setErrors(prev => ({ ...prev, email: result.message }));
-        } else if (result.code === 'auth/wrong-password') {
-          setErrors(prev => ({ ...prev, password: result.message }));
-        }
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    // Require a valid email to send reset link
-    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setErrors(prev => ({ ...prev, email: t('login.enterValidEmailToReset') }));
-      return;
-    }
-    await resetPassword(formData.email);
-  };
 
   const handleGoogleSignIn = async () => {
     if (!signInWithGoogle) return;
@@ -159,129 +64,20 @@ const LoginFirebase = () => {
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Google Sign-In */}
+          {/* Google-only */}
+          <div className="space-y-6">
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={googleLoading}
-              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-3 border border-blue-100 bg-blue-50/60 rounded-lg py-3 text-sm sm:text-base font-semibold text-blue-700 hover:bg-blue-100 hover:border-blue-200 transition-colors disabled:opacity-60 shadow-sm"
             >
               <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-lg font-bold text-blue-600 border border-gray-200">
                 G
               </span>
               {googleLoading ? t('login.signingIn') : t('login.continueWithGoogle')}
             </button>
-
-            <div className="flex items-center gap-3 text-gray-400 text-xs uppercase tracking-wide">
-              <span className="h-px flex-1 bg-gray-200"></span>
-              <span>{t('login.orContinueWithEmail')}</span>
-              <span className="h-px flex-1 bg-gray-200"></span>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('login.emailAddress')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder={t('login.enterEmail')}
-                />
-              </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('login.password')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`block w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder={t('login.enterPassword')}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  {t('login.rememberMe')}
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  {t('login.forgotPassword')}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {t('login.signingIn')}
-                </div>
-              ) : (
-                t('login.signIn')
-              )}
-            </button>
-          </form>
+          </div>
 
           {/* Register Link */}
           <div className="mt-6 text-center">
