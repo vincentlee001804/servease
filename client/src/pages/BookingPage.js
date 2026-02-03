@@ -49,6 +49,20 @@ const BookingPage = () => {
   const currentLocale = localeMap[languageCode] || enUS;
   const isChineseLanguage = languageCode === 'jtzw';
 
+  const getServiceText = (value, fallback = '') => {
+    if (!value) return fallback;
+    if (typeof value === 'string') return value;
+    const langMap = { en: 'en', bm: 'ms', jtzw: 'zh' };
+    const mappedLang = langMap[languageCode] || 'en';
+    return (
+      value[mappedLang] ||
+      value.en ||
+      value.ms ||
+      value.zh ||
+      fallback
+    );
+  };
+
   const formatDayMonthYear = (date) => {
     if (!date) return '';
     if (isChineseLanguage) {
@@ -467,7 +481,7 @@ const BookingPage = () => {
         vendorId,
         vendorEmail: vendor?.email || vendorId, // Add vendorEmail for capacity checking
         serviceId,
-        serviceName: service.name?.en || service.name || 'Service',
+        serviceName: getServiceText(service.name, 'Service'),
         customerName: formData.customerName,
         customerEmail: formData.customerEmail,
         customerPhone: formData.customerPhone,
@@ -564,7 +578,9 @@ const BookingPage = () => {
               <h1 className="text-lg font-bold text-gray-900 truncate">
                 {isReschedule ? t('bookingForm.rescheduleBooking') : location.state?.isReorder ? t('bookingForm.reorderService') : t('bookingForm.title')}
               </h1>
-              <p className="text-xs text-gray-500 truncate">{service.name?.en || service.name}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {getServiceText(service.name, 'Service')}
+              </p>
               {isReschedule && (
                 <p className="text-xs text-blue-600 mt-1">Select a new date and time</p>
               )}
@@ -864,8 +880,12 @@ const BookingPage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <h3 className="font-semibold text-base">{service.name?.en || service.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description?.en || service.description}</p>
+                  <h3 className="font-semibold text-base">
+                    {getServiceText(service.name, 'Service')}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {getServiceText(service.description, '')}
+                  </p>
                 </div>
                 
                 <div className="flex items-center text-gray-600 text-sm">

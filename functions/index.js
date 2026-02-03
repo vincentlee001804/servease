@@ -16,6 +16,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const logger = require('./utils/logger');
+const { google } = require('googleapis');
 
 // Initialize Firebase Admin (with error handling for re-initialization)
 try {
@@ -29,6 +30,27 @@ admin.initializeApp();
 
 // Get Firestore instance
 const db = admin.firestore();
+
+// Google Calendar OAuth2 client configuration
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api/google-calendar/callback';
+
+const hasGoogleCalendarConfig =
+  !!GOOGLE_CLIENT_ID && !!GOOGLE_CLIENT_SECRET && !!GOOGLE_REDIRECT_URI;
+
+const getOAuth2Client = () => {
+  if (!hasGoogleCalendarConfig) {
+    throw new Error('Google Calendar OAuth credentials are not configured');
+  }
+  return new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+  );
+};
 
 // Create Express app
 const app = express();
@@ -933,6 +955,109 @@ app.get('/bookings/availability', async (req, res) => {
   }
 });
 
+// Generate Google Calendar OAuth URL for the authenticated vendor
+app.post('/google-calendar/connect', authenticateToken, async (req, res) => {
+  try {
+    if (!hasGoogleCalendarConfig) {
+      logger.warn('Google Calendar not configured', { email: req.user?.email });
+      return res
+        .status(500)
+        .json({ message: 'Google Calendar integration is not configured' });
+    }
+
+    const oAuth2Client = getOAuth2Client();
+
+    const scopes = ['https://www.googleapis.com/auth/calendar.events'];
+
+    const url = oAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: scopes,
+      // Use vendor email as state so we know who to link on callback
+      state: encodeURIComponent(req.user.email || '')
+    });
+
+    res.json({ url });
+  } catch (error) {
+    logger.error('Failed to generate Google Calendar auth URL', error, {
+      email: req.user?.email,
+      requestId: req.requestId
+    });
+    res.status(500).json({ message: 'Failed to start Google Calendar connect flow' });
+  }
+});
+
+// OAuth2 callback for Google Calendar
+app.get('/google-calendar/callback', async (req, res) => {
+  try {
+    if (!hasGoogleCalendarConfig) {
+      logger.warn('Google Calendar not configured on callback');
+      return res.status(500).send('Google Calendar integration is not configured.');
+    }
+
+    const { code, state } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing authorization code.');
+    }
+
+    const vendorEmail = state ? decodeURIComponent(state) : null;
+    if (!vendorEmail) {
+      return res.status(400).send('Missing vendor information in state parameter.');
+    }
+
+    const oAuth2Client = getOAuth2Client();
+
+    const { tokens } = await oAuth2Client.getToken(String(code));
+    if (!tokens.refresh_token) {
+      logger.warn('No refresh token returned from Google', { vendorEmail });
+    }
+
+    // Store tokens in a dedicated collection so we don't mix with vendor profile data
+    await db.collection('calendarTokens').doc(vendorEmail).set(
+      {
+        vendorEmail,
+        refreshToken: tokens.refresh_token || null,
+        accessToken: tokens.access_token || null,
+        scope: tokens.scope || null,
+        tokenType: tokens.token_type || null,
+        expiryDate: tokens.expiry_date || null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+
+    logger.info('Google Calendar connected for vendor', { vendorEmail });
+
+    // Simple HTML response for now
+    res.send(`
+      <html>
+        <head>
+          <title>ServEase - Google Calendar Connected</title>
+          <style>
+            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9fafb; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+            .card { background:white; padding:24px 28px; border-radius:16px; box-shadow:0 10px 30px rgba(15,23,42,0.08); max-width:420px; text-align:center; }
+            h1 { font-size:20px; margin:0 0 8px; color:#111827; }
+            p { margin:0 0 16px; color:#4b5563; font-size:14px; }
+            button { background:#2563EB; color:white; border:none; border-radius:999px; padding:10px 20px; font-size:14px; cursor:pointer; }
+            button:hover { background:#1D4ED8; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>Google Calendar Connected</h1>
+            <p>Your ServEase vendor account is now linked to Google Calendar.</p>
+            <p>You can close this window and return to the ServEase dashboard.</p>
+            <button onclick="window.close()">Close</button>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    logger.error('Google Calendar OAuth callback error', error);
+    res.status(500).send('Failed to connect Google Calendar. Please try again.');
+  }
+});
+
 // Create booking with slot capacity check
 app.post('/bookings', async (req, res) => {
   try {
@@ -1078,6 +1203,62 @@ app.post('/bookings', async (req, res) => {
     };
     
     const bookingRef = await db.collection('bookings').add(bookingData);
+
+    // If vendor has connected Google Calendar, create an event for this booking
+    try {
+      if (hasGoogleCalendarConfig) {
+        const tokenDoc = await db
+          .collection('calendarTokens')
+          .doc(vendorEmail)
+          .get();
+
+        if (tokenDoc.exists) {
+          const tokenData = tokenDoc.data();
+          if (tokenData?.refreshToken) {
+            const oAuth2Client = getOAuth2Client();
+            oAuth2Client.setCredentials({
+              refresh_token: tokenData.refreshToken
+            });
+
+            const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+            const startDateTime = new Date(`${bookingDate}T${startTime || '09:00'}:00`);
+            const durationMinutes = totalDuration || 60;
+            const endDateTime = new Date(
+              startDateTime.getTime() + durationMinutes * 60 * 1000
+            );
+
+            const summary =
+              services.length === 1
+                ? services[0].name || 'ServEase Booking'
+                : 'ServEase Booking';
+
+            await calendar.events.insert({
+              calendarId: 'primary',
+              requestBody: {
+                summary,
+                description: `Customer: ${customer.name}${
+                  customer.phone ? `, Phone: ${customer.phone}` : ''
+                }`,
+                start: { dateTime: startDateTime.toISOString() },
+                end: { dateTime: endDateTime.toISOString() }
+              }
+            });
+
+            logger.info('Google Calendar event created for booking', {
+              vendorEmail,
+              bookingId: bookingRef.id
+            });
+          }
+        }
+      }
+    } catch (calendarError) {
+      logger.warn('Failed to create Google Calendar event', calendarError, {
+        vendorEmail,
+        bookingDate,
+        startTime
+      });
+    }
     
     logger.info('Customer booking created', {
       bookingId: bookingRef.id,
@@ -1285,31 +1466,201 @@ app.get('/qr/download', authenticateToken, async (req, res) => {
 app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => {
   try {
     const { status } = req.body;
-    const bookingRef = db.collection('bookings').doc(req.params.bookingId);
+    const bookingId = req.params.bookingId;
+    
+    logger.info('Booking status update request received', {
+      bookingId,
+      status,
+      userId: req.user?.uid,
+      email: req.user?.email,
+      requestId: req.requestId
+    });
+    
+    const bookingRef = db.collection('bookings').doc(bookingId);
     await bookingRef.update({
       status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     const snap = await bookingRef.get();
     const booking = snap.data();
-    if (status === 'confirmed' && booking?.customerEmail) {
+    
+    logger.info('Booking data retrieved', {
+      bookingId,
+      status,
+      vendorEmail: booking?.vendorEmail,
+      bookingDate: booking?.bookingDate,
+      bookingTime: booking?.bookingTime,
+      startTime: booking?.startTime,
+      hasCustomerEmail: !!(booking?.customerEmail || booking?.customer?.email)
+    });
+    
+    // Send confirmation email if customer email exists
+    const customerEmail = booking?.customerEmail || booking?.customer?.email;
+    if (status === 'confirmed' && customerEmail) {
       // send confirmation email immediately
       const dateStr = new Date(booking.bookingDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       const html = `<h2>Your booking is confirmed</h2><p>Service: ${booking.serviceName || 'Service'}</p><p>Date: ${dateStr}</p><p>Time: ${booking.bookingTime}</p>`;
-      sendEmail(booking.customerEmail, 'Booking Confirmed - ServEase', html);
+      sendEmail(customerEmail, 'Booking Confirmed - ServEase', html);
 
       // schedule reminder 24h before
       const eventTime = new Date(`${booking.bookingDate}T${(booking.bookingTime || '09:00')}:00Z`).getTime();
       const reminderTime = eventTime - 24 * 60 * 60 * 1000;
       // persist reminder task
       await db.collection('emailReminders').add({
-        to: booking.customerEmail,
+        to: customerEmail,
         subject: 'Appointment Reminder - ServEase',
         html: `<h2>Reminder</h2><p>You have an appointment tomorrow for ${booking.serviceName || 'Service'} at ${booking.bookingTime}.</p>`,
         sendAt: admin.firestore.Timestamp.fromMillis(reminderTime),
         status: 'pending',
         bookingId: req.params.bookingId
       });
+    }
+
+    // Create Google Calendar event for vendor if they connected Calendar (for any confirmed booking)
+    if (status === 'confirmed') {
+      try {
+        if (hasGoogleCalendarConfig) {
+          const vendorEmail = booking.vendorEmail;
+          logger.info('Attempting to create Google Calendar event', {
+            bookingId: req.params.bookingId,
+            vendorEmail,
+            hasConfig: hasGoogleCalendarConfig
+          });
+
+          if (vendorEmail) {
+            const tokenDoc = await db
+              .collection('calendarTokens')
+              .doc(vendorEmail)
+              .get();
+
+            if (tokenDoc.exists) {
+              const tokenData = tokenDoc.data();
+              logger.info('Found calendar token document', {
+                bookingId: req.params.bookingId,
+                vendorEmail,
+                hasRefreshToken: !!tokenData?.refreshToken
+              });
+
+              if (tokenData?.refreshToken) {
+                const oAuth2Client = getOAuth2Client();
+                oAuth2Client.setCredentials({
+                  refresh_token: tokenData.refreshToken
+                });
+
+                const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+
+                // Parse date and time - handle multiple formats
+                const dateString = booking.bookingDate || booking.date;
+                const timeString = booking.bookingTime || booking.startTime || '09:00';
+                
+                logger.info('Parsing booking date/time', {
+                  bookingId: req.params.bookingId,
+                  dateString,
+                  timeString,
+                  bookingDate: booking.bookingDate,
+                  bookingTime: booking.bookingTime,
+                  startTime: booking.startTime
+                });
+
+                // Ensure time has format HH:MM
+                const normalizedTime = timeString.includes(':') ? timeString : `${timeString}:00`;
+                const timeParts = normalizedTime.split(':');
+                const hours = timeParts[0].padStart(2, '0');
+                const minutes = timeParts[1] || '00';
+                const formattedTime = `${hours}:${minutes}`;
+
+                // Parse date - handle YYYY-MM-DD format
+                let startDateTime;
+                if (dateString.includes('T')) {
+                  // Already ISO format
+                  startDateTime = new Date(dateString);
+                } else {
+                  // Format: YYYY-MM-DD or similar
+                  // Create date in local timezone
+                  const dateParts = dateString.split('-');
+                  if (dateParts.length === 3) {
+                    const year = parseInt(dateParts[0], 10);
+                    const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+                    const day = parseInt(dateParts[2], 10);
+                    const [hour, minute] = formattedTime.split(':').map(Number);
+                    startDateTime = new Date(year, month, day, hour, minute);
+                  } else {
+                    // Fallback: try direct parsing
+                    startDateTime = new Date(`${dateString}T${formattedTime}:00`);
+                  }
+                }
+
+                if (isNaN(startDateTime.getTime())) {
+                  throw new Error(`Invalid date/time: ${dateString} ${formattedTime}`);
+                }
+
+                const durationMinutes = booking.totalDuration || 60;
+                const endDateTime = new Date(
+                  startDateTime.getTime() + durationMinutes * 60 * 1000
+                );
+
+                const summary = booking.serviceName || 'ServEase Booking';
+                const customerName = booking.customerName || booking.customer?.name || 'Customer';
+                const customerPhone = booking.customerPhone || booking.customer?.phone || '';
+
+                logger.info('Creating Google Calendar event', {
+                  bookingId: req.params.bookingId,
+                  vendorEmail,
+                  summary,
+                  startDateTime: startDateTime.toISOString(),
+                  endDateTime: endDateTime.toISOString()
+                });
+
+                const eventResult = await calendar.events.insert({
+                  calendarId: 'primary',
+                  requestBody: {
+                    summary,
+                    description: `Customer: ${customerName}${customerPhone ? `, Phone: ${customerPhone}` : ''}`,
+                    start: { dateTime: startDateTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+                    end: { dateTime: endDateTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+                  }
+                });
+
+                logger.info('Google Calendar event created successfully', {
+                  bookingId: req.params.bookingId,
+                  vendorEmail,
+                  eventId: eventResult.data.id,
+                  eventLink: eventResult.data.htmlLink
+                });
+              } else {
+                logger.warn('No refresh token found in calendarTokens document', {
+                  bookingId: req.params.bookingId,
+                  vendorEmail
+                });
+              }
+            } else {
+              logger.warn('No calendarTokens document found for vendor', {
+                bookingId: req.params.bookingId,
+                vendorEmail
+              });
+            }
+          } else {
+            logger.warn('No vendorEmail in booking', {
+              bookingId: req.params.bookingId,
+              booking: Object.keys(booking)
+            });
+          }
+        } else {
+          logger.warn('Google Calendar config not available', {
+            bookingId: req.params.bookingId,
+            hasClientId: !!GOOGLE_CLIENT_ID,
+            hasClientSecret: !!GOOGLE_CLIENT_SECRET,
+            hasRedirectUri: !!GOOGLE_REDIRECT_URI
+          });
+        }
+      } catch (calendarError) {
+        logger.error('Failed to create Google Calendar event on confirmation', calendarError, {
+          bookingId: req.params.bookingId,
+          vendorEmail: booking.vendorEmail,
+          errorMessage: calendarError.message,
+          errorStack: calendarError.stack
+        });
+      }
     }
     
     logger.info('Booking status updated', {

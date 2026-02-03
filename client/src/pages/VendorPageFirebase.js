@@ -593,13 +593,23 @@ const VendorPageFirebase = () => {
                               </span>
                             )}
                         </div>
-                          {getTranslatedText(service.description, service.description) &&
-                            getTranslatedText(service.description, service.description).trim().toLowerCase() !== 
-                            (getTranslatedText(service.name, service.name)?.trim().toLowerCase() || '') && (
-                            <p className="text-sm text-gray-600 line-clamp-2">
-                              {getTranslatedText(service.description, service.description)}
-                            </p>
-                          )}
+                          {(() => {
+                            const desc = getTranslatedText(service.description, service.description);
+                            const nameText = getTranslatedText(service.name, service.name);
+                            const normalizedDesc =
+                              typeof desc === 'string' ? desc.trim().toLowerCase() : '';
+                            const normalizedName =
+                              typeof nameText === 'string' ? nameText.trim().toLowerCase() : '';
+
+                            if (!normalizedDesc) return null;
+                            if (normalizedDesc === normalizedName) return null;
+
+                            return (
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {desc}
+                              </p>
+                            );
+                          })()}
                           <div className="flex items-center gap-1 text-sm text-gray-500">
                             <Clock className="w-4 h-4 flex-shrink-0" />
                             <span>{service.duration || 0} {t('vendorPage.minutes')}</span>

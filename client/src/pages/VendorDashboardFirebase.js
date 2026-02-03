@@ -35,6 +35,10 @@ import AIMarketingTool from '../components/AIMarketingTool';
 import { deleteUser, reauthenticateWithPopup, reauthenticateWithCredential, GoogleAuthProvider, EmailAuthProvider } from 'firebase/auth';
 import html2canvas from 'html2canvas';
 
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  'https://us-central1-servease-07762363-b4f31.cloudfunctions.net/api';
+
 const VendorDashboardFirebase = () => {
   const { user, isAuthenticated } = useAuth();
   const { lang } = useParams();
@@ -127,6 +131,10 @@ const VendorDashboardFirebase = () => {
     notes: ''
   });
 
+  // Google Calendar connect state
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+
   // Format booking price using booking's stored pricing when available,
   // otherwise fall back to the corresponding service's pricing definition
   const formatBookingPrice = useCallback((booking) => {
@@ -179,6 +187,42 @@ const VendorDashboardFirebase = () => {
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [coverImagePreview, setCoverImagePreview] = useState('');
   const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
+
+  // Check if Google Calendar is already connected (based on vendor profile flag if present)
+  useEffect(() => {
+    if (dashboardData?.vendor?.googleCalendarConnected) {
+      setCalendarConnected(true);
+    }
+  }, [dashboardData?.vendor?.googleCalendarConnected]);
+
+  const connectGoogleCalendar = async () => {
+    try {
+      if (!auth.currentUser) {
+        toast.error(t('dashboard.mustBeLoggedIn'));
+        return;
+      }
+      setConnectingCalendar(true);
+      const token = await auth.currentUser.getIdToken(true);
+      const resp = await fetch(`${API_BASE}/google-calendar/connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const json = await resp.json();
+      if (!resp.ok || !json.url) {
+        throw new Error(json?.message || 'Failed to start Google Calendar connect');
+      }
+      // Redirect browser to Google's OAuth consent screen
+      window.location.href = json.url;
+    } catch (error) {
+      console.error('Google Calendar connect error', error);
+      toast.error(error.message || 'Failed to connect Google Calendar');
+    } finally {
+      setConnectingCalendar(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     console.log('fetchDashboardData called', { isFetching: isFetchingRef.current, user: !!user });
@@ -817,12 +861,31 @@ const VendorDashboardFirebase = () => {
 
   const updateBookingStatus = async (bookingId, status) => {
     try {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, {
-        status: status,
-        updatedAt: new Date()
-      });
-      
+      // Prefer backend API so that side effects (emails, calendar events) run there
+      if (auth.currentUser && API_BASE) {
+        const token = await auth.currentUser.getIdToken(true);
+        const resp = await fetch(`${API_BASE}/bookings/${bookingId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ status })
+        });
+
+        if (!resp.ok) {
+          const json = await resp.json().catch(() => null);
+          throw new Error(json?.message || 'Failed to update booking via API');
+        }
+      } else {
+        // Fallback: direct Firestore update (no calendar integration)
+        const bookingRef = doc(db, 'bookings', bookingId);
+        await updateDoc(bookingRef, {
+          status,
+          updatedAt: new Date()
+        });
+      }
+
       toast.success('Booking status updated successfully!');
       fetchDashboardData(); // Refresh data
     } catch (error) {
@@ -1125,6 +1188,36 @@ const VendorDashboardFirebase = () => {
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
+                {/* Google Calendar Connect */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      Sync with Google Calendar (beta)
+                    </p>
+                    <p className="text-xs text-blue-800 mt-1 max-w-md">
+                      Automatically add confirmed bookings to your Google Calendar so you never miss an appointment.
+                    </p>
+                  </div>
+                  <button
+                    onClick={connectGoogleCalendar}
+                    disabled={connectingCalendar}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {connectingCalendar ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Connect Google Calendar
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 {/* Today's Schedule Calendar View */}
                 <div>
                   <div className="mb-4">
