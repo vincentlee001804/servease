@@ -1570,34 +1570,54 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
                 const formattedTime = `${hours}:${minutes}`;
 
                 // Parse date - handle YYYY-MM-DD format
-                let startDateTime;
-                if (dateString.includes('T')) {
-                  // Already ISO format
-                  startDateTime = new Date(dateString);
-                } else {
-                  // Format: YYYY-MM-DD or similar
-                  // Create date in local timezone
-                  const dateParts = dateString.split('-');
-                  if (dateParts.length === 3) {
-                    const year = parseInt(dateParts[0], 10);
-                    const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
-                    const day = parseInt(dateParts[2], 10);
-                    const [hour, minute] = formattedTime.split(':').map(Number);
-                    startDateTime = new Date(year, month, day, hour, minute);
-                  } else {
-                    // Fallback: try direct parsing
-                    startDateTime = new Date(`${dateString}T${formattedTime}:00`);
+                // Use Malaysia timezone (GMT+8) for bookings
+                const timeZone = 'Asia/Kuala_Lumpur';
+                
+                // Parse date and time components
+                const dateParts = dateString.split('-');
+                if (dateParts.length !== 3) {
+                  throw new Error(`Invalid date format: ${dateString}`);
+                }
+                
+                const year = parseInt(dateParts[0], 10);
+                const month = parseInt(dateParts[1], 10);
+                const day = parseInt(dateParts[2], 10);
+                const [hour, minute] = formattedTime.split(':').map(Number);
+                
+                // Create ISO string directly in Malaysia timezone (GMT+8)
+                // Format: YYYY-MM-DDTHH:MM:SS+08:00
+                const startDateTimeStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00+08:00`;
+                
+                // Calculate end time by adding duration to start time
+                const durationMinutes = booking.totalDuration || 60;
+                const totalMinutes = hour * 60 + minute + durationMinutes;
+                const endHour = Math.floor(totalMinutes / 60);
+                const endMinute = totalMinutes % 60;
+                
+                // Calculate end day (handle overflow past midnight)
+                let endDay = day;
+                let endMonth = month;
+                let endYear = year;
+                let finalEndHour = endHour;
+                
+                if (endHour >= 24) {
+                  const daysToAdd = Math.floor(endHour / 24);
+                  finalEndHour = endHour % 24;
+                  endDay += daysToAdd;
+                  
+                  // Simple month/year overflow handling (assumes valid dates)
+                  const daysInMonth = new Date(year, month, 0).getDate();
+                  if (endDay > daysInMonth) {
+                    endDay = endDay - daysInMonth;
+                    endMonth += 1;
+                    if (endMonth > 12) {
+                      endMonth = 1;
+                      endYear += 1;
+                    }
                   }
                 }
-
-                if (isNaN(startDateTime.getTime())) {
-                  throw new Error(`Invalid date/time: ${dateString} ${formattedTime}`);
-                }
-
-                const durationMinutes = booking.totalDuration || 60;
-                const endDateTime = new Date(
-                  startDateTime.getTime() + durationMinutes * 60 * 1000
-                );
+                
+                const endDateTimeStr = `${endYear}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}T${String(finalEndHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}:00+08:00`;
 
                 const summary = booking.serviceName || 'ServEase Booking';
                 const customerName = booking.customerName || booking.customer?.name || 'Customer';
@@ -1607,8 +1627,12 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
                   bookingId: req.params.bookingId,
                   vendorEmail,
                   summary,
-                  startDateTime: startDateTime.toISOString(),
-                  endDateTime: endDateTime.toISOString()
+                  dateString,
+                  timeString,
+                  formattedTime,
+                  startDateTime: startDateTimeStr,
+                  endDateTime: endDateTimeStr,
+                  timeZone
                 });
 
                 const eventResult = await calendar.events.insert({
@@ -1616,8 +1640,14 @@ app.patch('/bookings/:bookingId/status', authenticateToken, async (req, res) => 
                   requestBody: {
                     summary,
                     description: `Customer: ${customerName}${customerPhone ? `, Phone: ${customerPhone}` : ''}`,
-                    start: { dateTime: startDateTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-                    end: { dateTime: endDateTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }
+                    start: { 
+                      dateTime: startDateTimeStr,
+                      timeZone: timeZone
+                    },
+                    end: { 
+                      dateTime: endDateTimeStr,
+                      timeZone: timeZone
+                    }
                   }
                 });
 
